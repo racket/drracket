@@ -1,36 +1,35 @@
 #lang racket/unit
 
-(require drracket/private/drsig
+(require compiler/bundle-dist
+         compiler/distribute
+         compiler/embed
+         drracket/private/drsig
+         framework
+         framework/private/srcloc-panel
+         launcher
+         mred
+         mrlib/syntax-browser
+         mzlib/pconvert
+         mzlib/struct
+         racket/class
+         racket/file
+         racket/list
+         racket/pretty
          string-constants
-         
+
          ;; NOTE: this module instantiates stacktrace itself, so we have
          ;; to be careful to not mix that instantiation with the one
          ;; drracket/private/debug.rkt does. errortrace-lib's is for the
          ;; compilation handling, DrRacket's is for profiling and test coverage
          ;; (which do not do compilation)
-         (prefix-in el: errortrace/errortrace-lib) 
-         
+         (prefix-in el: errortrace/errortrace-lib)
+
          (prefix-in image-core: mrlib/image-core)
-         
-         mzlib/pconvert
-         racket/pretty
-         mzlib/struct
-         racket/class
-         racket/file
-         racket/list
-         compiler/embed
-         launcher
-         mred
-         framework
-         framework/private/srcloc-panel
-         mrlib/syntax-browser
-         compiler/distribute
-         compiler/bundle-dist
          (prefix-in file: file/convertible)
-         "rep.rkt"
-         "local-member-names.rkt"
+         (prefix-in pict-snip: "pict-snip.rkt")
          "compiled-dir.rkt"
-         (prefix-in pict-snip: "pict-snip.rkt"))
+         "local-member-names.rkt"
+         "rep.rkt")
   
   (import [prefix drracket:debug: drracket:debug^]
           [prefix drracket:tools: drracket:tools^]

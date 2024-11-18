@@ -1,11 +1,11 @@
 #lang racket/base
-(require racket/unit
-         mred/mred-sig
-         racket/class
-         "plt-installer-sig.rkt"
-         (prefix-in single: setup/plt-single-installer)
+(require mred/mred-sig
          mrlib/terminal
-         string-constants)
+         racket/class
+         racket/unit
+         string-constants
+         (prefix-in single: setup/plt-single-installer)
+         "plt-installer-sig.rkt")
 
 (provide plt-installer@)
 (define-unit plt-installer@
