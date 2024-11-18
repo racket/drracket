@@ -1234,7 +1234,7 @@
     (let* ([base-name (let-values ([(base name dir?) (split-path distribution-filename)])
                         (path-replace-suffix name #""))]
            [temp-dir
-            (make-temporary-file "drscheme-tmp-~a" 'directory)]
+            (make-temporary-directory "drscheme-tmp-~a")]
            [c (make-custodian)]
            [dialog (new dialog%
                         [label (string-constant distribution-progress-window-title)]
