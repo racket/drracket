@@ -1088,12 +1088,12 @@
   
   ;; default-executable-filename : path symbol boolean -> path
   (define (default-executable-filename program-filename mode mred?)
-    (let ([ext (let-values ([(extension style filters)
-                             (mode->put-file-extension+style+filters mode mred?)])
-                 (if extension
-                     (string->bytes/utf-8 (string-append "." extension))
-                     #""))])
-      (path-replace-suffix program-filename ext)))
+    (define ext
+      (let-values ([(extension style filters) (mode->put-file-extension+style+filters mode mred?)])
+        (if extension
+            (string->bytes/utf-8 (string-append "." extension))
+            #"")))
+    (path-replace-suffix program-filename ext))
   
   (define (mode->put-file-extension+style+filters mode mred?)
     (case mode
