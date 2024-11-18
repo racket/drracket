@@ -140,37 +140,8 @@
         (inner (void) after-delete a b))
       (super-new)))
   
-  (define (make-big-text label #:key [key #f] #:stretch? [stretch? #f] #:top-panel [top-panel top-panel] #:vertical? [vertical? #f])
-    (let ([canvas 
-           (build/label 
-            label 
-            (lambda (panel)
-              (define text
-                (new (editor:standard-style-list-mixin
-                      (editor:keymap-mixin (if key save-text% text:basic%)))))
-              (define canvas (new canvas:basic% (style '(hide-hscroll)) (parent panel) (editor text)))
-              (send text set-paste-text-only #t)
-              (send text auto-wrap #t)
-              (send text set-max-undo-history 'forever)
-              (send text set-styles-fixed #t)
-              (when key
-                (send text insert (saved-report-lookup init-bug-report key))
-                (send text set-position 0 0)
-                (send text initialized))
-              canvas)
-            #t
-            #:stretch? stretch?
-            #:top-panel top-panel
-            #:vertical? vertical?)])
-      (send canvas min-width 500)
-      (send canvas min-height 130)
-      (send canvas get-editor)
-      (send canvas allow-tab-exit #t)
-      canvas))
-  
-  (define description (make-big-text (string-constant bug-report-field-description)
-                                     #:key 'description
-                                     #:stretch? #t))
+  (define description
+    (make-big-text (string-constant bug-report-field-description) #:key 'description #:stretch? #t))
   (define reproduce (make-big-text (list (string-constant bug-report-field-reproduce1)
                                          (string-constant bug-report-field-reproduce2))
                                    #:key 'how-to-repeat
