@@ -199,18 +199,16 @@
   ;; add-syntax-connections : syntax -> void
   (define (add-syntax-connections stx)
     (define module-codes (map compile (expand-syntax-top-level-with-compile-time-evals/flatten stx)))
-    (for ([module-code (in-list module-codes)])
-      (when (compiled-module-expression? module-code)
-        (define name (extract-module-name stx))
-        (define base 
-          (build-module-filename
-           (if (regexp-match #rx"^," name)
-               (substring name 1 (string-length name))
-               (build-path (or (current-load-relative-directory) 
-                               (current-directory))
-                           name))
-           #f))
-        (add-module-code-connections/with-submods base module-code))))
+    (for ([module-code (in-list module-codes)]
+          #:when (compiled-module-expression? module-code))
+      (define name (extract-module-name stx))
+      (define base
+        (build-module-filename
+         (if (regexp-match #rx"^," name)
+             (substring name 1 (string-length name))
+             (build-path (or (current-load-relative-directory) (current-directory)) name))
+         #f))
+      (add-module-code-connections/with-submods base module-code)))
 
   (define (add-module-code-connections/with-submods base module-code)
     (add-module-code-connections base module-code)
