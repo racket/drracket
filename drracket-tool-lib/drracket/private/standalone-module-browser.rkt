@@ -248,7 +248,7 @@
         (get-module-code filename #:submodule-path sub-mods))]))
   
   (define (add-module-code-connections module-name module-code)
-    (unless (hash-ref visited-hash-table module-name (λ () #f))
+    (unless (hash-ref visited-hash-table module-name #f)
       (async-channel-put progress-channel (format adding-file module-name))
       (hash-set! visited-hash-table module-name #t)
       (define import-assoc (module-compiled-imports module-code))
