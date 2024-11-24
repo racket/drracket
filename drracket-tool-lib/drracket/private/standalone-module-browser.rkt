@@ -915,7 +915,7 @@
                [else (values #f '())]))
            (define snip
              (new word-snip/lines%
-                  [lines (if filename (count-lines filename) #f)]
+                  [lines (and filename (count-lines filename))]
                   [word 
                    (if filename
                        (let ([short-name (let-values ([(_1 name _2) (split-path filename)])
@@ -991,7 +991,7 @@
           (when (show-this-one? root)
             (insert root)
             (send root set-level 0))
-          (let loop ([parent-to-link (if (show-this-one? root) root #f)]
+          (let loop ([parent-to-link (and (show-this-one? root) root)]
                      [parent root]
                      [through-for-syntax? #f])
             (unless (hash-ref visited parent #f)
