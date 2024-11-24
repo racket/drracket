@@ -574,7 +574,7 @@
                   [parent menu]
                   [label (choice->label-string choice)]
                   [callback (λ (item evt)
-                              (hash-set! selected choice (not (hash-ref selected choice)))
+                              (hash-update! selected choice (λ (v) (not v)))
                               (update-the-pasteboard))]))
            (send item check (hash-ref selected choice)))
          (popup-menu menu 0 ch)]))
@@ -859,9 +859,7 @@
         (define require-snip (find/create-snip name-require))
         (set! roots (remove require-snip roots))
         (let ([require-depth-key (list original-snip require-snip)])
-          (hash-set! require-depth-ht
-                     require-depth-key
-                     (cons require-depth (hash-ref require-depth-ht require-depth-key '()))))
+          (hash-update! require-depth-ht require-depth-key (λ (v) (cons require-depth v)) '()))
         (define table-to-add-to (if (equal? require-depth 0) original-plain-links original-for-syntax-links))
         (define previous-children (hash-ref table-to-add-to original-snip '()))
         (unless (member require-snip previous-children)
@@ -1164,8 +1162,7 @@
                                 #:unless (object=? snip this))
                        snip)))
         (set! level _l)
-        (hash-set! level-ht level 
-                   (cons this (hash-ref level-ht level '()))))
+        (hash-update! level-ht level (λ (v) (cons this v)) '()))
       
       (super-new)))
   
