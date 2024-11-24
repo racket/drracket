@@ -917,14 +917,15 @@
              (new word-snip/lines%
                   [lines (and filename (count-lines filename))]
                   [word 
-                   (if filename
-                       (let ([short-name (let-values ([(_1 name _2) (split-path filename)])
-                                           (path->string name))])
-                         (match name
-                           [(? path-string?) short-name]
-                           [`(submod ,p ,submods ...) 
-                            (format "~s" `(submod ,short-name ,@submods))]))
-                       (format "~a" name))]
+                   (cond
+                     [filename
+                      (define short-name
+                        (let-values ([(_1 name _2) (split-path filename)])
+                          (path->string name)))
+                      (match name
+                        [(? path-string?) short-name]
+                        [`(submod ,p ,submods ...) (format "~s" `(submod ,short-name ,@submods))])]
+                     [else (format "~a" name)])]
                   [pb this]
                   [filename filename]
                   [pkg (cond
@@ -1196,14 +1197,13 @@
       
       (field (lines-brush #f))
       (define/public (normalize-lines n)
-        (if lines
-            (let* ([grey (inexact->exact (floor (- 255 (* 255 (sqrt (/ lines n))))))])
-              (set! lines-brush (send the-brush-list find-or-create-brush
-                                      (make-object color% grey grey grey)
-                                      'solid)))
-            (set! lines-brush (send the-brush-list find-or-create-brush
-                                    "salmon"
-                                    'solid))))
+        (cond
+          [lines
+           (define grey (inexact->exact (floor (- 255 (* 255 (sqrt (/ lines n)))))))
+           (set!
+            lines-brush
+            (send the-brush-list find-or-create-brush (make-object color% grey grey grey) 'solid))]
+          [else (set! lines-brush (send the-brush-list find-or-create-brush "salmon" 'solid))]))
       
       (define snip-width 0)
       (define snip-height 0)
