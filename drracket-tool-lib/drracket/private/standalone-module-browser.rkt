@@ -1214,9 +1214,9 @@
            (set! snip-width 15)
            (set! snip-height 15)]
           [else
-           (let-values ([(w h a d) (send dc get-text-extent (name->label) label-font)])
-             (set! snip-width (+ w 5))
-             (set! snip-height (+ h 5)))])
+           (define-values (w h a d) (send dc get-text-extent (name->label) label-font))
+           (set! snip-width (+ w 5))
+           (set! snip-height (+ h 5))])
         (set-box/f wb snip-width)
         (set-box/f hb snip-height)
         (set-box/f descent 0)
