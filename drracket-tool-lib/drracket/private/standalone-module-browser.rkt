@@ -1021,9 +1021,9 @@
              (set-member? pkg-restriction (send word-ship/lines get-pkg))))
 
       (define/private (reset-levels)
-        (for ([(level snips) (in-hash level-ht)])
-          (for ([snip (in-list snips)])
-            (send snip reset-level)))
+        (for* ([(level snips) (in-hash level-ht)]
+               [snip (in-list snips)])
+          (send snip reset-level))
         (set! level-ht (make-hash)))
       
       (define/private (get-top-most-snips) (hash-ref level-ht 0 '()))
