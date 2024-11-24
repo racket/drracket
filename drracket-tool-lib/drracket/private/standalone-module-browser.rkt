@@ -1,26 +1,26 @@
 #lang racket/base
 
-(require racket/gui/base
-         racket/class
-         racket/set
-         racket/contract
-         racket/list
-         racket/promise
-         syntax/moddep
-         syntax/toplevel
-         framework/preferences
+(require compiler/module-suffix
+         drracket/private/rectangle-intersect
          framework/gui-utils
-         string-constants
+         framework/preferences
          mrlib/graph
          mrlib/panel-wob
-         racket/unit
+         pkg/path
          racket/async-channel
+         racket/class
+         racket/contract
+         racket/gui/base
+         racket/list
          racket/match
-         setup/dirs
          racket/port
-         compiler/module-suffix
-         drracket/private/rectangle-intersect
-         pkg/path)
+         racket/promise
+         racket/set
+         racket/unit
+         setup/dirs
+         string-constants
+         syntax/moddep
+         syntax/toplevel)
 
 (define oprintf
   (let ([op (current-output-port)])
