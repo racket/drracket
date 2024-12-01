@@ -836,9 +836,9 @@
             (unless (hash-ref ht (cons parent depth) #f)
               (hash-set! ht (cons parent depth) #t)
               (send parent add-require-phase depth)
-              (for ([child (in-list (send parent get-children))])
-                (for ([delta-depth (in-list (hash-ref require-depth-ht (list parent child)))])
-                  (loop child (and depth delta-depth (+ delta-depth depth)))))))))
+              (for* ([child (in-list (send parent get-children))]
+                     [delta-depth (in-list (hash-ref require-depth-ht (list parent child)))])
+                (loop child (and depth delta-depth (+ delta-depth depth))))))))
       
       ;; add-connection : path/string/submod path/string/submod (union symbol #f) number -> void
       ;; name-original and name-require and the identifiers for those paths and
