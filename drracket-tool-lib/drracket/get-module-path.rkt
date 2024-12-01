@@ -343,9 +343,10 @@
                ;; this is #f when there is not alternate racket supplied
                [clcl/clcp (and
                            (path-string? initial-alternate-racket)
-                           (let-values ([(a b c) (alternate-racket-clcl/clcp initial-alternate-racket
-                                                                             pkgs-dirs-cache)])
-                             (list a b c)))])
+                           (call-with-values (λ ()
+                                               (alternate-racket-clcl/clcp initial-alternate-racket
+                                                                           pkgs-dirs-cache))
+                                             list))])
       (sync
        (handle-evt 
         new-alternate-racket-chan
