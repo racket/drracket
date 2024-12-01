@@ -319,14 +319,8 @@
                               #:on-boxed-word-double-click [on-boxed-word-double-click void])
   (define progress-eventspace (make-eventspace))
   (define progress-frame (parameterize ([current-eventspace progress-eventspace])
-                           (instantiate frame% ()
-                             (parent parent)
-                             (label progress-label)
-                             (width 600))))
-  (define progress-message (instantiate message% ()
-                             (label "")
-                             (stretchable-width #t)
-                             (parent progress-frame)))
+                           (new frame% (parent parent) (label progress-label) (width 600))))
+  (define progress-message (new message% (label "") (stretchable-width #t) (parent progress-frame)))
   
   (define thd 
     (thread
