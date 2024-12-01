@@ -1036,7 +1036,7 @@
                                                               (λ (x) (get-snip-height x)))
                                                           v))))))
           
-          (define levels (sort (hash-map level-ht list) (λ (x y) (<= (car x) (car y)))))
+          (define levels (sort (hash-map level-ht list) <= #:key car))
           (let loop ([levels levels]
                      [major-dim 0])
             (cond
