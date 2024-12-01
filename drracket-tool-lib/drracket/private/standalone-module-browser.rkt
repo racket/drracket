@@ -1042,47 +1042,49 @@
             (cond
               [(null? levels) (void)]
               [else
-               (let* ([level (car levels)]
-                      [n (car level)]
-                      [this-level-snips (cadr level)]
-                      [this-minor (apply +
-                                         (map (if vertical?
-                                                  (λ (x) (get-snip-width x))
-                                                  (λ (x) (get-snip-height x)))
-                                              this-level-snips))]
-                      [this-major (apply max
-                                         0
-                                         (map (if vertical?
-                                                  (λ (x) (get-snip-height x))
-                                                  (λ (x) (get-snip-width x)))
-                                              this-level-snips))])
-                 (let loop ([snips this-level-snips]
-                            [minor-dim (/ (- max-minor this-minor) 2)])
-                   (unless (null? snips)
-                     (let* ([snip (car snips)]
-                            [new-major-coord (+ major-dim
-                                                (floor (- (/ this-major 2)
-                                                          (/ (if vertical?
-                                                                 (get-snip-height snip)
-                                                                 (get-snip-width snip))
-                                                             2))))])
-                       (if vertical?
-                           (move-to snip minor-dim new-major-coord)
-                           (move-to snip new-major-coord minor-dim))
-                       (loop (cdr snips)
-                             (+ minor-dim
-                                (if vertical?
-                                    (get-snip-hspace)
-                                    (get-snip-vspace))
-                                (if vertical?
-                                    (get-snip-width snip)
-                                    (get-snip-height snip)))))))
-                 (loop (cdr levels)
-                       (+ major-dim
-                          (if vertical?
-                              (get-snip-vspace)
-                              (get-snip-hspace))
-                          this-major)))])))
+               (define level (car levels))
+               (car level)
+               (define this-level-snips (cadr level))
+               (define this-minor
+                 (apply +
+                        (map (if vertical?
+                                 (λ (x) (get-snip-width x))
+                                 (λ (x) (get-snip-height x)))
+                             this-level-snips)))
+               (define this-major
+                 (apply max
+                        0
+                        (map (if vertical?
+                                 (λ (x) (get-snip-height x))
+                                 (λ (x) (get-snip-width x)))
+                             this-level-snips)))
+               (let loop ([snips this-level-snips]
+                          [minor-dim (/ (- max-minor this-minor) 2)])
+                 (unless (null? snips)
+                   (let* ([snip (car snips)]
+                          [new-major-coord (+ major-dim
+                                              (floor (- (/ this-major 2)
+                                                        (/ (if vertical?
+                                                               (get-snip-height snip)
+                                                               (get-snip-width snip))
+                                                           2))))])
+                     (if vertical?
+                         (move-to snip minor-dim new-major-coord)
+                         (move-to snip new-major-coord minor-dim))
+                     (loop (cdr snips)
+                           (+ minor-dim
+                              (if vertical?
+                                  (get-snip-hspace)
+                                  (get-snip-vspace))
+                              (if vertical?
+                                  (get-snip-width snip)
+                                  (get-snip-height snip)))))))
+               (loop (cdr levels)
+                     (+ major-dim
+                        (if vertical?
+                            (get-snip-vspace)
+                            (get-snip-hspace))
+                        this-major))])))
         (end-edit-sequence))
       
       (define/override (on-mouse-over-snips snips)
@@ -1098,42 +1100,31 @@
       (define/override (on-event evt)
         (cond
           [(and on-boxed-word-double-click (send evt button-down? 'right))
-           (let ([ex (send evt get-x)]
-                 [ey (send evt get-y)])
-             (let-values ([(x y) (dc-location-to-editor-location ex ey)])
-               (let ([snip (find-snip x y)]
-                     [canvas (get-canvas)])
-                 (let ([right-button-menu (make-object popup-menu%)])
-                   (when (and snip
-                              (is-a? snip boxed-word-snip<%>)
-                              canvas
-                              (send snip get-filename))
-                     (new menu-item%
-                          [label 
-                           (trim-string
-                            (format open-file-format
-                                    (path->string (send snip get-filename)))
-                            200)]
-                          [parent right-button-menu]
-                          [callback
-                           (λ (x y)
-                             (on-boxed-word-double-click
-                              (send snip get-filename)))]))
-                   (new menu-item%
-                        [label (string-constant module-browser-open-all)]
-                        [parent right-button-menu]
-                        [callback
-                         (λ (x y)
-                           (let loop ([snip (find-first-snip)])
-                             (when snip
-                               (when (is-a? snip boxed-word-snip<%>)
-                                 (let ([filename (send snip get-filename)])
-                                   (on-boxed-word-double-click filename)))
-                               (loop (send snip next)))))])
-                   (send canvas popup-menu
-                         right-button-menu
-                         (+ (send evt get-x) 1)
-                         (+ (send evt get-y) 1))))))]
+           (define ex (send evt get-x))
+           (define ey (send evt get-y))
+           (define-values (x y) (dc-location-to-editor-location ex ey))
+           (define snip (find-snip x y))
+           (define canvas (get-canvas))
+           (define right-button-menu (make-object popup-menu%))
+           (when (and snip (is-a? snip boxed-word-snip<%>) canvas (send snip get-filename))
+             (new menu-item%
+                  [label
+                   (trim-string (format open-file-format (path->string (send snip get-filename)))
+                                200)]
+                  [parent right-button-menu]
+                  [callback (λ (x y) (on-boxed-word-double-click (send snip get-filename)))]))
+           (new menu-item%
+                [label (string-constant module-browser-open-all)]
+                [parent right-button-menu]
+                [callback
+                 (λ (x y)
+                   (let loop ([snip (find-first-snip)])
+                     (when snip
+                       (when (is-a? snip boxed-word-snip<%>)
+                         (let ([filename (send snip get-filename)])
+                           (on-boxed-word-double-click filename)))
+                       (loop (send snip next)))))])
+           (send canvas popup-menu right-button-menu (+ (send evt get-x) 1) (+ (send evt get-y) 1))]
           [else (super on-event evt)]))
       
       (super-new)))
@@ -1426,8 +1417,8 @@
 (define (get-init-dir path/f)
   (cond
     [path/f
-     (let-values ([(base name dir?) (split-path path/f)])
-       base)]
+     (define-values (base name dir?) (split-path path/f))
+     base]
     [else
      (find-system-path 'home-dir)]))
 
