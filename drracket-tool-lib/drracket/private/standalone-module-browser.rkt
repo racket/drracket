@@ -376,28 +376,26 @@
                 frame)]
            [alignment '(left center)]))
     (define root-message
-      (instantiate message% ()
-        [label (format (string-constant module-browser-root-filename) filename)]
-        [parent vp]
-        [stretchable-width #t]))
+      (new message%
+           [label (format (string-constant module-browser-root-filename) filename)]
+           [parent vp]
+           [stretchable-width #t]))
     (define label-message
-      (instantiate message% ()
-        [label ""]
-        [parent vp]
-        [stretchable-width #t]))
+      (new message% [label ""] [parent vp] [stretchable-width #t]))
     (define font/label-panel (new horizontal-panel% [parent vp] [stretchable-height #f]))
     (define pkg-choice
       (new module-browser-pkg-set-choice% [parent font/label-panel] [pasteboard pasteboard]))
     (define submod-choice
       (new module-browser-submod-set-choice% [parent font/label-panel] [pasteboard pasteboard]))
     (define font-size-gauge
-      (instantiate slider% ()
-        [label font-size-gauge-label]
-        [min-value 1]
-        [max-value 72]
-        [init-value (preferences:get 'drracket:module-overview:label-font-size)]
-        [parent font/label-panel]
-        [callback (λ (x y) (send pasteboard set-label-font-size (send font-size-gauge get-value)))]))
+      (new slider%
+           [label font-size-gauge-label]
+           [min-value 1]
+           [max-value 72]
+           [init-value (preferences:get 'drracket:module-overview:label-font-size)]
+           [parent font/label-panel]
+           [callback
+            (λ (x y) (send pasteboard set-label-font-size (send font-size-gauge get-value)))]))
     (define module-browser-name-length-choice
       (new choice%
            (parent font/label-panel)
