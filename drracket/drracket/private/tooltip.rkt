@@ -285,7 +285,6 @@
             [else
              #f]))
         (unless (equal? new-state state)
-          (define old-state state)
           (set! state new-state)
           (send tooltip-frame show #f)
           (when state
