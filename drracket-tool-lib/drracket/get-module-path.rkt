@@ -341,12 +341,11 @@
                [pending-str+dlg #f]
                
                ;; this is #f when there is not alternate racket supplied
-               [clcl/clcp (if (path-string? initial-alternate-racket)
-                              (let-values ([(a b c) (alternate-racket-clcl/clcp
-                                                     initial-alternate-racket
-                                                     pkgs-dirs-cache)])
-                                (list a b c))
-                              #f)])
+               [clcl/clcp (and
+                           (path-string? initial-alternate-racket)
+                           (let-values ([(a b c) (alternate-racket-clcl/clcp initial-alternate-racket
+                                                                             pkgs-dirs-cache)])
+                             (list a b c)))])
       (sync
        (handle-evt 
         new-alternate-racket-chan
