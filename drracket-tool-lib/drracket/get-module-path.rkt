@@ -1,11 +1,11 @@
 #lang racket/base
-(require racket/class
+(require drracket/find-module-path-completions
+         framework
+         racket/class
          racket/contract
          racket/gui/base
-         string-constants
          setup/path-to-relative
-         framework
-         drracket/find-module-path-completions)
+         string-constants)
 
 (provide
  (contract-out

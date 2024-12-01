@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require racket/runtime-path
-         racket/gui/base
-         racket/class
+(require drracket/tool-lib
          mrlib/bitmap-label
-         racket/system
          net/sendurl
-         drracket/tool-lib)
+         racket/class
+         racket/gui/base
+         racket/runtime-path
+         racket/system)
 
 (provide drracket-buttons)
 
