@@ -319,14 +319,8 @@
                               #:on-boxed-word-double-click [on-boxed-word-double-click void])
   (define progress-eventspace (make-eventspace))
   (define progress-frame (parameterize ([current-eventspace progress-eventspace])
-                           (instantiate frame% ()
-                             (parent parent)
-                             (label progress-label)
-                             (width 600))))
-  (define progress-message (instantiate message% ()
-                             (label "")
-                             (stretchable-width #t)
-                             (parent progress-frame)))
+                           (new frame% (parent parent) (label progress-label) (width 600))))
+  (define progress-message (new message% (label "") (stretchable-width #t) (parent progress-frame)))
   
   (define thd 
     (thread
@@ -368,132 +362,128 @@
   (parameterize ([current-eventspace progress-eventspace])
     (queue-callback (λ () (send progress-frame show #f))))
   (when success?
-    (let ()
-      (define frame
-        (new overview-frame%
-             [label (string-constant module-browser)]
-             [width (preferences:get 'drracket:module-overview:window-width)]
-             [height (preferences:get 'drracket:module-overview:window-height)]
-             [alignment '(left center)]))
-      (define vp
-        (new vertical-panel%
-             [parent
-              (if (method-in-interface? 'get-area-container (object-interface frame))
-                  (send frame get-area-container)
-                  frame)]
-             [alignment '(left center)]))
-      (define root-message
-        (instantiate message% ()
-          [label (format (string-constant module-browser-root-filename) filename)]
-          [parent vp]
-          [stretchable-width #t]))
-      (define label-message
-        (instantiate message% ()
-          [label ""]
-          [parent vp]
-          [stretchable-width #t]))
-      (define font/label-panel (new horizontal-panel% [parent vp] [stretchable-height #f]))
-      (define pkg-choice
-        (new module-browser-pkg-set-choice% [parent font/label-panel] [pasteboard pasteboard]))
-      (define submod-choice
-        (new module-browser-submod-set-choice% [parent font/label-panel] [pasteboard pasteboard]))
-      (define font-size-gauge
-        (instantiate slider% ()
-          [label font-size-gauge-label]
-          [min-value 1]
-          [max-value 72]
-          [init-value (preferences:get 'drracket:module-overview:label-font-size)]
-          [parent font/label-panel]
-          [callback
-           (λ (x y) (send pasteboard set-label-font-size (send font-size-gauge get-value)))]))
-      (define module-browser-name-length-choice
-        (new choice%
-             (parent font/label-panel)
-             (label (string-constant module-browser-name-length))
-             (choices (list (string-constant module-browser-name-long)
-                            (string-constant module-browser-name-very-long)))
-             (selection (case (preferences:get 'drracket:module-browser:name-length)
-                          [(0) 0]
-                          [(1) 0]
-                          [(2) 0]
-                          [(3) 1]))
-             (callback
-              (λ (x y)
-                ;; note: the preference drracket:module-browser:name-length is also used for
-                ;; the View|Show Module Browser version of the module browser
-                ;; here we just treat any pref value except '3' as if it were for the long names.
-                (let ([selection (send module-browser-name-length-choice get-selection)])
-                  (preferences:set 'drracket:module-browser:name-length (+ 2 selection))
-                  (send pasteboard
-                        set-name-length
-                        (case selection
-                          [(0) 'long]
-                          [(1) 'very-long])))))))
-      (send pkg-choice set-string-selection (send pasteboard get-main-file-pkg))
-  
-      (define ec (make-object overview-editor-canvas% vp pasteboard))
-  
-      (define search-hp (new horizontal-panel% [parent vp] [stretchable-height #f]))
-      (define search-tf
-        (new text-field%
-             [label (string-constant module-browser-highlight)]
-             [parent search-hp]
-             [callback
-              (λ (tf evt)
-                (define val (send tf get-value))
-                (define reg (and (not (string=? val "")) (regexp (regexp-quote (send tf get-value)))))
-                (update-found-and-search-hits reg))]))
-      (define search-hits (new message% [parent search-hp] [label ""] [auto-resize #t]))
-      (define (update-found-and-search-hits reg)
-        (send pasteboard begin-edit-sequence)
-        (define count 0)
-        (define phases (set))
-        (let loop ([snip (send pasteboard find-first-snip)])
-          (when snip
-            (when (is-a? snip boxed-word-snip<%>)
-              (define fn (send snip get-filename))
-              (define found? (and reg fn (regexp-match reg (path->string fn))))
-              (when (or (not reg) found?)
-                (for ([phase (in-list (send snip get-require-phases))])
-                  (set! phases (set-add phases phase)))
-                (set! count (+ count 1)))
-              (send snip set-found! found?))
-            (loop (send snip next))))
-  
-        (send search-hits
-              set-label
-              (string-append (if reg
-                                 (format "~a found" count)
-                                 (format "~a total" count))
-                             (render-phases phases)))
-        (send pasteboard end-edit-sequence))
-      (update-found-and-search-hits #f) ;; only to initialize search-hits
-  
-      (set! update-label
-            (λ (s)
-              (if (and s (not (null? s)))
-                  (let* ([currently-over (car s)]
-                         [fn (send currently-over get-filename)]
-                         [lines (send currently-over get-lines)])
-                    (when (and fn lines)
-                      (define label (format filename-constant fn lines))
-                      (define pkg (send currently-over get-pkg))
-                      (when pkg
-                        (set! label (string-append (format pkg-constant pkg) "  " label)))
-                      (send label-message set-label label)))
-                  (send label-message set-label ""))))
-  
-      (send pasteboard
-            set-name-length
-            (case (preferences:get 'drracket:module-browser:name-length)
-              [(0) 'long]
-              [(1) 'long]
-              [(2) 'long]
-              [(3) 'very-long]))
-      ;; shouldn't be necessary here -- need to find callback on editor
-      (send pasteboard render-snips)
-  
-      (send frame show #t))))
+    (define frame
+      (new overview-frame%
+           [label (string-constant module-browser)]
+           [width (preferences:get 'drracket:module-overview:window-width)]
+           [height (preferences:get 'drracket:module-overview:window-height)]
+           [alignment '(left center)]))
+    (define vp
+      (new vertical-panel%
+           [parent
+            (if (method-in-interface? 'get-area-container (object-interface frame))
+                (send frame get-area-container)
+                frame)]
+           [alignment '(left center)]))
+    (define root-message
+      (new message%
+           [label (format (string-constant module-browser-root-filename) filename)]
+           [parent vp]
+           [stretchable-width #t]))
+    (define label-message
+      (new message% [label ""] [parent vp] [stretchable-width #t]))
+    (define font/label-panel (new horizontal-panel% [parent vp] [stretchable-height #f]))
+    (define pkg-choice
+      (new module-browser-pkg-set-choice% [parent font/label-panel] [pasteboard pasteboard]))
+    (define submod-choice
+      (new module-browser-submod-set-choice% [parent font/label-panel] [pasteboard pasteboard]))
+    (define font-size-gauge
+      (new slider%
+           [label font-size-gauge-label]
+           [min-value 1]
+           [max-value 72]
+           [init-value (preferences:get 'drracket:module-overview:label-font-size)]
+           [parent font/label-panel]
+           [callback
+            (λ (x y) (send pasteboard set-label-font-size (send font-size-gauge get-value)))]))
+    (define module-browser-name-length-choice
+      (new choice%
+           (parent font/label-panel)
+           (label (string-constant module-browser-name-length))
+           (choices (list (string-constant module-browser-name-long)
+                          (string-constant module-browser-name-very-long)))
+           (selection (case (preferences:get 'drracket:module-browser:name-length)
+                        [(0) 0]
+                        [(1) 0]
+                        [(2) 0]
+                        [(3) 1]))
+           (callback
+            (λ (x y)
+              ;; note: the preference drracket:module-browser:name-length is also used for
+              ;; the View|Show Module Browser version of the module browser
+              ;; here we just treat any pref value except '3' as if it were for the long names.
+              (let ([selection (send module-browser-name-length-choice get-selection)])
+                (preferences:set 'drracket:module-browser:name-length (+ 2 selection))
+                (send pasteboard
+                      set-name-length
+                      (case selection
+                        [(0) 'long]
+                        [(1) 'very-long])))))))
+    (send pkg-choice set-string-selection (send pasteboard get-main-file-pkg))
+    
+    (define ec (make-object overview-editor-canvas% vp pasteboard))
+    
+    (define search-hp (new horizontal-panel% [parent vp] [stretchable-height #f]))
+    (define search-tf
+      (new text-field%
+           [label (string-constant module-browser-highlight)]
+           [parent search-hp]
+           [callback
+            (λ (tf evt)
+              (define val (send tf get-value))
+              (define reg (and (not (string=? val "")) (regexp (regexp-quote (send tf get-value)))))
+              (update-found-and-search-hits reg))]))
+    (define search-hits (new message% [parent search-hp] [label ""] [auto-resize #t]))
+    (define (update-found-and-search-hits reg)
+      (send pasteboard begin-edit-sequence)
+      (define count 0)
+      (define phases (set))
+      (let loop ([snip (send pasteboard find-first-snip)])
+        (when snip
+          (when (is-a? snip boxed-word-snip<%>)
+            (define fn (send snip get-filename))
+            (define found? (and reg fn (regexp-match reg (path->string fn))))
+            (when (or (not reg) found?)
+              (for ([phase (in-list (send snip get-require-phases))])
+                (set! phases (set-add phases phase)))
+              (set! count (+ count 1)))
+            (send snip set-found! found?))
+          (loop (send snip next))))
+    
+      (send search-hits
+            set-label
+            (string-append (if reg
+                               (format "~a found" count)
+                               (format "~a total" count))
+                           (render-phases phases)))
+      (send pasteboard end-edit-sequence))
+    (update-found-and-search-hits #f) ;; only to initialize search-hits
+    
+    (set! update-label
+          (λ (s)
+            (if (and s (not (null? s)))
+                (let* ([currently-over (car s)]
+                       [fn (send currently-over get-filename)]
+                       [lines (send currently-over get-lines)])
+                  (when (and fn lines)
+                    (define label (format filename-constant fn lines))
+                    (define pkg (send currently-over get-pkg))
+                    (when pkg
+                      (set! label (string-append (format pkg-constant pkg) "  " label)))
+                    (send label-message set-label label)))
+                (send label-message set-label ""))))
+    
+    (send pasteboard
+          set-name-length
+          (case (preferences:get 'drracket:module-browser:name-length)
+            [(0) 'long]
+            [(1) 'long]
+            [(2) 'long]
+            [(3) 'very-long]))
+    ;; shouldn't be necessary here -- need to find callback on editor
+    (send pasteboard render-snips)
+    
+    (send frame show #t)))
 
 (define module-browser-choice%
   (class canvas%
@@ -844,9 +834,9 @@
             (unless (hash-ref ht (cons parent depth) #f)
               (hash-set! ht (cons parent depth) #t)
               (send parent add-require-phase depth)
-              (for ([child (in-list (send parent get-children))])
-                (for ([delta-depth (in-list (hash-ref require-depth-ht (list parent child)))])
-                  (loop child (and depth delta-depth (+ delta-depth depth)))))))))
+              (for* ([child (in-list (send parent get-children))]
+                     [delta-depth (in-list (hash-ref require-depth-ht (list parent child)))])
+                (loop child (and depth delta-depth (+ delta-depth depth))))))))
       
       ;; add-connection : path/string/submod path/string/submod (union symbol #f) number -> void
       ;; name-original and name-require and the identifiers for those paths and
@@ -947,10 +937,10 @@
           (call-with-input-file filename
                                 (λ (port)
                                   (let loop ([n 0])
-                                    (let ([l (read-line port)])
-                                      (if (eof-object? l)
-                                          n
-                                          (loop (+ n 1))))))
+                                    (define l (read-line port))
+                                    (if (eof-object? l)
+                                        n
+                                        (loop (+ n 1)))))
                                 #:mode 'text))
         (set! max-lines (max lines max-lines))
         lines)
@@ -1044,53 +1034,55 @@
                                                               (λ (x) (get-snip-height x)))
                                                           v))))))
           
-          (define levels (sort (hash-map level-ht list) (λ (x y) (<= (car x) (car y)))))
+          (define levels (sort (hash-map level-ht list) <= #:key car))
           (let loop ([levels levels]
                      [major-dim 0])
             (cond
               [(null? levels) (void)]
               [else
-               (let* ([level (car levels)]
-                      [n (car level)]
-                      [this-level-snips (cadr level)]
-                      [this-minor (apply +
-                                         (map (if vertical?
-                                                  (λ (x) (get-snip-width x))
-                                                  (λ (x) (get-snip-height x)))
-                                              this-level-snips))]
-                      [this-major (apply max
-                                         0
-                                         (map (if vertical?
-                                                  (λ (x) (get-snip-height x))
-                                                  (λ (x) (get-snip-width x)))
-                                              this-level-snips))])
-                 (let loop ([snips this-level-snips]
-                            [minor-dim (/ (- max-minor this-minor) 2)])
-                   (unless (null? snips)
-                     (let* ([snip (car snips)]
-                            [new-major-coord (+ major-dim
-                                                (floor (- (/ this-major 2)
-                                                          (/ (if vertical?
-                                                                 (get-snip-height snip)
-                                                                 (get-snip-width snip))
-                                                             2))))])
-                       (if vertical?
-                           (move-to snip minor-dim new-major-coord)
-                           (move-to snip new-major-coord minor-dim))
-                       (loop (cdr snips)
-                             (+ minor-dim
-                                (if vertical?
-                                    (get-snip-hspace)
-                                    (get-snip-vspace))
-                                (if vertical?
-                                    (get-snip-width snip)
-                                    (get-snip-height snip)))))))
-                 (loop (cdr levels)
-                       (+ major-dim
-                          (if vertical?
-                              (get-snip-vspace)
-                              (get-snip-hspace))
-                          this-major)))])))
+               (define level (car levels))
+               (car level)
+               (define this-level-snips (cadr level))
+               (define this-minor
+                 (apply +
+                        (map (if vertical?
+                                 (λ (x) (get-snip-width x))
+                                 (λ (x) (get-snip-height x)))
+                             this-level-snips)))
+               (define this-major
+                 (apply max
+                        0
+                        (map (if vertical?
+                                 (λ (x) (get-snip-height x))
+                                 (λ (x) (get-snip-width x)))
+                             this-level-snips)))
+               (let loop ([snips this-level-snips]
+                          [minor-dim (/ (- max-minor this-minor) 2)])
+                 (unless (null? snips)
+                   (let* ([snip (car snips)]
+                          [new-major-coord (+ major-dim
+                                              (floor (- (/ this-major 2)
+                                                        (/ (if vertical?
+                                                               (get-snip-height snip)
+                                                               (get-snip-width snip))
+                                                           2))))])
+                     (if vertical?
+                         (move-to snip minor-dim new-major-coord)
+                         (move-to snip new-major-coord minor-dim))
+                     (loop (cdr snips)
+                           (+ minor-dim
+                              (if vertical?
+                                  (get-snip-hspace)
+                                  (get-snip-vspace))
+                              (if vertical?
+                                  (get-snip-width snip)
+                                  (get-snip-height snip)))))))
+               (loop (cdr levels)
+                     (+ major-dim
+                        (if vertical?
+                            (get-snip-vspace)
+                            (get-snip-hspace))
+                        this-major))])))
         (end-edit-sequence))
       
       (define/override (on-mouse-over-snips snips)
@@ -1106,42 +1098,31 @@
       (define/override (on-event evt)
         (cond
           [(and on-boxed-word-double-click (send evt button-down? 'right))
-           (let ([ex (send evt get-x)]
-                 [ey (send evt get-y)])
-             (let-values ([(x y) (dc-location-to-editor-location ex ey)])
-               (let ([snip (find-snip x y)]
-                     [canvas (get-canvas)])
-                 (let ([right-button-menu (make-object popup-menu%)])
-                   (when (and snip
-                              (is-a? snip boxed-word-snip<%>)
-                              canvas
-                              (send snip get-filename))
-                     (new menu-item%
-                          [label 
-                           (trim-string
-                            (format open-file-format
-                                    (path->string (send snip get-filename)))
-                            200)]
-                          [parent right-button-menu]
-                          [callback
-                           (λ (x y)
-                             (on-boxed-word-double-click
-                              (send snip get-filename)))]))
-                   (new menu-item%
-                        [label (string-constant module-browser-open-all)]
-                        [parent right-button-menu]
-                        [callback
-                         (λ (x y)
-                           (let loop ([snip (find-first-snip)])
-                             (when snip
-                               (when (is-a? snip boxed-word-snip<%>)
-                                 (let ([filename (send snip get-filename)])
-                                   (on-boxed-word-double-click filename)))
-                               (loop (send snip next)))))])
-                   (send canvas popup-menu
-                         right-button-menu
-                         (+ (send evt get-x) 1)
-                         (+ (send evt get-y) 1))))))]
+           (define ex (send evt get-x))
+           (define ey (send evt get-y))
+           (define-values (x y) (dc-location-to-editor-location ex ey))
+           (define snip (find-snip x y))
+           (define canvas (get-canvas))
+           (define right-button-menu (make-object popup-menu%))
+           (when (and snip (is-a? snip boxed-word-snip<%>) canvas (send snip get-filename))
+             (new menu-item%
+                  [label
+                   (trim-string (format open-file-format (path->string (send snip get-filename)))
+                                200)]
+                  [parent right-button-menu]
+                  [callback (λ (x y) (on-boxed-word-double-click (send snip get-filename)))]))
+           (new menu-item%
+                [label (string-constant module-browser-open-all)]
+                [parent right-button-menu]
+                [callback
+                 (λ (x y)
+                   (let loop ([snip (find-first-snip)])
+                     (when snip
+                       (when (is-a? snip boxed-word-snip<%>)
+                         (let ([filename (send snip get-filename)])
+                           (on-boxed-word-double-click filename)))
+                       (loop (send snip next)))))])
+           (send canvas popup-menu right-button-menu (+ (send evt get-x) 1) (+ (send evt get-y) 1))]
           [else (super on-event evt)]))
       
       (super-new)))
@@ -1227,34 +1208,32 @@
       (define/public (set-found! fh?) 
         (unless (eq? (and fh? #t) found-highlight?)
           (set! found-highlight? (and fh? #t))
-          (let ([admin (get-admin)])
-            (when admin
-              (send admin needs-update this 0 0 snip-width snip-height)))))
+          (define admin (get-admin))
+          (when admin
+            (send admin needs-update this 0 0 snip-width snip-height))))
       (define found-highlight? #f)
       
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
-        (let ([old-font (send dc get-font)]
-              [old-text-foreground (send dc get-text-foreground)]
-              [old-brush (send dc get-brush)]
-              [old-pen (send dc get-pen)])
-          (send dc set-font label-font)
-          (cond
-            [found-highlight?
-             (send dc set-brush search-result-background 'solid)]
-            [lines-brush
-             (send dc set-brush lines-brush)])
-          (when (rectangles-intersect? left top right bottom
-                                       x y (+ x snip-width) (+ y snip-height))
-            (send dc draw-rectangle x y snip-width snip-height)
-            (send dc set-text-foreground (send the-color-database find-color 
-                                               (if found-highlight?
-                                                   search-result-text-color
-                                                   text-color)))
-            (send dc draw-text (name->label) (+ x 2) (+ y 2)))
-          (send dc set-pen old-pen)
-          (send dc set-brush old-brush)
-          (send dc set-text-foreground old-text-foreground)
-          (send dc set-font old-font)))
+        (define old-font (send dc get-font))
+        (define old-text-foreground (send dc get-text-foreground))
+        (define old-brush (send dc get-brush))
+        (define old-pen (send dc get-pen))
+        (send dc set-font label-font)
+        (cond
+          [found-highlight? (send dc set-brush search-result-background 'solid)]
+          [lines-brush (send dc set-brush lines-brush)])
+        (when (rectangles-intersect? left top right bottom x y (+ x snip-width) (+ y snip-height))
+          (send dc draw-rectangle x y snip-width snip-height)
+          (send dc
+                set-text-foreground
+                (send the-color-database
+                      find-color
+                      (if found-highlight? search-result-text-color text-color)))
+          (send dc draw-text (name->label) (+ x 2) (+ y 2)))
+        (send dc set-pen old-pen)
+        (send dc set-brush old-brush)
+        (send dc set-text-foreground old-text-foreground)
+        (send dc set-font old-font))
       
       ;; name->label : path -> string
       ;; constructs a label for the little boxes in terms
@@ -1264,38 +1243,35 @@
       (define last-size #f)
       
       (define/private (name->label)
-        (let ([this-size (send pb get-name-length)])
-          (cond
-            [(eq? this-size last-size) last-name]
-            [else
-             (set! last-size this-size)
-             (set! last-name
-                   (case last-size
-                     [(short)
-                      (if (string=? word "")
-                          ""
-                          (string (string-ref word 0)))]
-                     [(medium)
-                      (let ([m (regexp-match #rx"^(.*)\\.[^.]*$" word)])
-                        (let ([short-name (if m (cadr m) word)])
-                          (if (string=? short-name "")
-                              ""
-                              (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
-                                (cond
-                                  [(null? ms)
-                                   (substring short-name 0 (min 2 (string-length short-name)))]
-                                  [else
-                                   (apply string-append
-                                          (cons (substring short-name 0 1)
-                                                (map (λ (x) (substring x 1 2))
-                                                     ms)))])))))]
-                     [(long) word]
-                     [(very-long)  
-                      (string-append
-                       word
-                       ": "
-                       (format "~s" require-phases))]))
-             last-name])))
+        (define this-size (send pb get-name-length))
+        (cond
+          [(eq? this-size last-size) last-name]
+          [else
+           (set! last-size this-size)
+           (set!
+            last-name
+            (case last-size
+              [(short)
+               (if (string=? word "")
+                   ""
+                   (string (string-ref word 0)))]
+              [(medium)
+               (let ([m (regexp-match #rx"^(.*)\\.[^.]*$" word)])
+                 (let ([short-name (if m
+                                       (cadr m)
+                                       word)])
+                   (if (string=? short-name "")
+                       ""
+                       (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
+                         (cond
+                           [(null? ms) (substring short-name 0 (min 2 (string-length short-name)))]
+                           [else
+                            (apply string-append
+                                   (cons (substring short-name 0 1)
+                                         (map (λ (x) (substring x 1 2)) ms)))])))))]
+              [(long) word]
+              [(very-long) (string-append word ": " (format "~s" require-phases))]))
+           last-name]))
       
       (super-new)))
   
@@ -1439,8 +1415,8 @@
 (define (get-init-dir path/f)
   (cond
     [path/f
-     (let-values ([(base name dir?) (split-path path/f)])
-       base)]
+     (define-values (base name dir?) (split-path path/f))
+     base]
     [else
      (find-system-path 'home-dir)]))
 

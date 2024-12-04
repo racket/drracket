@@ -1,11 +1,11 @@
 #lang racket/base
-(require racket/class
+(require drracket/find-module-path-completions
+         framework
+         racket/class
          racket/contract
          racket/gui/base
-         string-constants
          setup/path-to-relative
-         framework
-         drracket/find-module-path-completions)
+         string-constants)
 
 (provide
  (contract-out
@@ -341,12 +341,12 @@
                [pending-str+dlg #f]
                
                ;; this is #f when there is not alternate racket supplied
-               [clcl/clcp (if (path-string? initial-alternate-racket)
-                              (let-values ([(a b c) (alternate-racket-clcl/clcp
-                                                     initial-alternate-racket
-                                                     pkgs-dirs-cache)])
-                                (list a b c))
-                              #f)])
+               [clcl/clcp (and
+                           (path-string? initial-alternate-racket)
+                           (call-with-values (λ ()
+                                               (alternate-racket-clcl/clcp initial-alternate-racket
+                                                                           pkgs-dirs-cache))
+                                             list))])
       (sync
        (handle-evt 
         new-alternate-racket-chan
