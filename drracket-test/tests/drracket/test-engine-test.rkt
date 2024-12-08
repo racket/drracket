@@ -1,10 +1,10 @@
 #lang racket
 
-(require "private/drracket-test-util.rkt"
-         "private/gui.rkt"
+(require framework
          mred
-         framework
-         (prefix-in fw: framework))
+         (prefix-in fw: framework)
+         "private/drracket-test-util.rkt"
+         "private/gui.rkt")
 
 (define language (make-parameter "<<not a language>>"))
 

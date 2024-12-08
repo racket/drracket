@@ -1,8 +1,8 @@
 #lang racket/base
-(require "private/drracket-test-util.rkt"
+(require framework
          racket/class
          racket/gui/base
-         framework)
+         "private/drracket-test-util.rkt")
 
 (let ([raw-autosave-contents
        (if (file-exists? autosave:toc-path)

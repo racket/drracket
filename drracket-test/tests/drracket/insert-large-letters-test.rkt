@@ -1,11 +1,11 @@
 #lang racket
 
-(require tests/drracket/private/drracket-test-util
-         drracket/private/local-member-names
-         racket/gui/base
+(require drracket/private/local-member-names
          framework
+         racket/gui/base
          rackunit
-         string-constants)
+         string-constants
+         tests/drracket/private/drracket-test-util)
 
 (fire-up-drracket-and-run-tests 
  (λ ()

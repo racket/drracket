@@ -1,7 +1,7 @@
 #lang racket/base
-(require "private/drracket-test-util.rkt"
-         racket/class
-         racket/gui/base)
+(require racket/class
+         racket/gui/base
+         "private/drracket-test-util.rkt")
 
 (fire-up-drracket-and-run-tests 
  (λ ()
