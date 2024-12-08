@@ -37,11 +37,16 @@
   (define-struct prefix-test (line input pos prefix output) #:transparent)
   (define-struct err-test (line input expected locations) #:transparent)
   
-  (define build-test/proc
-    (λ (line input expected [arrow-table '()] #:tooltips [tooltips #f] 
-             #:setup [setup void] #:teardown [teardown void] #:extra-files [extra-files (hash)]
-             #:extra-info? [extra-info? #f])
-      (make-test line input expected arrow-table tooltips setup teardown extra-files extra-info?)))
+  (define (build-test/proc line
+                           input
+                           expected
+                           [arrow-table '()]
+                           #:tooltips [tooltips #f]
+                           #:setup [setup void]
+                           #:teardown [teardown void]
+                           #:extra-files [extra-files (hash)]
+                           #:extra-info? [extra-info? #f])
+    (make-test line input expected arrow-table tooltips setup teardown extra-files extra-info?))
   
   (define-syntax (build-test stx)
     (syntax-case stx ()
