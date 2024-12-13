@@ -573,7 +573,7 @@ Check Syntax collects the values of the
 @indexed-racket['disappeared-use],
 @indexed-racket['disappeared-binding],
 @indexed-racket['identifiers-as-disappeared-uses?],
-@indexed-racket['identifer-as-keyword],
+@indexed-racket['identifier-as-keyword],
 @indexed-racket['sub-range-binders], and
 @indexed-racket['mouse-over-tooltips] and uses them to add
 control which arrows are added to the program text. These properties are
