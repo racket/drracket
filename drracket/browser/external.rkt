@@ -85,9 +85,8 @@
                            (loop (add1 tries)))))))
 
   (define unix-browser-names
-    (map (lambda (s)
-           (string-titlecase (regexp-replace* #rx"-" (symbol->string s) " ")))
-         raw:unix-browser-list))
+    (for/list ([s (in-list raw:unix-browser-list)])
+      (string-titlecase (regexp-replace* #rx"-" (symbol->string s) " "))))
 
   ;; : (U str #f) -> (U symbol #f)
   ;; to prompt the user for a browser preference
