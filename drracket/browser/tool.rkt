@@ -1,7 +1,7 @@
 #lang racket
-(require (only-in "external.rkt" install-help-browser-preference-panel)
+(require drracket/tool
          racket/unit
-         drracket/tool)
+         (only-in "external.rkt" install-help-browser-preference-panel))
 (provide tool@)
 
 ;; to add a preference pannel to drracket that sets the browser preference

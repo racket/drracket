@@ -1,7 +1,7 @@
 #lang racket/base
-(require racket/gui/base
-         framework
-         racket/class)
+(require framework
+         racket/class
+         racket/gui/base)
 
 ;; how long between samples
 (define pause-time 0.1)

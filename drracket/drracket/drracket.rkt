@@ -1,5 +1,7 @@
 #lang racket/base
-(require racket/gui/base "private/key.rkt" "private/compiled-dir.rkt")
+(require racket/gui/base
+         "private/compiled-dir.rkt"
+         "private/key.rkt")
 
 (module test racket/base)
 

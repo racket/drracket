@@ -1,12 +1,12 @@
 #lang racket/base
-  (require string-constants
-           racket/gui
+  (require net/url
            racket/class
            racket/file
+           racket/gui
            racket/list
            racket/match
+           string-constants
            (prefix-in raw: net/sendurl)
-           net/url
            (prefix-in fw: framework))
   (provide send-url
            (rename-out [raw:browser-preference? browser-preference?])
