@@ -26,17 +26,15 @@
   (flush-output))
 
 (define (run-trace-thread)
-  (let ([evt (make-log-receiver (current-logger) 'info)])
-    (void
-     (thread
-      (λ ()
-        (let loop ()
-          (define vec (sync evt))
-          (define str (vector-ref vec 1))
-          (when (regexp-match #rx"^cm: *compil(ing|ed)" str)
-            (display str)
-            (newline))
-          (loop)))))))
+  (define evt (make-log-receiver (current-logger) 'info))
+  (void (thread (λ ()
+                  (let loop ()
+                    (define vec (sync evt))
+                    (define str (vector-ref vec 1))
+                    (when (regexp-match #rx"^cm: *compil(ing|ed)" str)
+                      (display str)
+                      (newline))
+                    (loop))))))
 
 (cond
   [debugging?
@@ -148,11 +146,11 @@
   ;; it creates a new custodian and installs it, but the
   ;; original eventspace was created on the original custodian
   ;; and this code does not create a new eventspace. 
-  (let ([orig-cust (current-custodian)]
-        [orig-eventspace (current-eventspace)]
-        [new-cust (make-custodian)])
-    (current-custodian new-cust)
-    ((dynamic-require 'drracket/private/profile-drs 'start-profile) orig-cust)))
+  (define orig-cust (current-custodian))
+  (current-eventspace)
+  (define new-cust (make-custodian))
+  (current-custodian new-cust)
+  ((dynamic-require 'drracket/private/profile-drs 'start-profile) orig-cust))
 
 (dynamic-require 'drracket/private/drracket-normal #f)
 
