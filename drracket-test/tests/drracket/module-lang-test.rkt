@@ -530,6 +530,108 @@ f: contract violation
 }
       )
 
+;; Test that big-bang is in the stacktrace if the state-expr errors at start time.
+(test @t{
+ #lang htdp/isl+
+
+ (require 2htdp/image)
+ (require 2htdp/universe)
+
+ (big-bang (+ 2 #false)
+   (to-draw (lambda (s) (empty-scene 200 200))))
+
+}
+      #f
+      #rx"[+]: expects a number, given #false"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:6:10"
+                              (srcloc->string loc)))
+             ;; ^ (+ 2 #false) is in the backtrace
+             (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:6:0"
+                              (srcloc->string loc)))
+             ;; ^ big-bang is in the backtrace, not some internal htdp modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(][+] 2.*false[)]"
+                                      (test-definitions test)))
+             ;; ^ (+ 2 #false) is highlighted
+             )))
+
+;; Test that big-bang is highlighted for (initial) check-with errors
+;; Note that, however, this only works when big-bang check-with fails at start time.
+(test @t{
+ #lang htdp/isl+
+
+ (require 2htdp/image)
+ (require 2htdp/universe)
+
+ (big-bang -1
+   (to-draw (lambda (s) (empty-scene 200 200)))
+   (check-with string?))
+
+}
+      #f
+      #rx"check-with: the initial expression.*fails to pass.*string[?] test"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:6:0"
+                              (srcloc->string loc)))
+             ;; ^ big-bang is in the backtrace, not some internal htdp modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]big-bang.*[(]check-with string[?][)][)]"
+                                      (test-definitions test)))
+             ;; ^ big-bang is highlighted
+             )))
+
+;; Needs 2htdp/universe fixing: this does not work at the moment (v8.15)
+;; check-with errors triggered by on-{tick,key} etc do not work.
+#;
+(test @t{
+ #lang htdp/isl+
+
+ (require 2htdp/image)
+ (require 2htdp/universe)
+
+ (big-bang -1
+   (to-draw (lambda (n) (empty-scene 200 200)))
+   (on-tick (lambda (n) "oops"))
+   (check-with number?))
+
+}
+      #f
+      #rx"check-with: on-tick handler.*fails to pass.*number[?] test"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:6:0"
+                              (srcloc->string loc)))
+             ;; ^ user code is in the backtrace, not some internal htdp modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]big-bang.*[(]check-with number[?][)][)]"
+                                      (test-definitions test)))
+             ;; ^ user code is highlighted (if not on-tick, at least it should be big-bang)
+             )))
+
 (test @t{
  #lang htdp/isl+
 
