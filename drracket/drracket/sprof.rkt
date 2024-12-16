@@ -1,7 +1,7 @@
 #lang racket/base
-(require racket/gui/base
-         framework
-         racket/class)
+(require framework
+         racket/class
+         racket/gui/base)
 
 ;; how long between samples
 (define pause-time 0.1)
@@ -14,22 +14,20 @@
             (define traces-table (make-hash))
             (let loop ([i 0])
               (sleep pause-time)
-              (let ([new-traces
-                     (map (λ (t) (continuation-mark-set->context (continuation-marks t)))
-                          (get-threads))])
-                (for-each
-                 (λ (trace)
-                   (for-each
-                    (λ (line)
-                      (hash-set! traces-table line (cons trace (hash-ref traces-table line '()))))
-                    trace))
-                 new-traces)
-                (cond
-                  [(zero? i)
-                   (update-gui traces-table)
-                   (loop update-frequency)]
-                  [else
-                   (loop (- i 1))]))))))
+              (define new-traces
+                (map (λ (t) (continuation-mark-set->context (continuation-marks t))) (get-threads)))
+              (for-each (λ (trace)
+                          (for-each (λ (line)
+                                      (hash-set! traces-table
+                                                 line
+                                                 (cons trace (hash-ref traces-table line '()))))
+                                    trace))
+                        new-traces)
+              (cond
+                [(zero? i)
+                 (update-gui traces-table)
+                 (loop update-frequency)]
+                [else (loop (- i 1))])))))
 
 (define (format-fn-name i)
   (let ([id (car i)]
@@ -76,8 +74,8 @@
   (send t end-edit-sequence))
 
 (define (format-percentage n)
-  (let ([trunc (floor (* n 100))])
-    (format "~a%" (pad3 trunc))))
+  (define trunc (floor (* n 100)))
+  (format "~a%" (pad3 trunc)))
 
 (define (pad3 n)
   (cond
@@ -110,16 +108,16 @@
     (define/override (on-event event)
       (cond
         [(send event button-up? 'left)
-         (let ([admin (get-admin)])
-           (when admin
-             (let ([dc (send admin get-dc)])
-               (let-values ([(x y) (dc-location-to-editor-location (send event get-x)
-                                                                   (send event get-y))])
-                 (let* ([loc (find-position x y)]
-                        [para (position-paragraph loc)])
-                   (set! clicked-srcloc-pr (and (<= 0 para (last-paragraph))
-                                                (car (list-ref gui-display-data para))))
-                   (update-gui-display))))))]
+         (define admin (get-admin))
+         (when admin
+           (let ([dc (send admin get-dc)])
+             (let-values ([(x y) (dc-location-to-editor-location (send event get-x)
+                                                                 (send event get-y))])
+               (let* ([loc (find-position x y)]
+                      [para (position-paragraph loc)])
+                 (set! clicked-srcloc-pr
+                       (and (<= 0 para (last-paragraph)) (car (list-ref gui-display-data para))))
+                 (update-gui-display)))))]
         [else (void)]))
 
     (define/public (set-gui-display-data/refresh traces-table)
@@ -187,11 +185,11 @@
          
     (define/public (open-current-pr)
       (when clicked-srcloc-pr
-        (let ([src (cdr clicked-srcloc-pr)])
-          (when (path? (srcloc-source src))
-            (printf "open ~s\n" (srcloc-source src))
-            (when (number? (srcloc-position src))
-              (printf "go to ~s\n" (srcloc-position src)))))))
+        (define src (cdr clicked-srcloc-pr))
+        (when (path? (srcloc-source src))
+          (printf "open ~s\n" (srcloc-source src))
+          (when (number? (srcloc-position src))
+            (printf "go to ~s\n" (srcloc-position src))))))
     
     (define/private (update-info-editor pr)
       (send vp change-children (λ (l) (if pr (list ec1 lp) (list ec1))))
