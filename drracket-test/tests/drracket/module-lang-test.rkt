@@ -542,7 +542,7 @@ f: contract violation
 
 }
       #f
-      #rx"[+]: expects a number, given #false"
+      #rx"[+]: expects a number(?: as 2nd argument)?, given #false"
       #:extra-assert
       (λ (defs ints #:stacks stacks #:test test)
         (and (for*/or ([stack (in-list stacks)]
