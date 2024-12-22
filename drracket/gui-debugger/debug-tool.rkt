@@ -1175,7 +1175,7 @@
         (define control-panel #f)
         (define debug? #f)
         (define/public (set-mouse-over-msg msg)
-          (when (not (string=? msg (send mouse-over-message get-label)))
+          (unless (string=? msg (send mouse-over-message get-label))
             (send mouse-over-message set-label msg)))
         
         (define/public (debug-callback)
