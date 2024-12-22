@@ -2,33 +2,32 @@
 
 ;; DrRacket's debugging tool
 
-(require racket/function
-         racket/list
-         racket/class
-         racket/unit
-         racket/contract
-         racket/match
-         racket/gui
-         drscheme/tool
-         "marks.rkt"
-         mrlib/switchable-button
-         mrlib/close-icon
-         "annotator.rkt"
-         "load-sandbox.rkt"
-         framework
-         string-constants
-         lang/debugger-language-interface
-         images/compile-time
-         framework
-         (for-syntax racket/base
-                     racket/class
-                     racket/draw
-                     images/icons/arrow
+(require (for-syntax images/icons/arrow
                      images/icons/control
                      images/icons/style
                      images/icons/symbol
                      images/icons/tool
-                     pict))
+                     pict
+                     racket/base
+                     racket/class
+                     racket/draw)
+         drscheme/tool
+         framework
+         images/compile-time
+         lang/debugger-language-interface
+         mrlib/close-icon
+         mrlib/switchable-button
+         racket/class
+         racket/contract
+         racket/function
+         racket/gui
+         racket/list
+         racket/match
+         racket/unit
+         string-constants
+         "annotator.rkt"
+         "load-sandbox.rkt"
+         "marks.rkt")
 
 (provide tool@)
 
