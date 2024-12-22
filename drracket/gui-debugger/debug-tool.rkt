@@ -76,9 +76,7 @@
       (and (syntax? stx) (syntax-source stx)))
     
     (define (robust-vector-ref vec idx)
-      (if (< idx (vector-length vec))
-          (vector-ref vec idx)
-          #f))
+      (and (< idx (vector-length vec)) (vector-ref vec idx)))
     
     (define (safe-vector-set! vec idx val)
       (when (< idx (vector-length vec))
@@ -97,11 +95,10 @@
     
     (define (index-of chr str)
       (let loop ([i 0])
-        (if (< i (string-length str))
-            (if (char=? chr (string-ref str i))
-                i
-                (loop (add1 i)))
-            #f)))
+        (and (< i (string-length str))
+             (if (char=? chr (string-ref str i))
+                 i
+                 (loop (add1 i))))))
     
     (define (safe-min . args)
       (apply min (filter identity args)))
