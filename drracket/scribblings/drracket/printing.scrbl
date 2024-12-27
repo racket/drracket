@@ -89,6 +89,7 @@ the booleans, it determines if there is a @litchar{#} prefix and for
 the empty list, determines if it prints as @racket[empty] or @racket['()].
 
 For any of the output styles, DrRacket sets the
-@racket[global-port-print-handler] so that the @racket[print]
+@racket[global-port-print-handler] (as described in @secref["Initial Environment"])
+so that the @racket[print]
 procedure produces output as selected.
 

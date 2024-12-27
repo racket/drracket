@@ -1,7 +1,7 @@
 #lang scribble/doc
 @(require "common.rkt"
           (for-label errortrace/errortrace-lib compiler/cm planet/config
-                     racket/pretty drracket/tool drracket/tool-lib))
+                     racket/pretty drracket/tool drracket/tool-lib pict))
 
 @title[#:tag "languages" #:style 'toc]{Languages}
 
@@ -25,7 +25,7 @@ More generally, when using this mode, the
 ...)]; aside from comments, the @tech{definitions window}
 must contain exactly one module.
 
-@subsection{Initial Environment}
+@subsection[#:tag "Initial Environment"]{Initial Environment}
 
 DrRacket initializes the environment before it starts running the program in
 ways slightly different than the @tt{racket} command-line binary does to reflect
@@ -37,7 +37,8 @@ in the next subsection.
 DrRacket initializes the @racket[pretty-print-size-hook] and @racket[pretty-print-print-hook]
 to specially recognize
 @itemize[@item{@racket[snip%]s, which it just inserts into the editor}
-         @item{convertible values from @racketmodname[pict/convert]}
+         @item{convertible values from @racketmodname[pict/convert], which are rendered
+               with padding specified by @racket[convert-bounds-padding] around the bounding box to reduce edge effects}
          @item{convertible values from @racketmodname[file/convertible] (which it converts to
           png images)}
          @item{numbers that are @racket[exact?] and @racket[real?], but not @racket[integer?],
