@@ -768,6 +768,115 @@ f: contract violation
              ;; ^ check-within is highlighted
              )))
 
+;; NOTE. If check-satisfied no longer errs immediately in the future,
+;; merge this test into the last check-satisfied test below.
+(test @t{
+ #lang htdp/isl+
+
+  (check-satisfied (+ 2 2) 4)
+
+}
+      #f
+      #rx"check-satisfied: expect.*function.*one argument.*second position.*iven 4"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:3:1"
+                              (srcloc->string loc)))
+             ;; ^ check-satisfied is in the backtrace, not some internal test-engine modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]check-satisfied.*4[)]"
+                                      (test-definitions test)))
+             ;; ^ check-satisfied is highlighted
+             )))
+
+;; NOTE. If the error-check printing bug is fixed, replace the printed procedure
+;; #<procedure> with (appropriately escaped) (lambda (a1 a2) ...)
+(test @t{
+ #lang htdp/isl+
+
+  (check-satisfied 4 (lambda (n bad) (even? n)))
+
+}
+      #f
+      #rx"check-satisfied: expect.*function.*one argument.*second position.*#<procedure>"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:3:1"
+                              (srcloc->string loc)))
+             ;; ^ check-satisfied is in the backtrace, not some internal test-engine modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]check-satisfied.*[(]even[?] n[)][)][)]"
+                                      (test-definitions test)))
+             ;; ^ check-satisfied is highlighted
+             )))
+
+;; NOTE.
+;; 1. After the error-check printing bug is fixed, add the "function:" prefix
+;;    to all the functions in the error messsage in this test.
+;; 2. The column numbers after "::" in each error could be further improved/refined,
+;;    but the srclocs should include at least the line numbers of the user code.
+;; 3. Also remember to test this in a _saved_ buffer.
+(test @t{#lang htdp/isl
+
+         (define local-even
+           (local [(define (my-even m k)
+                     (even? (+ m k)))]
+             my-even))
+
+         (define (real-my-even m k)
+           (even? (+ m k)))
+
+         (check-satisfied (rest (list 3514)) empty)
+         (check-satisfied 4 local-even)
+         (check-satisfied 4 real-my-even)}
+      #f
+      #px"^Ran 3 tests[.]\\s+0 tests passed[.]"
+      #t
+      #:extra-assert
+      (λ (defs ints #:test test)
+        (define re
+          (pregexp
+           @t{^Ran 3 tests[.]
+              0 tests passed[.]
+
+              Check failures:\s*
+                +check-satisfied for empty encountered an error[.]\s*
+                +:: +at line 11, column 0 +function call: expect.+function.+open parenthesis.+received '[(][)]\s*
+              at line 11, column 0
+                +check-satisfied for local-even encountered an error[.]\s*
+                +:: +at line 12, column 0 +my-even: expect.+2 arguments.+found only 1\s*
+              at line 12, column 0
+                +check-satisfied for real-my-even encountered an error[.]\s*
+                +:: +at line 13, column 0 +check-satisfied: expect.+function.+one argument.+second position.+real-my-even\s*
+              at line 13, column 0
+              > }))
+        ;; Includes the flattened test result snips.
+        (define full-ints-text
+          (send ints get-text (send ints paragraph-start-position 2) 'eof #t))
+        (define passed?
+          (regexp-match? re full-ints-text))
+        (unless passed?
+          (eprintf "FAILED line ~a: ~a\n  extra assertion expected: ~s\n\n  got: ~a\n"
+                   (test-line test)
+                   (test-definitions test)
+                   re
+                   full-ints-text)
+          (flush-output (current-error-port))
+          (sleep/yield 0.1))
+        passed?))
+
 (define (close-current-tab-and-open-new-tab filename)
   (define path (in-here/path filename))
   (define drs (wait-for-drracket-frame))
