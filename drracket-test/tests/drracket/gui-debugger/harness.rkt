@@ -22,24 +22,22 @@
        (eval `(require ',(syntax->datum #'name)))]
       [_ (void)])))
 
-(define the-annotator
-  (lambda (stx)
-    (define source (syntax-source stx))
-    (define-values (annotated break-posns)
-      (annotate-for-single-stepping
-       (expand-syntax stx)
-       ; always trigger breaks
-       (const (const #t))
-       ; don't interpose on returned values
-       (const #f)
-       ; if we are not in tail position don't interpose on returned values
-       (lambda (_ __ . vals) (apply values vals))
-       ; record-bound-identifier (do nothing at annotation time)
-       void
-       ; record-top-level-identifier (do nothing at runtime)
-       void
-       source))
-    annotated))
+(define (the-annotator stx)
+  (define source (syntax-source stx))
+  (define-values (annotated break-posns)
+    (annotate-for-single-stepping (expand-syntax stx)
+                                  ; always trigger breaks
+                                  (const (const #t))
+                                  ; don't interpose on returned values
+                                  (const #f)
+                                  ; if we are not in tail position don't interpose on returned values
+                                  (lambda (_ __ . vals) (apply values vals))
+                                  ; record-bound-identifier (do nothing at annotation time)
+                                  void
+                                  ; record-top-level-identifier (do nothing at runtime)
+                                  void
+                                  source))
+  annotated)
 
 (define ((break/test  id) [marks #f])
   (define debug-marks
