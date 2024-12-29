@@ -139,59 +139,57 @@
                       (is-a? text drracket:rep:text%))
                   (is-a? event mouse-event%))
          
-         (let ([add-sep
-                (let ([added? #f])
-                  (λ ()
-                    (unless added?
-                      (set! added? #t)
-                      (new separator-menu-item% [parent menu]))))])
-           
-           (add-search-help-desk-menu-item text menu
-                                           (let-values ([(x y)
-                                                         (send text dc-location-to-editor-location
-                                                               (send event get-x)
-                                                               (send event get-y))])
-                                             (send text find-position x y))
-                                           add-sep)
-           
-           (when (is-a? text editor:basic<%>)
-             (let-values ([(pos text) (send text get-pos/text event)])
-               (when (and pos (is-a? text text%))
-                 (send text split-snip pos)
-                 (send text split-snip (+ pos 1))
-                 (let ([snip (send text find-snip pos 'after-or-none)])
-                   (when (or (is-a? snip image-snip%)
-                             (is-a? snip image-core:image%)
-                             (is-a? snip cache-image-snip%)
-                             (is-a? snip pict-snip:pict-snip%))
-                     (add-sep)
-                     (define (save-image-callback _1 _2)
-                       (define fn
-                         (put-file #f 
-                                   (send text get-top-level-window)
-                                   #f "untitled.png" "png"))
-                       (when fn
-                         (define kind (filename->kind fn))
-                         (cond
-                           [kind
-                            (cond
-                              [(or (is-a? snip image-snip%)
-                                   (is-a? snip cache-image-snip%)
-                                   (is-a? snip pict-snip:pict-snip%))
-                               (send (send snip get-bitmap) save-file fn kind)]
-                              [else
-                               (image-core:save-image-as-bitmap snip fn kind)])]
-                           [else
-                            (message-box 
-                             (string-constant drscheme)
-                             "Must choose a filename that ends with either .png, .jpg, .xbm, or .xpm"
-                             #:dialog-mixin frame:focus-table-mixin)])))
-                     (new menu-item%
-                          [parent menu]
-                          [label (string-constant save-image)]
-                          [callback save-image-callback]))))))
-           
-           (void))))))
+         (define add-sep
+           (let ([added? #f])
+             (λ ()
+               (unless added?
+                 (set! added? #t)
+                 (new separator-menu-item% [parent menu])))))
+         
+         (add-search-help-desk-menu-item text
+                                         menu
+                                         (let-values ([(x y) (send text
+                                                                   dc-location-to-editor-location
+                                                                   (send event get-x)
+                                                                   (send event get-y))])
+                                           (send text find-position x y))
+                                         add-sep)
+         
+         (when (is-a? text editor:basic<%>)
+           (let-values ([(pos text) (send text get-pos/text event)])
+             (when (and pos (is-a? text text%))
+               (send text split-snip pos)
+               (send text split-snip (+ pos 1))
+               (let ([snip (send text find-snip pos 'after-or-none)])
+                 (when (or (is-a? snip image-snip%)
+                           (is-a? snip image-core:image%)
+                           (is-a? snip cache-image-snip%)
+                           (is-a? snip pict-snip:pict-snip%))
+                   (add-sep)
+                   (define (save-image-callback _1 _2)
+                     (define fn
+                       (put-file #f (send text get-top-level-window) #f "untitled.png" "png"))
+                     (when fn
+                       (define kind (filename->kind fn))
+                       (cond
+                         [kind
+                          (cond
+                            [(or (is-a? snip image-snip%)
+                                 (is-a? snip cache-image-snip%)
+                                 (is-a? snip pict-snip:pict-snip%))
+                             (send (send snip get-bitmap) save-file fn kind)]
+                            [else (image-core:save-image-as-bitmap snip fn kind)])]
+                         [else
+                          (message-box
+                           (string-constant drscheme)
+                           "Must choose a filename that ends with either .png, .jpg, .xbm, or .xpm"
+                           #:dialog-mixin frame:focus-table-mixin)])))
+                   (new menu-item%
+                        [parent menu]
+                        [label (string-constant save-image)]
+                        [callback save-image-callback]))))))
+         
+         (void)))))
   
   (define (add-search-help-desk-menu-item text menu position [add-sep void])
     (let* ([end (send text get-end-position)]
