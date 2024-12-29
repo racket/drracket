@@ -1,11 +1,11 @@
 #lang racket/base
-(require racket/contract
-         racket/class
+(require racket/class
+         racket/contract
          racket/path
          syntax/modread
-         "private/syncheck/traversals.rkt"
          "private/syncheck/syncheck-intf.rkt"
-         "private/syncheck/syncheck-local-member-names.rkt")
+         "private/syncheck/syncheck-local-member-names.rkt"
+         "private/syncheck/traversals.rkt")
 
 (provide
  (contract-out

@@ -1,51 +1,47 @@
 #lang racket/base
 
-(require racket/contract
-         racket/unit
-         racket/class
-         racket/path
-         racket/port
-         racket/list
-         racket/match
-         racket/format
-         string-constants
-         framework
-         framework/private/srcloc-panel
-         mrlib/name-message
-         mrlib/switchable-button
-         mrlib/cache-image-snip
-         (prefix-in image-core: mrlib/image-core)
-         mrlib/close-icon
-         mrlib/panel-wob
-         net/sendurl
-         net/url
-         
+(require drracket/get-module-path
          drracket/private/drsig
          drracket/private/standalone-module-browser
-         "insulated-read-language.rkt"
-         "insert-large-letters.rkt"
-         "get-defs.rkt"
-         "local-member-names.rkt"
-         "eval-helpers-and-pref-init.rkt"
-         "parse-logger-args.rkt"
-         drracket/get-module-path
-         "named-undefined.rkt"
+         framework
+         framework/private/aspell
+         framework/private/logging-timer
+         framework/private/srcloc-panel
+         mred
+         mrlib/cache-image-snip
+         mrlib/close-icon
+         mrlib/name-message
+         mrlib/panel-wob
+         mrlib/switchable-button
+         mzlib/date
+         net/sendurl
+         net/url
+         racket/class
+         racket/contract
+         racket/format
+         racket/list
+         racket/match
+         racket/path
+         racket/port
+         racket/unit
+         scribble/tag
+         scribble/xref
+         setup/collects
+         setup/xref
+         string-constants
+         (prefix-in image-core: mrlib/image-core)
          (prefix-in pict-snip: "pict-snip.rkt")
          (prefix-in drracket:arrow: "../arrow.rkt")
          (prefix-in icons: images/compile-time)
-         mred
          (prefix-in mred: mred)
-         
-         mzlib/date
-         
-         framework/private/aspell
-         framework/private/logging-timer
-         
-         setup/collects
-         scribble/xref
-         setup/xref
-         scribble/tag
-         (only-in scribble/base doc-prefix))
+         (only-in scribble/base doc-prefix)
+         "eval-helpers-and-pref-init.rkt"
+         "get-defs.rkt"
+         "insert-large-letters.rkt"
+         "insulated-read-language.rkt"
+         "local-member-names.rkt"
+         "named-undefined.rkt"
+         "parse-logger-args.rkt")
 
 (provide unit@)
 

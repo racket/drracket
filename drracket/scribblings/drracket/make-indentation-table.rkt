@@ -1,7 +1,7 @@
 #lang racket/base
-(require racket/gui/base
-         framework
+(require framework
          racket/class
+         racket/gui/base
          racket/runtime-path)
 
 #|

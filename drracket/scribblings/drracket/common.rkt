@@ -1,8 +1,8 @@
 #lang racket/base
 
-(require scribble/manual
-         (for-label racket 
-                    racket/gui/base))
+(require (for-label racket
+                    racket/gui/base)
+         scribble/manual)
 
 (provide HtDP
          drlang

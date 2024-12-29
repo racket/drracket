@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require racket/contract/base
-         racket/system
-         racket/port
-         racket/contract
-         racket/list
+(require compiler/module-suffix
          pkg/lib
-         compiler/module-suffix)
+         racket/contract
+         racket/contract/base
+         racket/list
+         racket/port
+         racket/system)
 
 (define current-library-collection-links-info/c
   (listof (or/c #f
@@ -296,10 +296,10 @@
     [else (use-current-racket 3)]))
 
 (module+ test
-  (require rackunit
+  (require racket/contract
            racket/list
-           racket/contract
-           racket/match)
+           racket/match
+           rackunit)
   
   (define/contract find-completions/c
     (-> string? (listof (list/c string? path?)) (-> path? (listof path?)) (-> path? boolean?)
