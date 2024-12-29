@@ -29,7 +29,7 @@
          [s (if (<= (string-length s) 200)
                 s
                 (substring s 0 200))])
-    (and ((string-length s) . > . 0) s)))
+    (and (positive? (string-length s)) s)))
 
 (preferences:set-default 'drracket:email "" string? #:aliases '(drscheme:email))
 (preferences:set-default 'drracket:full-name "" string? #:aliases '(drscheme:full-name))
