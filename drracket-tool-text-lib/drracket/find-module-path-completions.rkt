@@ -182,20 +182,20 @@
                                    (and (regexp? (list-ref link-ent 2))
                                         (regexp-match (list-ref link-ent 2) (version)))
                                    #t))
-               `(,(list-ref link-ent 0)
-                 ,(simplify-path
-                   (let* ([encoded-path (list-ref link-ent 1)]
-                          [path (cond
-                                  [(string? encoded-path) encoded-path]
-                                  [(bytes? encoded-path) (bytes->path encoded-path)]
-                                  [else (apply build-path
-                                               (for/list ([elem (in-list encoded-path)])
-                                                 (if (bytes? elem)
-                                                     (bytes->path-element elem)
-                                                     elem)))])])
-                     (if (relative-path? path)
-                         (build-path base path)
-                         path)))))]
+               (list (list-ref link-ent 0)
+                     (simplify-path (let* ([encoded-path (list-ref link-ent 1)]
+                                           [path (cond
+                                                   [(string? encoded-path) encoded-path]
+                                                   [(bytes? encoded-path) (bytes->path encoded-path)]
+                                                   [else
+                                                    (apply build-path
+                                                           (for/list ([elem (in-list encoded-path)])
+                                                             (if (bytes? elem)
+                                                                 (bytes->path-element elem)
+                                                                 elem)))])])
+                                      (if (relative-path? path)
+                                          (build-path base path)
+                                          path)))))]
             [else '()])]
          [else
           (for/list ([clp (in-list library-collection-paths)])
