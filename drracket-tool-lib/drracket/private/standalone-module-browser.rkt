@@ -938,7 +938,7 @@
           (call-with-input-file filename
                                 (λ (port)
                                   (let loop ([n 0])
-                                    (define l (read-line port))
+                                    (define l (read-line port 'any))
                                     (if (eof-object? l)
                                         n
                                         (loop (+ n 1)))))
