@@ -77,8 +77,8 @@ selected.
 @section{Moving Around}
 
 @itemize[
-@keybinding["C-f"]{move forward one character}
-@keybinding["C-b"]{move backward one character}
+@keybinding["c:f"]{move forward one character}
+@keybinding["c:b"]{move backward one character}
 @keybinding["M-f"]{move forward one word}
 @keybinding["M-b"]{move backward one word}
 @keybinding["C-v"]{move forward one page}
