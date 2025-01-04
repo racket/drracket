@@ -3419,33 +3419,31 @@
                     (path->string (normal-case-path (normalize-path p2))))))
 
       (define/override (make-visible filename #:start-pos [start-pos #f] #:end-pos [end-pos start-pos])
-        (let ([tab (find-matching-tab filename)])
-          (when tab
-            (change-to-tab tab)
-            (when (and start-pos end-pos)
-              (define (set-the-position ed)
-                (when (send ed port-name-matches? filename)
-                  (send (send ed get-canvas) focus)
-                  (send ed set-caret-owner #f)
-                  (send ed set-position start-pos end-pos)))
-              (set-the-position (send tab get-defs))
-              (set-the-position (send tab get-ints))))))
+        (match (find-matching-tab/which-editor filename)
+          [(cons tab ed)
+           (change-to-tab tab)
+           (when (and start-pos end-pos)
+             (send (send ed get-canvas) focus)
+             (send ed set-caret-owner #f)
+             (send ed set-position start-pos end-pos))]
+          [#f (void)]))
       
       (define/public (find-matching-tab filename)
-        (define fn-path (if (string? filename)
-                            (string->path filename)
-                            filename))
-        (for/or ([tab (in-list tabs)])
-          (define tab-filename (send (send tab get-defs) get-filename))
-          (and tab-filename
-               (pathname-equal? fn-path tab-filename)
-               tab)))
-      
+        (match (find-matching-tab/which-editor filename)
+          [(cons tab ed) tab]
+          [#f #f]))
+
       (define/override (editing-this-file? filename)
-        (ormap (λ (tab)
-                 (or (send (send tab get-defs) port-name-matches? filename)
-                     (send (send tab get-ints) port-name-matches? filename)))
-               tabs))
+        (and (find-matching-tab/which-editor filename) #t))
+      
+      (define/private (find-matching-tab/which-editor path-string)
+        (define filename (if (string? path-string) (string->path path-string) path-string))
+        (for/or ([tab (in-list tabs)])
+          (define (try ed)
+            (and (send ed port-name-matches? filename)
+                 (cons tab ed)))
+          (or (try (send tab get-defs))
+              (try (send tab get-ints)))))
 
       (define/override (get-all-open-files)
         (filter
