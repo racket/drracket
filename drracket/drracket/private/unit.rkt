@@ -3429,16 +3429,24 @@
           [#f (void)]))
       
       (define/public (find-matching-tab filename)
-        (match-define (cons tab ed) (find-matching-tab/which-editor filename))
-        tab)
+        (match (find-matching-tab/which-editor filename)
+          [(cons tab ed) tab]
+          [#f #f]))
 
       (define/override (editing-this-file? filename)
         (and (find-matching-tab/which-editor filename) #t))
-      
+
       (define/private (find-matching-tab/which-editor filename)
+        ;; filename : (or/c path-string? symbol?) via make-visible and find-matching-tab 
+        ;; port-name-matches? only works for path? and symbol?, so cast filename
+        (define fn-path-id
+          (match filename
+            [(? string? s) (string->path s)]
+            [(? path? p) p]
+            [(? symbol? id) id]))
         (for/or ([tab (in-list tabs)])
           (define (try ed)
-            (and (send ed port-name-matches? filename)
+            (and (send ed port-name-matches? fn-path-id)
                  (cons tab ed)))
           (or (try (send tab get-defs))
               (try (send tab get-ints)))))
