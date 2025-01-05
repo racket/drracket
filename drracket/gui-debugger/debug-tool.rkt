@@ -191,24 +191,21 @@
         (define/augment (on-delete start len)
           (unless ignore-modification?
             (begin-edit-sequence)
-            (let ([breakpoints (send (get-tab) get-breakpoints)]
-                  [shifts empty])
-              (hash-for-each
-               breakpoints
-               (lambda (pos status)
-                 (cond
-                   ; deletion after breakpoint: no effect
-                   [(<= pos start)]
-                   ; deletion of breakpoint: remove from table
-                   [(and (< start pos)
-                         (<= pos (+ start len)))
-                    (hash-remove! breakpoints pos)]
-                   ; deletion before breakpoint: shift breakpoint
-                   [(> pos (+ start len))
-                    (hash-remove! breakpoints pos)
-                    (set! shifts (cons (cons (- pos len) status) shifts))])))
-              (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p)))
-                        shifts)))
+            (define breakpoints (send (get-tab) get-breakpoints))
+            (define shifts empty)
+            (hash-for-each
+             breakpoints
+             (lambda (pos status)
+               (cond
+                 ; deletion after breakpoint: no effect
+                 [(<= pos start)]
+                 ; deletion of breakpoint: remove from table
+                 [(and (< start pos) (<= pos (+ start len))) (hash-remove! breakpoints pos)]
+                 ; deletion before breakpoint: shift breakpoint
+                 [(> pos (+ start len))
+                  (hash-remove! breakpoints pos)
+                  (set! shifts (cons (cons (- pos len) status) shifts))])))
+            (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p))) shifts))
           (inner (void) on-delete start len))
         
         (define/augment (after-delete start len)
@@ -222,19 +219,17 @@
           (inner (void) on-insert start len)
           (unless ignore-modification?
             (begin-edit-sequence)
-            (let ([breakpoints (send (get-tab) get-breakpoints)]
-                  [shifts empty])
-              (hash-for-each
-               breakpoints
-               (lambda (pos status)
-                 (when (< start pos)
-                   ;; text inserted before this breakpoint, so shift
-                   ;; the breakpoint forward by <len> positions
-                   (hash-remove! breakpoints pos)
-                   (set! shifts (cons (cons (+ pos len) status) shifts)))))
-              ;; update the breakpoint locations
-              (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p)))
-                        shifts))))
+            (define breakpoints (send (get-tab) get-breakpoints))
+            (define shifts empty)
+            (hash-for-each breakpoints
+                           (lambda (pos status)
+                             (when (< start pos)
+                               ;; text inserted before this breakpoint, so shift
+                               ;; the breakpoint forward by <len> positions
+                               (hash-remove! breakpoints pos)
+                               (set! shifts (cons (cons (+ pos len) status) shifts)))))
+            ;; update the breakpoint locations
+            (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p))) shifts)))
         
         (define/augment (after-insert start len)
           (inner (void) after-insert start len)
@@ -262,30 +257,27 @@
         
         ;; mouse-event -> (or (values #f #f) (values pos editor))
         (define/private (get-pos/text event)
-          (let ([event-x (send event get-x)]
-                [event-y (send event get-y)]
-                [on-it? (box #f)])
-            (let loop ([editor this])
-              (let-values ([(x y) (send editor dc-location-to-editor-location
-                                        event-x event-y)])
-                (cond
-                  [(is-a? editor text%)
-                   (let ([pos (send editor find-position x y #f on-it?)])
-                     (cond
-                       [(not (unbox on-it?)) (values #f #f)]
-                       [else
-                        (let ([snip (send editor find-snip pos 'after-or-none)])
-                          (if (and snip
-                                   (is-a? snip editor-snip%))
-                              (loop (send snip get-editor))
-                              (values pos editor)))]))]
-                  [(is-a? editor pasteboard%)
-                   (let ([snip (send editor find-snip x y)])
-                     (if (and snip
-                              (is-a? snip editor-snip%))
-                         (loop (send snip get-editor))
-                         (values #f #f)))]
-                  [else (values #f #f)])))))
+          (define event-x (send event get-x))
+          (define event-y (send event get-y))
+          (define on-it? (box #f))
+          (let loop ([editor this])
+            (let-values ([(x y) (send editor dc-location-to-editor-location event-x event-y)])
+              (cond
+                [(is-a? editor text%)
+                 (let ([pos (send editor find-position x y #f on-it?)])
+                   (cond
+                     [(not (unbox on-it?)) (values #f #f)]
+                     [else
+                      (let ([snip (send editor find-snip pos 'after-or-none)])
+                        (if (and snip (is-a? snip editor-snip%))
+                            (loop (send snip get-editor))
+                            (values pos editor)))]))]
+                [(is-a? editor pasteboard%)
+                 (let ([snip (send editor find-snip x y)])
+                   (if (and snip (is-a? snip editor-snip%))
+                       (loop (send snip get-editor))
+                       (values #f #f)))]
+                [else (values #f #f)]))))
         
         ;; text% start -> (values left top right bottom)
         ;; (four numbers that indicate the locations in pixels of the
@@ -293,28 +285,26 @@
         (define/private (find-char-box text pos)
           (define start-pos (max 0 (- pos 1)))
           (define end-pos (+ start-pos 1))
-          (let ([xlb (box 0)]
-                [ylb (box 0)]
-                [xrb (box 0)]
-                [yrb (box 0)])
-            (send text position-location start-pos xlb ylb #t)
-            (send text position-location end-pos xrb yrb #f)
-            (let*-values ([(xl-off yl-off) (send text editor-location-to-dc-location
-                                                 (unbox xlb) (unbox ylb))]
-                          [(xl yl) (dc-location-to-editor-location xl-off yl-off)]
-                          [(xr-off yr-off) (send text editor-location-to-dc-location
-                                                 (unbox xrb) (unbox yrb))]
-                          [(xr yr) (dc-location-to-editor-location xr-off yr-off)])
-              (cond
-                [(= (send text position-line start-pos)
-                    (send text position-line end-pos))
-                 (values xl yl xr yr)]
-                [else
-                 ;; in this case, the open paren we want to draw on top of is on
-                 ;; a different line from the operator following it, so we just 
-                 ;; give ourselves a little space and draw something, instead of
-                 ;; returning strange results (and possibly crashing)
-                 (values xl yl (+ 10 xl) (+ yl 10))]))))
+          (define xlb (box 0))
+          (define ylb (box 0))
+          (define xrb (box 0))
+          (define yrb (box 0))
+          (send text position-location start-pos xlb ylb #t)
+          (send text position-location end-pos xrb yrb #f)
+          (define-values (xl-off yl-off)
+            (send text editor-location-to-dc-location (unbox xlb) (unbox ylb)))
+          (define-values (xl yl) (dc-location-to-editor-location xl-off yl-off))
+          (define-values (xr-off yr-off)
+            (send text editor-location-to-dc-location (unbox xrb) (unbox yrb)))
+          (define-values (xr yr) (dc-location-to-editor-location xr-off yr-off))
+          (cond
+            [(= (send text position-line start-pos) (send text position-line end-pos))
+             (values xl yl xr yr)]
+            ;; in this case, the open paren we want to draw on top of is on
+            ;; a different line from the operator following it, so we just
+            ;; give ourselves a little space and draw something, instead of
+            ;; returning strange results (and possibly crashing)
+            [else (values xl yl (+ 10 xl) (+ yl 10))]))
         
         (define/private (render v)
           (send (get-tab) render v))
@@ -322,106 +312,119 @@
         ;; mouse-event% integer -> ()
         ;; handles a right-click on a position that's not a breakable paren
         (define/private (debugger-handle-right-click-non-breakable event pos)
-          (let* ([frames (send (get-tab) get-stack-frames)]
-                 [pos-vec (send (get-tab) get-pos-vec)]
-                 [id (robust-vector-ref pos-vec pos)])
-            (unless (lookup-var
-                     id frames
-                     (lambda (val wr)
-                       (let ([id-sym (syntax-e id)]
-                             [menu (make-object popup-menu% #f)])
-                         (make-object menu-item%
-                           (clean-status (format "Print value of ~a to console" id-sym))
-                           menu
-                           (lambda (item evt)
-                             (send (get-tab) print-to-console (format "~a = ~s" id-sym val))))
-                         (make-object menu-item% (format "(set! ~a ...)" id-sym) menu
-                           (lambda (item evt)
-                             (let* ([tmp (get-text-from-user
-                                          (format "New value for ~a" id-sym) #f #f
-                                          (format "~a" val))])
-                               (when tmp
-                                 (let/ec k
-                                   (wr (with-handlers
-                                           ([exn:fail?
-                                             (lambda (exn)
-                                               (message-box
-                                                "Debugger Error"
-                                                (format "The following error occurred: ~a"
-                                                        (exn-message exn)))
-                                               (k))])
-                                         (read (open-input-string tmp)))))))))
-                         (send (get-canvas) popup-menu menu
-                               (+ 1 (inexact->exact (floor (send event get-x))))
-                               (+ 1 (inexact->exact (floor (send event get-y)))))
-                         #t))
-                     (lambda () #f))
-              (super on-event event))))
-        
-        (define/private (debugger-handle-right-click-breakable event breakpoints pos break-status)
-          (let ([menu (make-object popup-menu% #f)])
-            (make-object menu-item%
-              (if break-status
-                  "Remove pause at this point"
-                  "Pause at this point")
-              menu
-              (lambda (item evt)
-                (hash-set! breakpoints pos (not break-status))
-                (invalidate-bitmap-cache)))
-            (let ([pc (send (get-tab) get-pc)])
-              (if (and pc (= pos pc))
-                  (let* ([stat (send (get-tab) get-break-status)]
-                         [f (get-top-level-window)]
-                         [rendered-value
-                          (if (cons? stat)
-                              (if (= 2 (length stat))
-                                  (render (cadr stat))
-                                  (format "~s" (cons 'values 
-                                                     (map (lambda (v) (render v)) (rest stat)))))
-                              "")])
-                    (when (cons? stat)
-                      (make-object menu-item%
-                        "Print return value to console" menu
-                        (lambda _ (send (get-tab) print-to-console
-                                        (string-append "return val = " rendered-value)))))
-                    (when (not (eq? stat 'break))
-                      (make-object menu-item%
-                        (if (cons? stat)
-                            "Change return value..."
-                            "Skip expression...")
+          (define frames (send (get-tab) get-stack-frames))
+          (define pos-vec (send (get-tab) get-pos-vec))
+          (define id (robust-vector-ref pos-vec pos))
+          (unless (lookup-var
+                   id
+                   frames
+                   (lambda (val wr)
+                     (let ([id-sym (syntax-e id)]
+                           [menu (make-object popup-menu% #f)])
+                       (make-object
+                        menu-item%
+                        (clean-status (format "Print value of ~a to console" id-sym))
                         menu
                         (lambda (item evt)
-                          (let ([tmp (get-text-from-user "Return value" #f)])
+                          (send (get-tab) print-to-console (format "~a = ~s" id-sym val))))
+                       (make-object
+                        menu-item%
+                        (format "(set! ~a ...)" id-sym)
+                        menu
+                        (lambda (item evt)
+                          (let* ([tmp (get-text-from-user (format "New value for ~a" id-sym)
+                                                          #f
+                                                          #f
+                                                          (format "~a" val))])
                             (when tmp
                               (let/ec k
-                                (send (get-tab) set-break-status
-                                      (cons 'exit-break
-                                            (call-with-values
-                                             (lambda ()
-                                               (with-handlers
-                                                   ([exn:fail?
+                                (wr (with-handlers ([exn:fail?
                                                      (lambda (exn)
                                                        (message-box
                                                         "Debugger Error"
-                                                        (format "An error occurred: ~a" (exn-message exn))
-                                                        #f '(ok))
+                                                        (format "The following error occurred: ~a"
+                                                                (exn-message exn)))
                                                        (k))])
-                                                 (read (open-input-string tmp))))
-                                             list)))
-                                (invalidate-bitmap-cache))))))))
-                  (make-object menu-item%
-                    "Continue to this point"
-                    menu
-                    (lambda (item evt)
-                      (hash-set!
-                       breakpoints pos
-                       (lambda () (hash-set! breakpoints pos break-status) #t))
-                      (invalidate-bitmap-cache)
-                      (when (send (get-tab) get-stack-frames)
-                        (send (get-tab) resume))))))
-            (send (get-canvas) popup-menu menu
-                  (+ 1 (inexact->exact (floor (send event get-x))))
-                  (+ 1 (inexact->exact (floor (send event get-y)))))))
+                                      (read (open-input-string tmp)))))))))
+                       (send (get-canvas)
+                             popup-menu
+                             menu
+                             (+ 1 (inexact->exact (floor (send event get-x))))
+                             (+ 1 (inexact->exact (floor (send event get-y)))))
+                       #t))
+                   (lambda () #f))
+            (super on-event event)))
+        
+        (define/private (debugger-handle-right-click-breakable event breakpoints pos break-status)
+          (define menu (make-object popup-menu% #f))
+          (make-object menu-item%
+                       (if break-status "Remove pause at this point" "Pause at this point")
+                       menu
+                       (lambda (item evt)
+                         (hash-set! breakpoints pos (not break-status))
+                         (invalidate-bitmap-cache)))
+          (let ([pc (send (get-tab) get-pc)])
+            (if (and pc (= pos pc))
+                (let* ([stat (send (get-tab) get-break-status)]
+                       [f (get-top-level-window)]
+                       [rendered-value
+                        (if (cons? stat)
+                            (if (= 2 (length stat))
+                                (render (cadr stat))
+                                (format "~s"
+                                        (cons 'values (map (lambda (v) (render v)) (rest stat)))))
+                            "")])
+                  (when (cons? stat)
+                    (make-object menu-item%
+                                 "Print return value to console"
+                                 menu
+                                 (lambda _
+                                   (send (get-tab)
+                                         print-to-console
+                                         (string-append "return val = " rendered-value)))))
+                  (when (not (eq? stat 'break))
+                    (make-object
+                     menu-item%
+                     (if (cons? stat) "Change return value..." "Skip expression...")
+                     menu
+                     (lambda (item evt)
+                       (let ([tmp (get-text-from-user "Return value" #f)])
+                         (when tmp
+                           (let/ec k
+                             (send
+                              (get-tab)
+                              set-break-status
+                              (cons 'exit-break
+                                    (call-with-values
+                                     (lambda ()
+                                       (with-handlers ([exn:fail?
+                                                        (lambda (exn)
+                                                          (message-box "Debugger Error"
+                                                                       (format "An error occurred: ~a"
+                                                                               (exn-message exn))
+                                                                       #f
+                                                                       '(ok))
+                                                          (k))])
+                                         (read (open-input-string tmp))))
+                                     list)))
+                             (invalidate-bitmap-cache))))))))
+                (make-object menu-item%
+                             "Continue to this point"
+                             menu
+                             (lambda (item evt)
+                               (hash-set! breakpoints
+                                          pos
+                                          (lambda ()
+                                            (hash-set! breakpoints pos break-status)
+                                            #t))
+                               (invalidate-bitmap-cache)
+                               (when (send (get-tab) get-stack-frames)
+                                 (send (get-tab) resume))))))
+          (send (get-canvas)
+                popup-menu
+                menu
+                (+ 1 (inexact->exact (floor (send event get-x))))
+                (+ 1 (inexact->exact (floor (send event get-y))))))
         
         (define/private (debugger-handle-right-click event breakpoints)
           (let-values ([(pos text) (get-pos/text event)])
@@ -436,52 +439,50 @@
                 (super on-event event))))
         
         (define/private (debugger-handle-event event)
-          (let ([breakpoints (send (get-tab) get-breakpoints)])
-            (cond
-              [(send event leaving?)
-               (when mouse-over-pos
-                 (set! mouse-over-pos #f)
-                 (invalidate-bitmap-cache))
-               (super on-event event)]
-              [(or (send event moving?)
-                   (send event entering?))
-               (let-values ([(pos text) (get-pos/text event)])
-                 (when (and pos text)
-                   (let ([pos (add1 pos)])
-                     (cond
-                       ;; mouse on breakable pos and hasn't moved significantly
-                       [(eq? pos mouse-over-pos)]
-                       ;; mouse on new breakable pos
-                       [(not (eq? (hash-ref
-                                   breakpoints pos (lambda () 'invalid)) 'invalid))
-                        (set! mouse-over-pos pos)
-                        (invalidate-bitmap-cache)]
-                       ;; moved off breakable pos
-                       [mouse-over-pos
-                        (set! mouse-over-pos #f)
-                        (invalidate-bitmap-cache)])
-                     (let* ([frames (send (get-tab) get-stack-frames)]
-                            [pos-vec (send (get-tab) get-pos-vec)]
-                            [id (robust-vector-ref pos-vec pos)]
-                            ;; Try to look up the identifier and render its value.  If either
-                            ;; of these steps fails, just draw an empty string in the status bar.
-                            [rendered
-                             (lookup-var
-                              id (list-tail frames (send (get-tab) get-frame-num))
-                                          ;; id found
-                                          (lambda (val _)
-                                            (cond
-                                              [(render val) => (lambda (str)
-                                                                 (string-append
-                                                                  (symbol->string (syntax-e id)) " = " str))]
-                                              [else ""]))
-                                          ;; id not found
-                                          (lambda () ""))])
-                       (send (get-tab) set-mouse-over-msg (clean-status rendered))))))
-               (super on-event event)]
-              [(send event button-down? 'right)
-               (debugger-handle-right-click event breakpoints)]
-              [else (super on-event event)])))
+          (define breakpoints (send (get-tab) get-breakpoints))
+          (cond
+            [(send event leaving?)
+             (when mouse-over-pos
+               (set! mouse-over-pos #f)
+               (invalidate-bitmap-cache))
+             (super on-event event)]
+            [(or (send event moving?) (send event entering?))
+             (let-values ([(pos text) (get-pos/text event)])
+               (when (and pos text)
+                 (let ([pos (add1 pos)])
+                   (cond
+                     ;; mouse on breakable pos and hasn't moved significantly
+                     [(eq? pos mouse-over-pos)]
+                     ;; mouse on new breakable pos
+                     [(not (eq? (hash-ref breakpoints pos (lambda () 'invalid)) 'invalid))
+                      (set! mouse-over-pos pos)
+                      (invalidate-bitmap-cache)]
+                     ;; moved off breakable pos
+                     [mouse-over-pos
+                      (set! mouse-over-pos #f)
+                      (invalidate-bitmap-cache)])
+                   (let* ([frames (send (get-tab) get-stack-frames)]
+                          [pos-vec (send (get-tab) get-pos-vec)]
+                          [id (robust-vector-ref pos-vec pos)]
+                          ;; Try to look up the identifier and render its value.  If either
+                          ;; of these steps fails, just draw an empty string in the status bar.
+                          [rendered (lookup-var
+                                     id
+                                     (list-tail frames (send (get-tab) get-frame-num))
+                                     ;; id found
+                                     (lambda (val _)
+                                       (cond
+                                         [(render val)
+                                          =>
+                                          (lambda (str)
+                                            (string-append (symbol->string (syntax-e id)) " = " str))]
+                                         [else ""]))
+                                     ;; id not found
+                                     (lambda () ""))])
+                     (send (get-tab) set-mouse-over-msg (clean-status rendered))))))
+             (super on-event event)]
+            [(send event button-down? 'right) (debugger-handle-right-click event breakpoints)]
+            [else (super on-event event)]))
           
         (define/override (on-event event)
           (if (send (get-tab) debug?)
@@ -497,21 +498,24 @@
                breakpoints
                (lambda (pos enabled?)
                  (when (and (>= pos 0) (or enabled? (and mouse-over-pos (= mouse-over-pos pos))))
-                   (let*-values ([(xl yl xr yr) (find-char-box this pos)]
-                                 [(diameter) (- xr xl)]
-                                 [(yoff) (/ (- yr yl diameter) 2)])
-                     (let ([op (send dc get-pen)]
-                           [ob (send dc get-brush)])
-                       (case enabled?
-                         [(#t) (send dc set-pen bp-pen)
-                               (send dc set-brush bp-brush)]
-                         [(#f) (send dc set-pen bp-mo-pen)
-                               (send dc set-brush bp-mo-brush)]
-                         [else (send dc set-pen bp-tmp-pen)
-                               (send dc set-brush bp-tmp-brush)])
-                       (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
-                       (send dc set-pen op)
-                       (send dc set-brush ob)))))))
+                   (define-values (xl yl xr yr) (find-char-box this pos))
+                   (define diameter (- xr xl))
+                   (define yoff (/ (- yr yl diameter) 2))
+                   (define op (send dc get-pen))
+                   (define ob (send dc get-brush))
+                   (case enabled?
+                     [(#t)
+                      (send dc set-pen bp-pen)
+                      (send dc set-brush bp-brush)]
+                     [(#f)
+                      (send dc set-pen bp-mo-pen)
+                      (send dc set-brush bp-mo-brush)]
+                     [else
+                      (send dc set-pen bp-tmp-pen)
+                      (send dc set-brush bp-tmp-brush)])
+                   (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
+                   (send dc set-pen op)
+                   (send dc set-brush ob)))))
             ;; mark the boundaries of the current stack frame
             ;; unless we're at the end of the expression and looking at the top frame,
             ;; in which case just mark the current location
