@@ -135,10 +135,12 @@
               (> (bytes-length v) size))
          (bytes-append (subbytes v 0 size) #"...")]
         [(list? v)
-         (let* ([len (length v)]
-                [res (build-list (min size len)
-                                 (lambda (i) (truncate-value (list-ref v i) size (sub1 depth))))])
-           (if (> len size) (append res (list '...)) res))]
+         (define len (length v))
+         (define res
+           (build-list (min size len) (lambda (i) (truncate-value (list-ref v i) size (sub1 depth)))))
+         (if (> len size)
+             (append res (list '...))
+             res)]
         [(vector? v)
          (build-vector (min size (vector-length v))
                        (lambda (i)
