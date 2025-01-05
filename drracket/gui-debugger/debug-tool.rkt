@@ -430,7 +430,7 @@
           (let-values ([(pos text) (get-pos/text event)])
             (if (and pos text)
                 (let* ([pos (add1 pos)]
-                       [break-status (hash-ref breakpoints pos (lambda () 'invalid))])
+                       [break-status (hash-ref breakpoints pos 'invalid)])
                   (match break-status
                     [(or #t #f (? procedure?))
                      (debugger-handle-right-click-breakable event breakpoints pos break-status)]
@@ -703,7 +703,7 @@
                       (for ([posn (in-list break-posns)]) 
                         (hash-set!
                          breakpoints posn
-                         (hash-ref breakpoints posn (lambda () #f))))
+                         (hash-ref breakpoints posn #f)))
                       annotated)))]
                  [else (oe top-e)])])))
         
