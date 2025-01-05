@@ -1,16 +1,16 @@
 #lang racket/base
-(require racket/unit
-         racket/class
-         "browser-sig.rkt"
-         "private/sig.rkt"
-         "private/html.rkt"
-         "private/bullet.rkt"
+(require browser/external
+         mred/mred-sig
+         mred/mred-unit
          net/url
          net/url-sig
+         racket/class
          racket/gui/base
-         mred/mred-unit
-         mred/mred-sig
-         browser/external)
+         racket/unit
+         "browser-sig.rkt"
+         "private/bullet.rkt"
+         "private/html.rkt"
+         "private/sig.rkt")
 
 (define-unit-from-context url@ url^)
 
