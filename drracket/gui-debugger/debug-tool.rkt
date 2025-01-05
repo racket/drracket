@@ -383,7 +383,7 @@
                                    (send (get-tab)
                                          print-to-console
                                          (string-append "return val = " rendered-value)))))
-                  (when (not (eq? stat 'break))
+                  (unless (eq? stat 'break)
                     (make-object
                      menu-item%
                      (if (cons? stat) "Change return value..." "Skip expression...")
