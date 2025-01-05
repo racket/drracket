@@ -273,10 +273,10 @@
                             (loop (send snip get-editor))
                             (values pos editor)))]))]
                 [(is-a? editor pasteboard%)
-                 (let ([snip (send editor find-snip x y)])
-                   (if (and snip (is-a? snip editor-snip%))
-                       (loop (send snip get-editor))
-                       (values #f #f)))]
+                 (define snip (send editor find-snip x y))
+                 (if (and snip (is-a? snip editor-snip%))
+                     (loop (send snip get-editor))
+                     (values #f #f))]
                 [else (values #f #f)]))))
         
         ;; text% start -> (values left top right bottom)
