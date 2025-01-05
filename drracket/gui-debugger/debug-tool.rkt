@@ -113,23 +113,17 @@
     ;; really-long-identifier     => really-lon...
     ;; (<form>)                   => (<form>)
     ;; (<form> <arg1> ... <argn>) => (<form> ...)
-    (define trim-expr-str
-      (lambda (str [len 10])
-        (let* ([strlen (string-length str)]
-               [starts-with-paren (and (> strlen 0)
-                                       (char=? (string-ref str 0) #\())]
-               [len2 (+ len 4)]
-               [trunc-pos (safe-min (index-of #\space str)
-                                    (index-of #\newline str)
-                                    (and (> strlen len2) len)
-                                    strlen)])
-          (if (>= trunc-pos strlen)
-              str
-              (string-append
-               (substring str 0 trunc-pos)
-               (if starts-with-paren
-                   " ...)"
-                   " ..."))))))
+    (define (trim-expr-str str [len 10])
+      (let* ([strlen (string-length str)]
+             [starts-with-paren (and (> strlen 0) (char=? (string-ref str 0) #\())]
+             [len2 (+ len 4)]
+             [trunc-pos (safe-min (index-of #\space str)
+                                  (index-of #\newline str)
+                                  (and (> strlen len2) len)
+                                  strlen)])
+        (if (>= trunc-pos strlen)
+            str
+            (string-append (substring str 0 trunc-pos) (if starts-with-paren " ...)" " ...")))))
     
     (define (average . values)
       (/ (apply + values) (length values)))
@@ -157,19 +151,19 @@
                              (truncate-value (vector-ref v i) size (sub1 depth)))))]
         [else v]))
     
-    (define filename->defs
-      (lambda (source [default #f])
-        (let/ec k
-          (cond
-            [(is-a? source editor<%>) source]
-            [else
-             (send (group:get-the-frame-group) for-each-frame
-                   (lambda (frame)
-                     (and (is-a? frame drscheme:unit:frame<%>)
-                          (let* ([defss (map (lambda (t) (send t get-defs)) (send frame get-tabs))]
-                                 [defs (findf (lambda (d) (send d port-name-matches? source)) defss)])
-                            (and defs (k defs))))))
-             default]))))
+    (define (filename->defs source [default #f])
+      (let/ec k
+        (cond
+          [(is-a? source editor<%>) source]
+          [else
+           (send (group:get-the-frame-group)
+                 for-each-frame
+                 (lambda (frame)
+                   (and (is-a? frame drscheme:unit:frame<%>)
+                        (let* ([defss (map (lambda (t) (send t get-defs)) (send frame get-tabs))]
+                               [defs (findf (lambda (d) (send d port-name-matches? source)) defss)])
+                          (and defs (k defs))))))
+           default])))
     
     (define (debug-definitions-text-mixin super%)
       (class super%
