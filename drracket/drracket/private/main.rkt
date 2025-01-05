@@ -1006,6 +1006,9 @@
             (list (vector->list (current-command-line-arguments)))
             (map list (reverse (vector->list (current-command-line-arguments)))))]))
    (define already-warned? #f)
+
+   ;; (listof (listof ?))
+   ;; each outer list corresponds to a frame; each inner list are the tabs in that frame
    (define normalized/filtered
      (for/list ([frame-files (in-list files-to-open)])
        (for/list ([file (in-list frame-files)])
@@ -1019,6 +1022,8 @@
                (string-constant drscheme)
                (format (string-constant cannot-open-because-dne) file)))
             #f]))))
+
+   ;; (listof (listof ?))
    (define no-dups (remove-duplicates/falses normalized/filtered))
    (define no-empties (filter pair? no-dups))
    (cond
@@ -1043,7 +1048,8 @@
         ;; opening a file results in an error so we don't actually
         ;; open it, so `locate-file` returns #f.
         (define first-one
-          (for/or ([nd (in-list no-dups)])
+          (for*/or ([nds (in-list no-dups)]
+                    [nd (in-list nds)])
             (define f (send (group:get-the-frame-group) locate-file nd))
             (and f (cons f nd))))
         (when first-one
