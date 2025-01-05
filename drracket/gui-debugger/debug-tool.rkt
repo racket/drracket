@@ -332,20 +332,21 @@
                         (format "(set! ~a ...)" id-sym)
                         menu
                         (lambda (item evt)
-                          (let* ([tmp (get-text-from-user (format "New value for ~a" id-sym)
-                                                          #f
-                                                          #f
-                                                          (format "~a" val))])
-                            (when tmp
-                              (let/ec k
-                                (wr (with-handlers ([exn:fail?
-                                                     (lambda (exn)
-                                                       (message-box
-                                                        "Debugger Error"
-                                                        (format "The following error occurred: ~a"
-                                                                (exn-message exn)))
-                                                       (k))])
-                                      (read (open-input-string tmp)))))))))
+                          (define tmp
+                            (get-text-from-user (format "New value for ~a" id-sym)
+                                                #f
+                                                #f
+                                                (format "~a" val)))
+                          (when tmp
+                            (let/ec k
+                              (wr (with-handlers ([exn:fail?
+                                                   (lambda (exn)
+                                                     (message-box
+                                                      "Debugger Error"
+                                                      (format "The following error occurred: ~a"
+                                                              (exn-message exn)))
+                                                     (k))])
+                                    (read (open-input-string tmp))))))))
                        (send (get-canvas)
                              popup-menu
                              menu
