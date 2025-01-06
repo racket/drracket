@@ -3437,6 +3437,8 @@
         (and (find-matching-tab/which-editor filename) #t))
       
       (define/private (find-matching-tab/which-editor path-string)
+        ;; path-string : (or/c path-string? symbol?) via make-visible, find-matching-tab, and editing-this-file?
+        ;; port-name-matches? only works for path? and symbol?, so cast filename
         (define filename (if (string? path-string) (string->path path-string) path-string))
         (for/or ([tab (in-list tabs)])
           (define (try ed)
