@@ -260,11 +260,13 @@ Will not work with the definitions text surrogate interposition that
      (for/list ([pr (in-list val)])
        (define key (list-ref pr 0))
        (define proc (list-ref pr 1))
-       (list key (λ (txt evt)
-                   (call-in-irl-context/abort
-                    an-irl
-                    void
-                    (λ () (proc txt evt))))))]
+       (list key (procedure-rename
+                  (λ (txt evt)
+                    (call-in-irl-context/abort
+                     an-irl
+                     void
+                     (λ () (proc txt evt))))
+                  (object-name proc))))]
     [(drracket:paren-matches)
      (or val racket:default-paren-matches)]
     [(drracket:quote-matches)
