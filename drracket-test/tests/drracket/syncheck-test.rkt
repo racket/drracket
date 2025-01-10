@@ -1,21 +1,21 @@
 #lang racket/base
 
-  (require "private/drracket-test-util.rkt"
+  (require (for-syntax racket/base)
            drracket/private/syncheck/local-member-names
            drracket/syncheck-drracket-button
-           string-constants/string-constant
-           "private/gui.rkt"
-           racket/path
-           racket/class
-           racket/list
-           racket/file
-           racket/set
-           racket/port
-           racket/pretty
-           racket/gui/base
            framework
            mrlib/text-string-style-desc
-           (for-syntax racket/base))
+           racket/class
+           racket/file
+           racket/gui/base
+           racket/list
+           racket/path
+           racket/port
+           racket/pretty
+           racket/set
+           string-constants/string-constant
+           "private/drracket-test-util.rkt"
+           "private/gui.rkt")
   
   (provide main)
   
@@ -37,11 +37,16 @@
   (define-struct prefix-test (line input pos prefix output) #:transparent)
   (define-struct err-test (line input expected locations) #:transparent)
   
-  (define build-test/proc
-    (λ (line input expected [arrow-table '()] #:tooltips [tooltips #f] 
-             #:setup [setup void] #:teardown [teardown void] #:extra-files [extra-files (hash)]
-             #:extra-info? [extra-info? #f])
-      (make-test line input expected arrow-table tooltips setup teardown extra-files extra-info?)))
+  (define (build-test/proc line
+                           input
+                           expected
+                           [arrow-table '()]
+                           #:tooltips [tooltips #f]
+                           #:setup [setup void]
+                           #:teardown [teardown void]
+                           #:extra-files [extra-files (hash)]
+                           #:extra-info? [extra-info? #f])
+    (make-test line input expected arrow-table tooltips setup teardown extra-files extra-info?))
   
   (define-syntax (build-test stx)
     (syntax-case stx ()
@@ -1754,7 +1759,7 @@
 
 
   (define (main)
-    (define temp-dir (normalize-path (make-temporary-file "syncheck-test~a" 'directory)))
+    (define temp-dir (normalize-path (make-temporary-directory "syncheck-test~a")))
     (dynamic-wind
      void
      (λ ()
