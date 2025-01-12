@@ -207,15 +207,12 @@
     (for/list ([just-one (in-list link-content)])
       (define-values (what pth) (apply values just-one))
       (cond
-        [(string? what)
-         (list just-one)]
-        [else
-         (cond
-           [(safe-directory-exists? pth)
-            (for/list ([dir (in-list (safe-directory-list pth))]
-                       #:when (safe-directory-exists? (build-path pth dir)))
-              (list (path->string dir) (build-path pth dir)))]
-           [else '()])])))))
+        [(string? what) (list just-one)]
+        [(safe-directory-exists? pth)
+         (for/list ([dir (in-list (safe-directory-list pth))]
+                    #:when (safe-directory-exists? (build-path pth dir)))
+           (list (path->string dir) (build-path pth dir)))]
+        [else '()])))))
 
 (define-syntax-rule (thunk-and-quote e)
   (values (λ () e) 'e))
