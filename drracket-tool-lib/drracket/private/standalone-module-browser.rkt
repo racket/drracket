@@ -412,13 +412,13 @@
               ;; note: the preference drracket:module-browser:name-length is also used for
               ;; the View|Show Module Browser version of the module browser
               ;; here we just treat any pref value except '3' as if it were for the long names.
-              (let ([selection (send module-browser-name-length-choice get-selection)])
-                (preferences:set 'drracket:module-browser:name-length (+ 2 selection))
-                (send pasteboard
-                      set-name-length
-                      (case selection
-                        [(0) 'long]
-                        [(1) 'very-long])))))))
+              (define selection (send module-browser-name-length-choice get-selection))
+              (preferences:set 'drracket:module-browser:name-length (+ 2 selection))
+              (send pasteboard
+                    set-name-length
+                    (case selection
+                      [(0) 'long]
+                      [(1) 'very-long]))))))
     (send pkg-choice set-string-selection (send pasteboard get-main-file-pkg))
     
     (define ec (make-object overview-editor-canvas% vp pasteboard))
@@ -1059,24 +1059,25 @@
                (let loop ([snips this-level-snips]
                           [minor-dim (/ (- max-minor this-minor) 2)])
                  (unless (null? snips)
-                   (let* ([snip (car snips)]
-                          [new-major-coord (+ major-dim
-                                              (floor (- (/ this-major 2)
-                                                        (/ (if vertical?
-                                                               (get-snip-height snip)
-                                                               (get-snip-width snip))
-                                                           2))))])
-                     (if vertical?
-                         (move-to snip minor-dim new-major-coord)
-                         (move-to snip new-major-coord minor-dim))
-                     (loop (cdr snips)
-                           (+ minor-dim
-                              (if vertical?
-                                  (get-snip-hspace)
-                                  (get-snip-vspace))
-                              (if vertical?
-                                  (get-snip-width snip)
-                                  (get-snip-height snip)))))))
+                   (define snip (car snips))
+                   (define new-major-coord
+                     (+ major-dim
+                        (floor (- (/ this-major 2)
+                                  (/ (if vertical?
+                                         (get-snip-height snip)
+                                         (get-snip-width snip))
+                                     2)))))
+                   (if vertical?
+                       (move-to snip minor-dim new-major-coord)
+                       (move-to snip new-major-coord minor-dim))
+                   (loop (cdr snips)
+                         (+ minor-dim
+                            (if vertical?
+                                (get-snip-hspace)
+                                (get-snip-vspace))
+                            (if vertical?
+                                (get-snip-width snip)
+                                (get-snip-height snip))))))
                (loop (cdr levels)
                      (+ major-dim
                         (if vertical?
@@ -1119,8 +1120,8 @@
                    (let loop ([snip (find-first-snip)])
                      (when snip
                        (when (is-a? snip boxed-word-snip<%>)
-                         (let ([filename (send snip get-filename)])
-                           (on-boxed-word-double-click filename)))
+                         (define filename (send snip get-filename))
+                         (on-boxed-word-double-click filename))
                        (loop (send snip next)))))])
            (send canvas popup-menu right-button-menu (+ (send evt get-x) 1) (+ (send evt get-y) 1))]
           [else (super on-event evt)]))
@@ -1256,19 +1257,20 @@
                    ""
                    (string (string-ref word 0)))]
               [(medium)
-               (let ([m (regexp-match #rx"^(.*)\\.[^.]*$" word)])
-                 (let ([short-name (if m
-                                       (cadr m)
-                                       word)])
-                   (if (string=? short-name "")
-                       ""
-                       (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
-                         (cond
-                           [(null? ms) (substring short-name 0 (min 2 (string-length short-name)))]
-                           [else
-                            (apply string-append
-                                   (cons (substring short-name 0 1)
-                                         (map (λ (x) (substring x 1 2)) ms)))])))))]
+               (define m (regexp-match #rx"^(.*)\\.[^.]*$" word))
+               (define short-name
+                 (if m
+                     (cadr m)
+                     word))
+               (if (string=? short-name "")
+                   ""
+                   (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
+                     (cond
+                       [(null? ms) (substring short-name 0 (min 2 (string-length short-name)))]
+                       [else
+                        (apply string-append
+                               (cons (substring short-name 0 1)
+                                     (map (λ (x) (substring x 1 2)) ms)))])))]
               [(long) word]
               [(very-long) (string-append word ": " (format "~s" require-phases))]))
            last-name]))
@@ -1345,16 +1347,16 @@
          (λ ()
            (moddep-current-open-input-file
             (λ (filename)
-              (let* ([p (open-input-file filename)]
-                     [wxme? (regexp-match-peek #rx#"^WXME" p)])
-                (if wxme?
-                    (let ([t (new text%)])
-                      (close-input-port p)
-                      (send t load-file filename)
-                      (let ([prt (open-input-text-editor t)])
-                        (port-count-lines! prt)
-                        prt))
-                    p))))
+              (define p (open-input-file filename))
+              (define wxme? (regexp-match-peek #rx#"^WXME" p))
+              (if wxme?
+                  (let ([t (new text%)])
+                    (close-input-port p)
+                    (send t load-file filename)
+                    (let ([prt (open-input-text-editor t)])
+                      (port-count-lines! prt)
+                      prt))
+                  p)))
            (current-load-relative-directory #f)
            (define relative? (eq? init-dir 'relative))
            (unless relative? ; already there
