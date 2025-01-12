@@ -1,8 +1,8 @@
 #lang racket
-(require "../private/drracket-test-util.rkt"
+(require racket/gui/base
+         rackunit
          (prefix-in fw: framework)
-         racket/gui/base
-         rackunit)
+         "../private/drracket-test-util.rkt")
 
 (define (start-debugger-and-run-to-completion drr)
   (define debug-button
