@@ -461,17 +461,18 @@
     
     (set! update-label
           (λ (s)
-            (if (and s (not (null? s)))
-                (let* ([currently-over (car s)]
-                       [fn (send currently-over get-filename)]
-                       [lines (send currently-over get-lines)])
-                  (when (and fn lines)
-                    (define label (format filename-constant fn lines))
-                    (define pkg (send currently-over get-pkg))
-                    (when pkg
-                      (set! label (string-append (format pkg-constant pkg) "  " label)))
-                    (send label-message set-label label)))
-                (send label-message set-label ""))))
+            (cond
+              [(and s (not (null? s)))
+               (define currently-over (car s))
+               (define fn (send currently-over get-filename))
+               (define lines (send currently-over get-lines))
+               (when (and fn lines)
+                 (define label (format filename-constant fn lines))
+                 (define pkg (send currently-over get-pkg))
+                 (when pkg
+                   (set! label (string-append (format pkg-constant pkg) "  " label)))
+                 (send label-message set-label label))]
+              [else (send label-message set-label "")])))
     
     (send pasteboard
           set-name-length

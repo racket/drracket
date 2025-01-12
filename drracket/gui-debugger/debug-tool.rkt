@@ -362,62 +362,62 @@
                          (hash-set! breakpoints pos (not break-status))
                          (invalidate-bitmap-cache)))
           (let ([pc (send (get-tab) get-pc)])
-            (if (and pc (= pos pc))
-                (let* ([stat (send (get-tab) get-break-status)]
-                       [f (get-top-level-window)]
-                       [rendered-value
-                        (if (cons? stat)
-                            (if (= 2 (length stat))
-                                (render (cadr stat))
-                                (format "~s"
-                                        (cons 'values (map (lambda (v) (render v)) (rest stat)))))
-                            "")])
-                  (when (cons? stat)
-                    (make-object menu-item%
-                                 "Print return value to console"
-                                 menu
-                                 (lambda _
-                                   (send (get-tab)
-                                         print-to-console
-                                         (string-append "return val = " rendered-value)))))
-                  (unless (eq? stat 'break)
-                    (make-object
-                     menu-item%
-                     (if (cons? stat) "Change return value..." "Skip expression...")
-                     menu
-                     (lambda (item evt)
-                       (let ([tmp (get-text-from-user "Return value" #f)])
-                         (when tmp
-                           (let/ec k
-                             (send
-                              (get-tab)
-                              set-break-status
-                              (cons 'exit-break
-                                    (call-with-values
-                                     (lambda ()
-                                       (with-handlers ([exn:fail?
-                                                        (lambda (exn)
-                                                          (message-box "Debugger Error"
+            (cond
+              [(and pc (= pos pc))
+               (define stat (send (get-tab) get-break-status))
+               (get-top-level-window)
+               (define rendered-value
+                 (if (cons? stat)
+                     (if (= 2 (length stat))
+                         (render (cadr stat))
+                         (format "~s" (cons 'values (map (lambda (v) (render v)) (rest stat)))))
+                     ""))
+               (when (cons? stat)
+                 (make-object menu-item%
+                              "Print return value to console"
+                              menu
+                              (lambda _
+                                (send (get-tab)
+                                      print-to-console
+                                      (string-append "return val = " rendered-value)))))
+               (unless (eq? stat 'break)
+                 (make-object
+                  menu-item%
+                  (if (cons? stat) "Change return value..." "Skip expression...")
+                  menu
+                  (lambda (item evt)
+                    (let ([tmp (get-text-from-user "Return value" #f)])
+                      (when tmp
+                        (let/ec k
+                          (send (get-tab)
+                                set-break-status
+                                (cons 'exit-break
+                                      (call-with-values
+                                       (lambda ()
+                                         (with-handlers ([exn:fail? (lambda (exn)
+                                                                      (message-box
+                                                                       "Debugger Error"
                                                                        (format "An error occurred: ~a"
                                                                                (exn-message exn))
                                                                        #f
                                                                        '(ok))
-                                                          (k))])
-                                         (read (open-input-string tmp))))
-                                     list)))
-                             (invalidate-bitmap-cache))))))))
-                (make-object menu-item%
-                             "Continue to this point"
-                             menu
-                             (lambda (item evt)
-                               (hash-set! breakpoints
-                                          pos
-                                          (lambda ()
-                                            (hash-set! breakpoints pos break-status)
-                                            #t))
-                               (invalidate-bitmap-cache)
-                               (when (send (get-tab) get-stack-frames)
-                                 (send (get-tab) resume))))))
+                                                                      (k))])
+                                           (read (open-input-string tmp))))
+                                       list)))
+                          (invalidate-bitmap-cache)))))))]
+              [else
+               (make-object menu-item%
+                            "Continue to this point"
+                            menu
+                            (lambda (item evt)
+                              (hash-set! breakpoints
+                                         pos
+                                         (lambda ()
+                                           (hash-set! breakpoints pos break-status)
+                                           #t))
+                              (invalidate-bitmap-cache)
+                              (when (send (get-tab) get-stack-frames)
+                                (send (get-tab) resume))))]))
           (send (get-canvas)
                 popup-menu
                 menu
