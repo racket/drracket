@@ -25,17 +25,50 @@ that move the blinking caret, delete a line, copy the selection,
 etc. Keyboard shortcuts are usually trigger by key combinations using
 the Control, Meta, or Command key.
 
+The keyboard shortcuts are displayed using the same string-encoded notation
+for modifier keys as @xmethod[keymap% map-function] and the Keybindings view;
+
+@itemize[
+
+ @item{@litchar{s:} --- All platforms: Shift}
+
+ @item{@litchar{c:} --- All platforms: Control}
+
+ @item{@litchar{a:} --- Mac OS: Option}
+
+ @item{@litchar{m:} --- Windows: Alt; Unix: Meta; Mac OS: Command, when
+ @racket[map-command-as-meta-key] produces @racket[#t]}
+
+ @item{@litchar{d:} --- Mac OS: Command}
+
+ @item{@litchar{l:} --- All platforms: Caps Lock}
+
+ @item{@litchar{g:} --- Windows: Control plus Alt as AltGr;
+                        see @xmethod[key-event% get-control+meta-is-altgr]}
+
+ @item{@litchar{?:} --- All platforms: allow match to character produced by opposite 
+                  use of Shift, AltGr/Option, and/or Caps Lock, when available; see
+                  @xmethod[key-event% get-other-shift-key-code]}
+]
+
+If a modifier key is not specified, it matches whether that modifier is
+ pressed or not pressed. A @litchar{~} prior to a modifier indicates the
+ keybinding only activates if that modifier is not pressed.
+
+A keyboard shortcut that begins with @litchar{:} only activates if the modifiers
+ Shift, Control, Option, Alt, Meta, or Command are not pressed.
+
 @margin-note{Many of the key-binding actions can also be performed
 with menu items.}
 
-C-@nonterm{key} means press the Control key, hold it down and then
-press @nonterm{key} and then release them both. For example: C-e
+c:@nonterm{key} means press the Control key, hold it down and then
+press @nonterm{key} and then release them both. For example: c:e
 (Control-E) moves the blinking caret to the end of the current line.
 
-M-@nonterm{key} is the same as C-@nonterm{key}, except with the Meta
+m:@nonterm{key} is the same as c:@nonterm{key}, except with the Meta
 key.  Depending on your keyboard, Meta may be called ``Left,''
 ``Right,'' or have a diamond symbol, but it's usually on the bottom
-row next to the space bar. M-@nonterm{key} can also be performed as a
+row next to the space bar. m:@nonterm{key} can also be performed as a
 two-character sequence: first, strike and release the Escape key, then
 strike @nonterm{key}. On Mac OS, Meta is, by default,
 available only through the Escape key. But the preferences dialog
@@ -43,19 +76,19 @@ available only through the Escape key. But the preferences dialog
 has check boxes that adjust the handling of the Alt key or the Command
 key to be meta.
 
-DEL is the Delete key.
+@litchar{delete} is the Delete key.
 
-SPACE is the Space bar.
+@litchar{space} is the Space bar.
   
 On most keyboards, ``<'' and ``>'' are shifted characters. So, to
-get M->, you actually have to type Meta-Shift->. That is, press and
+get m:>, you actually have to type Meta-Shift->. That is, press and
 hold down both the Meta and Shift keys, and then strike ``>''.
 
 On Windows (and sometimes under Unix)
 some of these keybindings are actually standard menu
 items.  Those keybindings will behave according to the menus, unless
 the @onscreen{Enable keybindings in menus} preference is unchecked.
-For example, the C-e keybinding mentioned above actually toggles
+For example, the c:e keybinding mentioned above actually toggles
 the visibility of the interactions window.
 
 @index['("Emacs keybindings")]{If} you are most familiar with
@@ -65,6 +98,9 @@ you should uncheck the @onscreen{Enable
 keybindings in menus} preference. Many of the keybindings below are
 inspired by Emacs. See also @secref["defining-shortcuts"] for suggestions
 on how to bind keys to menu items on a selective basis.
+
+@margin-note{Some keybindings are not available if @onscreen{Enable
+keybindings in menus} is enabled.}
 
 And finally, the authoritative source for keybindings 
 is the @onscreen{Edit} menu's @onscreen{Show Active Keybindings}
@@ -77,38 +113,38 @@ selected.
 @section{Moving Around}
 
 @itemize[
-@keybinding["C-f"]{move forward one character}
-@keybinding["C-b"]{move backward one character}
-@keybinding["M-f"]{move forward one word}
-@keybinding["M-b"]{move backward one word}
-@keybinding["C-v"]{move forward one page}
-@keybinding["M-v"]{move backward one page}
-@keybinding["M-<"]{move to beginning of file}
-@keybinding["M->"]{move to end of file}
+@keybinding["c:f"]{move forward one character}
+@keybinding["c:b"]{move backward one character}
+@keybinding["m:f"]{move forward one word}
+@keybinding["m:b"]{move backward one word}
+@keybinding["c:v"]{move forward one page}
+@keybinding["m:v"]{move backward one page}
+@keybinding["m:<"]{move to beginning of file}
+@keybinding["m:>"]{move to end of file}
 
-@keybinding["C-a"]{move to beginning of line (left)}
-@keybinding["C-e"]{move to end of line (right)}
-@keybinding["C-n"]{move to next line (down)}
-@keybinding["C-p"]{move to previous line (up)}
+@keybinding["c:a"]{move to beginning of line (left)}
+@keybinding["c:e"]{move to end of line (right)}
+@keybinding["c:n"]{move to next line (down)}
+@keybinding["c:p"]{move to previous line (up)}
 
-@keybinding["M-C-f"]{move forward one S-expression}
-@keybinding["M-C-b"]{move backward one S-expression}
-@keybinding["M-C-u"]{move up out of an S-expression}
-@keybinding["M-C-d"]{move down into a nested S-expression}
-@keybinding["M-C-SPACE"]{select forward S-expression}
-@keybinding["M-C-p"]{match parentheses backward}
+@keybinding["m:c:f"]{move forward one S-expression}
+@keybinding["m:c:b"]{move backward one S-expression}
+@keybinding["m:c:u"]{move up out of an S-expression}
+@keybinding["m:c:d"]{move down into a nested S-expression}
+@keybinding["m:c:space"]{select forward S-expression}
+@keybinding["m:c:p"]{match parentheses backward}
 
-@keybinding["M-C-left"]{move backwards to the nearest editor box}
-@keybinding["A-C-left"]{move backwards to the nearest editor box}
-@keybinding["M-C-right"]{move forward to the nearest editor box}
-@keybinding["A-C-right"]{move forward to the nearest editor box}
-@keybinding["M-C-up"]{move up out of an embedded editor}
-@keybinding["A-C-up"]{move up out of an embedded editor}
-@keybinding["M-C-down"]{move down into an embedded editor}
-@keybinding["A-C-down"]{move down into an embedded editor}
+@keybinding["m:c:left"]{move backwards to the nearest editor box}
+@keybinding["A-c:left"]{move backwards to the nearest editor box}
+@keybinding["m:c:right"]{move forward to the nearest editor box}
+@keybinding["A-c:right"]{move forward to the nearest editor box}
+@keybinding["m:c:up"]{move up out of an embedded editor}
+@keybinding["A-c:up"]{move up out of an embedded editor}
+@keybinding["m:c:down"]{move down into an embedded editor}
+@keybinding["A-c:down"]{move down into an embedded editor}
 
-@keybinding["C-C C-Z"]{move the cursor to the interactions window}
-@keybinding["C-F6"]{move the cursor between different windows (usually
+@keybinding["c:c;c:z"]{move the cursor to the interactions window}
+@keybinding["c:F6"]{move the cursor between different windows (usually
                     the interactions and definitions windows, but also the
                     search window and other editable portions of DrRacket).
                     Also, search for ``shift-focus'' in the
@@ -119,45 +155,45 @@ selected.
 @section{Editing Operations}
 
 @itemize[
-@keybinding["C-_"]{undo}
-@keybinding["C-+"]{redo}
-@keybinding["C-x u"]{undo}
+@keybinding["c:_"]{undo}
+@keybinding["c:+"]{redo}
+@keybinding["c:x;u"]{undo}
 
-@keybinding["C-d"]{delete forward one character}
-@keybinding["C-h"]{delete backward one character}
-@keybinding["M-d"]{delete forward one word}
-@keybinding["M-DEL"]{delete backward one word}
-@keybinding["C-k"]{delete forward to end of line}
-@keybinding["M-C-k"]{delete forward one S-expression}
+@keybinding["c:d"]{delete forward one character}
+@keybinding["c:h"]{delete backward one character}
+@keybinding["m:d"]{delete forward one word}
+@keybinding["m:delete"]{delete backward one word}
+@keybinding["c:k"]{delete forward to end of line}
+@keybinding["m:c:k"]{delete forward one S-expression}
 
-@keybinding["M-w"]{copy selection to clipboard}
-@keybinding["C-w"]{delete selection to clipboard (cut)}
-@keybinding["C-y"]{paste from clipboard (yank)}
+@keybinding["m:w"]{copy selection to clipboard}
+@keybinding["c:w"]{delete selection to clipboard (cut)}
+@keybinding["c:y"]{paste from clipboard (yank)}
 
-@keybinding["C-t"]{transpose characters}
-@keybinding["M-t"]{transpose words}
-@keybinding["M-C-t"]{transpose sexpressions}
+@keybinding["c:t"]{transpose characters}
+@keybinding["m:t"]{transpose words}
+@keybinding["m:c:t"]{transpose sexpressions}
 
-@keybinding["M-C-m"]{toggle dark green marking of matching parenthesis}
-@keybinding["M-C-k"]{cut complete sexpression}
+@keybinding["m:c:m"]{toggle dark green marking of matching parenthesis}
+@keybinding["m:c:k"]{cut complete sexpression}
 
-@keybinding["M-("]{wrap selection in parentheses}
-@keybinding["M-["]{wrap selection in square brackets}
-@keybinding["M-{"]{wrap selection in curly brackets}
-@keybinding["M-S-L"]{wrap selection in @litchar{(lambda () }...@litchar{)}
+@keybinding["m:("]{wrap selection in parentheses}
+@keybinding["m:["]{wrap selection in square brackets}
+@keybinding["m:{"]{wrap selection in curly brackets}
+@keybinding["m:s:l"]{wrap selection in @litchar{(lambda () }...@litchar{)}
                      and put the insertion point in the argument list of the lambda}
 
-@keybinding["C-c C-o"]{the sexpression following the
+@keybinding["c:c;c:o"]{the sexpression following the
   insertion point is put in place of its containing sexpression}
-@keybinding["C-c C-e"]{the first and last characters (usually parentheses)
+@keybinding["c:c;c:e"]{the first and last characters (usually parentheses)
   of the containing expression are removed}
-@keybinding["C-c C-l"]{wraps a let around the
+@keybinding["c:cc;:l"]{wraps a let around the
   sexpression following the insertion point and puts a printf in at
   that point (useful for debugging).}
 
-@keybinding["M-o"]{toggle @as-index{overwrite mode}}
+@keybinding["m:o"]{toggle @as-index{overwrite mode}}
 
-@keybinding["C-x r a"]{Adjust nearby ASCII art rectangles 
+@keybinding["c:x;r;a"]{Adjust nearby ASCII art rectangles 
                        (that use @litchar{+}, @litchar{-}, or @litchar{|})
                        to use Unicode characters.
                        
@@ -174,7 +210,7 @@ selected.
                        the Unicode characters.
                        }
 
-@keybinding["C-x r w"]{Widen the nearby ASCII art rectangles.
+@keybinding["c:x;r;w"]{Widen the nearby ASCII art rectangles.
                        
                        For example, if the insertion point is just to the left of
                        the middle line of this rectangle:
@@ -190,7 +226,7 @@ selected.
                                       (list @litchar{║  ║  ║})
                                       (list @litchar{╚══╩══╝}))]
                        }
-@keybinding["C-x r v"]{Make the nearby ASCII art rectangles taller.
+@keybinding["c:x;r;v"]{Make the nearby ASCII art rectangles taller.
                        
                        For example, if the insertion point is just above the
                        the middle line of this rectangle:
@@ -209,10 +245,10 @@ selected.
                                       (list @litchar{║  ║  ║})
                                       (list @litchar{╚══╩══╝}))]
                        }
-@keybinding["C-x r c"]{Centers the contents of the current line inside the enclosing
+@keybinding["c:x;r;c"]{Centers the contents of the current line inside the enclosing
                        cell of the enclosing ASCII art rectangle.}
 
- @keybinding["C-x r o"]{
+ @keybinding["c:x;r;o"]{
   Toggles the ASCII art rectangle editing mode. When the mode is enabled,
   key strokes that would normally break the rectangles instead enlarge them.
   Specifically:
@@ -230,21 +266,21 @@ selected.
 @section{File Operations}
 
 @itemize[
-@keybinding["C-x C-s"]{save file}
-@keybinding["C-x C-w"]{save file under new name}
+@keybinding["c:x;c:s"]{save file}
+@keybinding["c:x;c:w"]{save file under new name}
 ]
 
 @section{Search}
 
 @itemize[
-@keybinding["C-s"]{search for string forward}
-@keybinding["C-r"]{search for string backward}
+@keybinding["c:s"]{search for string forward}
+@keybinding["c:r"]{search for string backward}
 ]
 
 @section{Evaluation}
 
 @itemize[
-@keybinding["F5"]{Run}
+@keybinding["f5"]{Run}
 ]
 
 @section{Documentation}
@@ -261,10 +297,10 @@ The @tech{interactions window} has all of the same keyboard shortcuts
 as the @tech{definitions window} plus a few more:
 
 @itemize[
-@keybinding["M-p"]{bring the previously entered expression down to the prompt}
-@keybinding["M-n"]{bring the expression after the current expression in the
+@keybinding["m:p"]{bring the previously entered expression down to the prompt}
+@keybinding["m:n"]{bring the expression after the current expression in the
   expression history down to the prompt}
-@keybinding["M-h"]{Show the current expression history in a separate window}
+@keybinding["m:h"]{Show the current expression history in a separate window}
 ]
 
 Also, in the interactions window, the return key is treated
@@ -291,7 +327,7 @@ not. There are three cases:
 @section{LaTeX and TeX inspired keybindings}
 
 @itemize[
-@keybinding['("C-\\" "M-\\" "c:x;l")]{traces backwards from the insertion
+@keybinding['("c:\\" "m:\\" "c:x;l")]{traces backwards from the insertion
 point, looking for a backslash followed by a @index["LaTeX"]{LaTeX} 
 macro name or a prefix of such a name. If a macro name is found,
 it replaces the backslash and the name with the corresponding key in
