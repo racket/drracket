@@ -1,4 +1,10 @@
 ------------------------------
+       Version 8.16
+------------------------------
+
+   . bug fixes specially focused on improving the #lang htdp/ languages
+
+------------------------------
        Version 8.15
 ------------------------------
 
