@@ -99,32 +99,30 @@
     (define output-start-paragraph 2)
     
     (when ints
-      (let ([after-execute-output
-             (queue-callback/res
-              (λ ()
-                (send interactions-text
-                      get-text
-                      (send interactions-text paragraph-start-position 2)
-                      (send interactions-text paragraph-end-position 2))))])
-        (unless (or (test-all? test) (string=? "> " after-execute-output))
-          (eprintf (string-append
-                    "FAILED (line ~a): ~a\n"
-                    "        ~a\n"
-                    "        expected no output after execution, got: ~s\n")
-                   (test-line test)
-                   (test-definitions test)
-                   (or (test-interactions test) 'no-interactions)
-                   after-execute-output)
-          (k (void)))
-        (insert-in-interactions drs ints)
-        ;; set to be the paragraph right after the insertion.
-        (set! output-start-paragraph
-              (queue-callback/res
-               (λ () (+ (send interactions-text position-paragraph 
-                              (send interactions-text last-position))
-                        1))))
-        (test:keystroke #\return '(alt))
-        (wait-for-computation drs)))
+      (define after-execute-output
+        (queue-callback/res (λ ()
+                              (send interactions-text
+                                    get-text
+                                    (send interactions-text paragraph-start-position 2)
+                                    (send interactions-text paragraph-end-position 2)))))
+      (unless (or (test-all? test) (string=? "> " after-execute-output))
+        (eprintf (string-append "FAILED (line ~a): ~a\n"
+                                "        ~a\n"
+                                "        expected no output after execution, got: ~s\n")
+                 (test-line test)
+                 (test-definitions test)
+                 (or (test-interactions test) 'no-interactions)
+                 after-execute-output)
+        (k (void)))
+      (insert-in-interactions drs ints)
+      ;; set to be the paragraph right after the insertion.
+      (set! output-start-paragraph
+            (queue-callback/res
+             (λ ()
+               (+ (send interactions-text position-paragraph (send interactions-text last-position))
+                  1))))
+      (test:keystroke #\return '(alt))
+      (wait-for-computation drs))
     
     (define text
       (queue-callback/res

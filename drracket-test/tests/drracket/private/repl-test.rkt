@@ -1047,15 +1047,15 @@ This produces an ACK message
     (define snip
       (queue-callback/res
        (lambda ()
-         (let* ([start (send ints-text paragraph-start-position 2)]
-                ;; since the fraction is supposed to be one char wide, we just
-                ;; select one char, so that, if the regular number prints out,
-                ;; this test will fail.
-                [end (+ start 1)])
-           (send ints-text split-snip start)
-           (send ints-text split-snip end)
-           (define snip (send ints-text find-snip start 'after))
-           (and snip (send snip copy))))))
+         (define start (send ints-text paragraph-start-position 2))
+         ;; since the fraction is supposed to be one char wide, we just
+         ;; select one char, so that, if the regular number prints out,
+         ;; this test will fail.
+         (define end (+ start 1))
+         (send ints-text split-snip start)
+         (send ints-text split-snip end)
+         (define snip (send ints-text find-snip start 'after))
+         (and snip (send snip copy)))))
     (clear-definitions drr-frame)
     (type-in-definitions drr-frame "(+ ")
     (queue-callback/res
@@ -1318,16 +1318,16 @@ This produces an ACK message
     (wait-for-drr-frame-computation)
     
     (for-each test:keystroke (string->list "x"))
-    (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-      (test:keystroke #\return)
-      (wait-for-drr-frame-computation)
-      
-      (let* ([end (- (get-int-pos) 1)]
-             [output (fetch-output drr-frame start end)]
-             [expected #rx"x:.*cannot reference an identifier before its definition"])
-        (unless (regexp-match expected output)
-          (failure)
-          (eprintf "callcc-test: expected something matching ~s, got ~s\n" expected output)))))
+    (define start (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    
+    (define end (- (get-int-pos) 1))
+    (define output (fetch-output drr-frame start end))
+    (define expected #rx"x:.*cannot reference an identifier before its definition")
+    (unless (regexp-match expected output)
+      (failure)
+      (eprintf "callcc-test: expected something matching ~s, got ~s\n" expected output)))
   
   (define (random-seed-test)
     (define expression 
@@ -1338,57 +1338,55 @@ This produces an ACK message
     (wait-for-drr-frame-computation)
     
     (insert-in-interactions drr-frame expression)
-    (let ([start1 (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-      (test:keystroke #\return)
-      (wait-for-drr-frame-computation)
-      (let ([output1 (fetch-output drr-frame start1 (- (get-int-pos) 1))])
-        (insert-in-interactions drr-frame expression)
-        (let ([start2 (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-          (test:keystroke #\return)
-          (wait-for-drr-frame-computation)
-          (let ([output2 (fetch-output drr-frame start2 (- (get-int-pos) 1))])
-            (unless (equal? output1 output2)
-              (failure)
-              (eprintf "random-seed-test: expected\n  ~s\nand\n  ~s\nto be the same"
-                       output1
-                       output2)))))))
+    (define start1 (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    (define output1 (fetch-output drr-frame start1 (- (get-int-pos) 1)))
+    (insert-in-interactions drr-frame expression)
+    (define start2 (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    (define output2 (fetch-output drr-frame start2 (- (get-int-pos) 1)))
+    (unless (equal? output1 output2)
+      (failure)
+      (eprintf "random-seed-test: expected\n  ~s\nand\n  ~s\nto be the same" output1 output2)))
   
   (define (top-interaction-test)
     (clear-definitions drr-frame)
     (do-execute drr-frame)
     (wait-for-drr-frame-computation)
-    (let ([ints-just-after-welcome (queue-callback/res (λ () (+ 1 (send ints-text last-position))))])
-      
-      (type-in-definitions 
-       drr-frame
-       "(define-syntax #%top-interaction (syntax-rules () [(_ . e) 'e]))\n(+ 1 2)\n")
-      (test:menu-select "File" "Save Definitions")
-      
-      (clear-definitions drr-frame)
-      (do-execute drr-frame)
+    (queue-callback/res (λ () (+ 1 (send ints-text last-position))))
+    
+    (type-in-definitions
+     drr-frame
+     "(define-syntax #%top-interaction (syntax-rules () [(_ . e) 'e]))\n(+ 1 2)\n")
+    (test:menu-select "File" "Save Definitions")
+    
+    (clear-definitions drr-frame)
+    (do-execute drr-frame)
+    (wait-for-drr-frame-computation)
+    
+    (for-each test:keystroke (string->list (format "(load ~s)" tmp-load-short-filename)))
+    (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
+      (test:keystroke #\return)
       (wait-for-drr-frame-computation)
-      
-      (for-each test:keystroke (string->list (format "(load ~s)" tmp-load-short-filename)))
-      (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-        (test:keystroke #\return)
-        (wait-for-drr-frame-computation)
-        (let* ([end (- (get-int-pos) 1)]
-               [output (fetch-output drr-frame start end)]
-               [expected "(+ 1 2)"])
-          (unless (equal? output expected)
-            (error 'top-interaction-test "expected.1 ~s, got ~s" expected output))
-          (next-test)))
-      
-      (for-each test:keystroke (string->list "(+ 4 5)"))
-      (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-        (test:keystroke #\return)
-        (wait-for-drr-frame-computation)
-        (let* ([end (- (get-int-pos) 1)]
-               [output (fetch-output drr-frame start end)]
-               [expected "(+ 4 5)"])
-          (unless (equal? output expected)
-            (error 'top-interaction-test "expected.2 ~s, got ~s" expected output))
-          (next-test)))))
+      (let* ([end (- (get-int-pos) 1)]
+             [output (fetch-output drr-frame start end)]
+             [expected "(+ 1 2)"])
+        (unless (equal? output expected)
+          (error 'top-interaction-test "expected.1 ~s, got ~s" expected output))
+        (next-test)))
+    
+    (for-each test:keystroke (string->list "(+ 4 5)"))
+    (define start (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    (define end (- (get-int-pos) 1))
+    (define output (fetch-output drr-frame start end))
+    (define expected "(+ 4 5)")
+    (unless (equal? output expected)
+      (error 'top-interaction-test "expected.2 ~s, got ~s" expected output))
+    (next-test))
   
   (when (file-exists? tmp-load-filename)
     (delete-file tmp-load-filename))

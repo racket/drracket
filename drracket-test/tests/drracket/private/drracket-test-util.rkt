@@ -59,25 +59,25 @@
   ;; filename is a string naming a file that should be typed into the dialog
   (define (use-get/put-dialog open-dialog filename)
     (not-on-eventspace-handler-thread 'use-get/put-dialog)
-    (let ([drs (wait-for-drracket-frame)])
-      (with-handlers ([(lambda (x) #t)
-		       (lambda (x)
-			 (fw:preferences:set 'framework:file-dialogs 'std)
-			 (raise x))])
-	(fw:preferences:set 'framework:file-dialogs 'common)
-	(open-dialog)
-	(let ([dlg (wait-for-new-frame drs)])
-	  (send (find-labelled-window "Filename:" #f (fw:test:get-active-top-level-window)) focus)
-	  (fw:test:keystroke #\a (list (case (system-type)
-					 [(windows) 'control]
-					 [(macosx macos) 'meta]
-					 [(unix) 'control]
-                                         [else (error 'use-get/put-dialog "unknown platform: ~s\n"
-                                                      (system-type))])))
-	  (for-each fw:test:keystroke (string->list (path->string filename)))
-	  (fw:test:button-push "OK")
-	  (wait-for-new-frame dlg))
-	(fw:preferences:set 'framework:file-dialogs 'std))))
+    (define drs (wait-for-drracket-frame))
+    (with-handlers ([(lambda (x) #t) (lambda (x)
+                                       (fw:preferences:set 'framework:file-dialogs 'std)
+                                       (raise x))])
+      (fw:preferences:set 'framework:file-dialogs 'common)
+      (open-dialog)
+      (let ([dlg (wait-for-new-frame drs)])
+        (send (find-labelled-window "Filename:" #f (fw:test:get-active-top-level-window)) focus)
+        (fw:test:keystroke
+         #\a
+         (list (case (system-type)
+                 [(windows) 'control]
+                 [(macosx macos) 'meta]
+                 [(unix) 'control]
+                 [else (error 'use-get/put-dialog "unknown platform: ~s\n" (system-type))])))
+        (for-each fw:test:keystroke (string->list (path->string filename)))
+        (fw:test:button-push "OK")
+        (wait-for-new-frame dlg))
+      (fw:preferences:set 'framework:file-dialogs 'std)))
 
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) (current-continuation-marks))))

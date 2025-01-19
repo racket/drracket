@@ -113,10 +113,9 @@ and then loading the framework after that.
 
      (define (verify-drracket-frame-frontmost function-name frame)
        (on-eventspace-handler-thread 'verify-drracket-frame-frontmost)
-       (let ([tl (test:get-active-top-level-window)])
-         (unless (and (eq? frame tl)
-                      (drracket-frame? tl))
-           (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl))))
+       (define tl (test:get-active-top-level-window))
+       (unless (and (eq? frame tl) (drracket-frame? tl))
+         (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl)))
      
      (define (set-module-language! drr-frame)
        (test:menu-select "Language" "Choose Language…")
