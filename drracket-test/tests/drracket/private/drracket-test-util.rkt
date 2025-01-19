@@ -89,10 +89,7 @@
   (define (wait-for-drracket-frame [print-message? #f])
     (define (wait-for-drracket-frame-pred)
       (define active (fw:test:get-active-top-level-window))
-      (if (and active
-               (drracket-frame? active))
-          active
-          #f))
+      (and (and active (drracket-frame? active)) active))
     (define drr-fr
       (or (wait-for-drracket-frame-pred)
           (begin
