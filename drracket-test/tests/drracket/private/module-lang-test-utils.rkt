@@ -146,13 +146,10 @@
          (let loop ([snip (send interactions-text find-first-snip)])
            (cond
              [(not snip) '()]
-             [else
-              (cond
-                [(method-in-interface? 'get-stacks (object-interface snip))
-                 (define-values (s1 s2) (send snip get-stacks))
-                 (list* s1 s2 (loop (send snip next)))]
-                [else
-                 (loop (send snip next))])])))))
+             [(method-in-interface? 'get-stacks (object-interface snip))
+              (define-values (s1 s2) (send snip get-stacks))
+              (list* s1 s2 (loop (send snip next)))]
+             [else (loop (send snip next))])))))
     (define output-passed?
       (let ([r (test-result test)])
         ((cond [(string? r) string=?]
