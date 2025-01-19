@@ -11,9 +11,8 @@
          "gui.rkt"
          "no-fw-test-util.rkt")
 
-  (provide/contract 
-   [use-get/put-dialog (-> (-> any) path? void?)]
-   [set-module-language! (->* () (boolean?) void?)])
+  (provide (contract-out [use-get/put-dialog (-> (-> any) path? void?)]
+                         [set-module-language! (->* () (boolean?) void?)]))
   
   (provide queue-callback/res
            fire-up-drracket-and-run-tests
