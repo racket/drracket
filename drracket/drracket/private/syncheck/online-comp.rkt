@@ -67,9 +67,9 @@
       (make-traversal (current-namespace)
                       (get-init-dir path)))
     (parameterize ([current-annotations obj])
-      (for ([stx (in-list stxes)])
-        (when (equal? (syntax-source stx) the-source)
-          (expanded-expression stx)))
+      (for ([stx (in-list stxes)]
+            #:when (equal? (syntax-source stx) the-source))
+        (expanded-expression stx))
       (expansion-completed))
     (send obj get-trace)))
 
