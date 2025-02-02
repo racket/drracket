@@ -779,13 +779,13 @@
     (for ([(k v) (in-hash requires)])
       (hash-set! new-hash k #t)))
 
-  (for ([(level binders) (in-hash phase-to-binders)])
-    (for ([(_ binder+modss) (in-dict binders)])
-      (for ([binder+mods (in-list binder+modss)])
-        (define var (binder+mods-binder binder+mods))
-        (define varset (lookup-phase-to-mapping phase-to-varsets level))
-        (color-variable var level varset)
-        (document-variable var level))))
+  (for* ([(level binders) (in-hash phase-to-binders)]
+         [(_ binder+modss) (in-dict binders)]
+         [binder+mods (in-list binder+modss)])
+    (define var (binder+mods-binder binder+mods))
+    (define varset (lookup-phase-to-mapping phase-to-varsets level))
+    (color-variable var level varset)
+    (document-variable var level))
 
   (for ([(level+mods varrefs) (in-hash phase-to-varrefs)])
     (define level (list-ref level+mods 0))
@@ -793,21 +793,21 @@
     (define binders (lookup-phase-to-mapping phase-to-binders level))
     (define varsets (lookup-phase-to-mapping phase-to-varsets level))
     (initialize-binder-connections binders connections)
-    (for ([vars (in-list (get-idss varrefs))])
-      (for ([var (in-list vars)])
-        (color-variable var level varsets)
-        (document-variable var level)
-        (connect-identifier var
-                            mods
-                            binders
-                            unused/phases
-                            phase-to-requires
-                            level
-                            user-namespace
-                            user-directory
-                            #t
-                            connections
-                            module-lang-requires))))
+    (for* ([vars (in-list (get-idss varrefs))]
+           [var (in-list vars)])
+      (color-variable var level varsets)
+      (document-variable var level)
+      (connect-identifier var
+                          mods
+                          binders
+                          unused/phases
+                          phase-to-requires
+                          level
+                          user-namespace
+                          user-directory
+                          #t
+                          connections
+                          module-lang-requires)))
 
 
   ;; build a set of all of the known phases
@@ -843,10 +843,9 @@
 
   (for ([(level tops) (in-hash phase-to-tops)])
     (define binders (lookup-phase-to-mapping phase-to-binders level))
-    (for ([vars (in-list (get-idss tops))])
-      (for ([var (in-list vars)])
-        (color/connect-top user-namespace user-directory binders var connections
-                           module-lang-requires))))
+    (for* ([vars (in-list (get-idss tops))]
+           [var (in-list vars)])
+      (color/connect-top user-namespace user-directory binders var connections module-lang-requires)))
 
   (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
     ;; don't mark for-label requires as unused until we can properly handle them
