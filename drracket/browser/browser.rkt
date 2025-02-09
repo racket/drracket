@@ -1,12 +1,12 @@
 #lang racket
-(require racket/unit
-         racket/gui
-         mred/mred-sig
-         setup/plt-installer-sig
-         setup/plt-installer
+(require mred/mred-sig
          net/tcp-sig
-         net/url-sig
          net/url
+         net/url-sig
+         racket/gui
+         racket/unit
+         setup/plt-installer
+         setup/plt-installer-sig
          "browser-sig.rkt"
          "browser-unit.rkt")
 
