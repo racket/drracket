@@ -2259,7 +2259,7 @@ If the namespace does not, they are colored the unbound color.
                ;; if we've been asked to stop (because some new results are ready
                ;; and another trace is running).
                (void)]
-              [(and (i . > . 0)  ;; check i just in case things are really strange
+              [(and (positive? i)  ;; check i just in case things are really strange
                     (20 . <= . (- (current-inexact-milliseconds) start-time)))
                (queue-callback
                 (λ ()
