@@ -33,7 +33,7 @@
 
 (fire-up-drracket-and-run-tests
  (λ ()
-   (define tmp-dir (make-temporary-file "online-compilation-zo-creation~a" 'directory))
+   (define tmp-dir (make-temporary-directory "online-compilation-zo-creation~a"))
 
    ;; 1. setup the files used in the test
 

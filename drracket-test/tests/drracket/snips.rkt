@@ -10,7 +10,7 @@
  (λ ()
    
    (define drs (wait-for-drracket-frame))
-   (define tmpdir (make-temporary-file "drracketsniptest~a" 'directory))
+   (define tmpdir (make-temporary-directory "drracketsniptest~a"))
    (define defs (queue-callback/res (λ () (send drs get-definitions-text))))
    (for ([rfile (in-list (directory-list snip))])
      (define file (build-path snip rfile))

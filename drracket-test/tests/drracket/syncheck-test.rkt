@@ -1759,7 +1759,7 @@
 
 
   (define (main)
-    (define temp-dir (normalize-path (make-temporary-file "syncheck-test~a" 'directory)))
+    (define temp-dir (normalize-path (make-temporary-directory "syncheck-test~a")))
     (dynamic-wind
      void
      (λ ()
