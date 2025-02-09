@@ -7,15 +7,14 @@
 (define (main)
   (fire-up-drracket-and-run-tests
    (λ ()
-     (let ([drs (wait-for-drracket-frame)])
-       (set-module-language!)
-       (do-execute drs)
-       (queue-callback/res
-        (λ () 
-          (preferences:set 'framework:coloring-active #f)
-          (handler:edit-file (collection-file-path "map.rkt" "racket" "private"))))
-       
-       (click-check-syntax-and-check-errors drs "syncheck-eval-compile-time.rkt")))))
+     (define drs (wait-for-drracket-frame))
+     (set-module-language!)
+     (do-execute drs)
+     (queue-callback/res (λ ()
+                           (preferences:set 'framework:coloring-active #f)
+                           (handler:edit-file (collection-file-path "map.rkt" "racket" "private"))))
+     
+     (click-check-syntax-and-check-errors drs "syncheck-eval-compile-time.rkt"))))
 
 
 ;; copied from syncheck-test.rkt ....
@@ -25,11 +24,9 @@
   (when (queue-callback/res (λ () (send (send drs get-definitions-text) in-edit-sequence?)))
     (error 'syncheck-test.rkt "still in edit sequence for ~s" test))
   
-  (let ([err (queue-callback/res (λ () (send drs syncheck:get-error-report-contents)))]) 
-    (when err
-      (eprintf "FAILED ~s\n   error report window is visible:\n   ~a\n"
-               test
-               err))))
+  (define err (queue-callback/res (λ () (send drs syncheck:get-error-report-contents))))
+  (when err
+    (eprintf "FAILED ~s\n   error report window is visible:\n   ~a\n" test err)))
 (define (click-check-syntax-button drs)
   (test:run-one (lambda () (send (send drs syncheck:get-button) command))))
 
