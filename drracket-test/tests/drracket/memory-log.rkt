@@ -1,10 +1,10 @@
 #lang racket/base
-(require "private/drracket-test-util.rkt"
-         racket/gui/base
-         racket/class
-         framework/test
+(require drracket/private/syncheck/local-member-names
          framework/preferences
-         drracket/private/syncheck/local-member-names) ;; for the syncheck:arrows-visible? method
+         framework/test
+         racket/class
+         racket/gui/base
+         "private/drracket-test-util.rkt") ;; for the syncheck:arrows-visible? method
 
 (printf "The printouts below are designed to trick drdr into graphing them;\n")
 (printf "they aren't times, but memory usage. The first is starting up DrRacket,\n")
