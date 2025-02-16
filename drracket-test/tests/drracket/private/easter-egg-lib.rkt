@@ -64,7 +64,7 @@ and then loading the framework after that.
        (define drr-frame (wait-for-drracket-frame))
        (set-module-language! drr-frame)
        (queue-callback/res
-        (λ () (send (send (send drr-frame get-definitions-text) get-canvas) focus)))
+        (λ () (send+ drr-frame (get-definitions-text) (get-canvas) (focus))))
        (for ([x (in-string "(car 'x)")])
          (test:keystroke x))
        (let ([button (queue-callback/res (λ () (send drr-frame get-execute-button)))])
@@ -81,10 +81,7 @@ and then loading the framework after that.
      (define (wait-for-drracket-frame [print-message? #f])
        (define (wait-for-drracket-frame-pred)
          (define active (test:get-active-top-level-window))
-         (if (and active
-                  (drracket-frame? active))
-             active
-             #f))
+         (and (and active (drracket-frame? active)) active))
        (define drr-fr
          (or (wait-for-drracket-frame-pred)
              (begin
@@ -113,10 +110,9 @@ and then loading the framework after that.
 
      (define (verify-drracket-frame-frontmost function-name frame)
        (on-eventspace-handler-thread 'verify-drracket-frame-frontmost)
-       (let ([tl (test:get-active-top-level-window)])
-         (unless (and (eq? frame tl)
-                      (drracket-frame? tl))
-           (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl))))
+       (define tl (test:get-active-top-level-window))
+       (unless (and (eq? frame tl) (drracket-frame? tl))
+         (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl)))
      
      (define (set-module-language! drr-frame)
        (test:menu-select "Language" "Choose Language…")
