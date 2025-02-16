@@ -67,11 +67,10 @@
         (send stream put depth))]
     [define/override get-text
       (lambda (offset num flattened?)
-        (if (< num 1)
-            ""
-            (if flattened?
-                "* "
-                "*")))]
+        (cond
+          [(< num 1) ""]
+          [flattened? "* "]
+          [else "*"]))]
     (super-new)
     (set-snipclass bullet-snip-class)
     (set-count 1)))
