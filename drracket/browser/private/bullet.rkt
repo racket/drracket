@@ -11,8 +11,7 @@
 
 (define bullet-size 
   (make-parameter
-   (let ([s (send (send (send (make-object text%) get-style-list) basic-style)
-                  get-size)])
+   (let ([s (send+ (make-object text%) (get-style-list) (basic-style) (get-size))])
      (max 7 (quotient s 2)))))
 
 (define (get-bullet-width)
