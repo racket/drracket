@@ -216,6 +216,18 @@ case-sensitive and case-insensitive search.}
 @item{@defmenuitem{Complete Word} Completes the word at the
 insertion point, using the manuals as a source of completions.}
 
+@item{@defmenuitem{Modes}
+
+@itemize[
+
+  @item{@defmenuitem{Text Mode} Sets the editor mode to plain-text. }
+
+  @item{@defmenuitem{Racket Mode} Sets the editor mode to Racket. }
+
+  @item{@defmenuitem{Scheme Mode} Sets the editor mode to Scheme (Legacy). }
+
+]}
+
  @item{@defmenuitem{Preferences...} Opens the preferences dialog. See
   @secref["prefs-explanation"]. (On Mac OS, this menu item is in
   the Apple menu.)}  ]
