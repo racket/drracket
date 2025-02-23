@@ -51,16 +51,15 @@
                           [(0) (values (lambda (x y w h) (send dc draw-ellipse x y w h)) #t)]
                           [(1) (values (lambda (x y w h) (send dc draw-ellipse x y w h)) #f)]
                           [else (values (lambda (x y w h) (send dc draw-rectangle x y w h)) #f)])])
-            (let ([b (send dc get-brush)])
-              (send dc set-brush
-                    (if solid?
-                        (send the-brush-list
-                              find-or-create-brush
-                              (send (send dc get-pen) get-color)
-                              'solid)
-                        transparent-brush))
-              (draw x y bsize bsize)
-              (send dc set-brush b)))))]
+            (define b (send dc get-brush))
+            (send
+             dc
+             set-brush
+             (if solid?
+                 (send the-brush-list find-or-create-brush (send (send dc get-pen) get-color) 'solid)
+                 transparent-brush))
+            (draw x y bsize bsize)
+            (send dc set-brush b))))]
     [define/override copy
       (lambda ()
         (make-object bullet-snip% depth))]
