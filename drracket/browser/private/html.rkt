@@ -90,11 +90,11 @@
         (cond
          [(null? rects) #f]
          [else
-          (let ([rect (car rects)])
-            (if (and (<= (image-map-rect-left rect) x (image-map-rect-right rect))
-                     (<= (image-map-rect-top rect) y (image-map-rect-bottom rect)))
-                rect
-                (loop (cdr rects))))])))
+          (define rect (car rects))
+          (if (and (<= (image-map-rect-left rect) x (image-map-rect-right rect))
+                   (<= (image-map-rect-top rect) y (image-map-rect-bottom rect)))
+              rect
+              (loop (cdr rects)))])))
     
     ;; add-area : string (listof number) string -> void
     ;; currently only supports rect shapes
