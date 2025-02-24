@@ -4492,23 +4492,21 @@
                          [parent language-menu]
                          [callback
                           (λ (_1 _2)
+                            (define strs
+                              (for/list ([l (in-list (drracket:language-configuration:get-languages))])
+                                (define has-it?
+                                  (drracket:module-language-tools:call-capability-value
+                                   l
+                                   (get-definitions-text)
+                                   'drscheme:teachpack-menu-items))
+                                (and has-it? (send l get-language-name))))
+                            (define sorted (sort (filter values strs) string<?))
+                            (define str (apply string-append (map (λ (x) (~a "\n  " x)) sorted)))
                             (message-box 
                              (string-constant drscheme)
-                             (gui-utils:format-literal-label 
+                             (format
                               (string-constant teachpacks-only-in-languages)
-                              (apply 
-                               string-append
-                               (reverse
-                                (filter
-                                 values
-                                 (map (λ (l) 
-                                        (and
-                                         (drracket:module-language-tools:call-capability-value
-                                          l
-                                          (get-definitions-text)
-                                          'drscheme:teachpack-menu-items)
-                                         (format "\n  ~a" (send l get-language-name))))
-                                      (drracket:language-configuration:get-languages))))))
+                              str)
                              this
                              #:dialog-mixin frame:focus-table-mixin))])))])))
       
