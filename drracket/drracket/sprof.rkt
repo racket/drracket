@@ -14,44 +14,40 @@
             (define traces-table (make-hash))
             (let loop ([i 0])
               (sleep pause-time)
-              (let ([new-traces
-                     (map (λ (t) (continuation-mark-set->context (continuation-marks t)))
-                          (get-threads))])
-                (for-each
-                 (λ (trace)
-                   (for-each
-                    (λ (line)
-                      (hash-set! traces-table line (cons trace (hash-ref traces-table line '()))))
-                    trace))
-                 new-traces)
-                (cond
-                  [(zero? i)
-                   (update-gui traces-table)
-                   (loop update-frequency)]
-                  [else
-                   (loop (- i 1))]))))))
+              (define new-traces
+                (map (λ (t) (continuation-mark-set->context (continuation-marks t))) (get-threads)))
+              (for-each (λ (trace)
+                          (for-each (λ (line)
+                                      (hash-set! traces-table
+                                                 line
+                                                 (cons trace (hash-ref traces-table line '()))))
+                                    trace))
+                        new-traces)
+              (cond
+                [(zero? i)
+                 (update-gui traces-table)
+                 (loop update-frequency)]
+                [else (loop (- i 1))])))))
 
 (define (format-fn-name i)
-  (let ([id (car i)]
-        [src (cdr i)])
-    (cond
-      [id (format "~a" id)]
-      [src
-       (format "~a:~a~a"
-               (cond
-                 [(path? (srcloc-source src))
-                  (let-values ([(base name dir?) (split-path (srcloc-source src))])
-                    name)]
-                 [else (srcloc-source src)])
-               (if (srcloc-line src)
-                   (format "~a:~a"
-                           (srcloc-line src)
-                           (srcloc-column src))
-                   (srcloc-position src))
-               (if id
-                   (format ": ~a" id)
-                   ""))]
-      [else "???"])))
+  (define id (car i))
+  (define src (cdr i))
+  (cond
+    [id (format "~a" id)]
+    [src
+     (format "~a:~a~a"
+             (cond
+               [(path? (srcloc-source src))
+                (let-values ([(base name dir?) (split-path (srcloc-source src))])
+                  name)]
+               [else (srcloc-source src)])
+             (if (srcloc-line src)
+                 (format "~a:~a" (srcloc-line src) (srcloc-column src))
+                 (srcloc-position src))
+             (if id
+                 (format ": ~a" id)
+                 ""))]
+    [else "???"]))
 
 (define (insert-long-fn-name t i)
   (send t begin-edit-sequence)
@@ -76,8 +72,8 @@
   (send t end-edit-sequence))
 
 (define (format-percentage n)
-  (let ([trunc (floor (* n 100))])
-    (format "~a%" (pad3 trunc))))
+  (define trunc (floor (* n 100)))
+  (format "~a%" (pad3 trunc)))
 
 (define (pad3 n)
   (cond
@@ -140,42 +136,43 @@
       (set! line-to-source (make-hasheq))
       (clear-old-pr)
       (set! clear-old-pr void)
-      (let* ([denom-ht (make-hasheq)]
-             [filtered-gui-display-data
-              (map 
-               (λ (pr)
-                 (let ([id (car pr)]
-                       [stacks (filter-stacks (cdr pr))])
-                   (for-each (λ (stack) (hash-set! denom-ht stack #t)) stacks)
-                   (cons id stacks)))
-               gui-display-data)]
-             [denom-count (hash-count denom-ht)])
-        (let loop ([prs filtered-gui-display-data]
-                   [first? #t]
-                   [i 0])
-          (cond
-            [(null? prs) (void)]
-            [else
-             (let* ([pr (car prs)]
-                    [fn (car pr)]
-                    [count (length (cdr pr))])
-               (cond
-                 [(zero? count)
-                  (loop (cdr prs) first? i)]
-                 [else
-                  (unless first? (insert "\n"))
-                  (let ([before (last-position)])
-                    (hash-set! line-to-source i pr)
-                    (insert (format-percentage (/ count denom-count)))
-                    (insert (format " ~a" (format-fn-name fn)))
-                    (let ([after (last-position)])
-                      (when (equal? (car pr) clicked-srcloc-pr)
-                        (set! clear-old-pr (highlight-range before after "NavajoWhite")))))
-                  (loop (cdr prs) #f (+ i 1))]))]))
-        (lock #t)
-        (end-edit-sequence)
-        (update-info-editor clicked-srcloc-pr)
-        (send open-button enable (and clicked-srcloc-pr (path? (srcloc-source (cdr clicked-srcloc-pr)))))))
+      (define denom-ht (make-hasheq))
+      (define filtered-gui-display-data
+        (map (λ (pr)
+               (let ([id (car pr)]
+                     [stacks (filter-stacks (cdr pr))])
+                 (for-each (λ (stack) (hash-set! denom-ht stack #t)) stacks)
+                 (cons id stacks)))
+             gui-display-data))
+      (define denom-count (hash-count denom-ht))
+      (let loop ([prs filtered-gui-display-data]
+                 [first? #t]
+                 [i 0])
+        (cond
+          [(null? prs) (void)]
+          [else
+           (let* ([pr (car prs)]
+                  [fn (car pr)]
+                  [count (length (cdr pr))])
+             (cond
+               [(zero? count) (loop (cdr prs) first? i)]
+               [else
+                (unless first?
+                  (insert "\n"))
+                (let ([before (last-position)])
+                  (hash-set! line-to-source i pr)
+                  (insert (format-percentage (/ count denom-count)))
+                  (insert (format " ~a" (format-fn-name fn)))
+                  (let ([after (last-position)])
+                    (when (equal? (car pr) clicked-srcloc-pr)
+                      (set! clear-old-pr (highlight-range before after "NavajoWhite")))))
+                (loop (cdr prs) #f (+ i 1))]))]))
+      (lock #t)
+      (end-edit-sequence)
+      (update-info-editor clicked-srcloc-pr)
+      (send open-button
+            enable
+            (and clicked-srcloc-pr (path? (srcloc-source (cdr clicked-srcloc-pr))))))
     
     (define/private (filter-stacks stacks)
       (cond
@@ -187,11 +184,11 @@
          
     (define/public (open-current-pr)
       (when clicked-srcloc-pr
-        (let ([src (cdr clicked-srcloc-pr)])
-          (when (path? (srcloc-source src))
-            (printf "open ~s\n" (srcloc-source src))
-            (when (number? (srcloc-position src))
-              (printf "go to ~s\n" (srcloc-position src)))))))
+        (define src (cdr clicked-srcloc-pr))
+        (when (path? (srcloc-source src))
+          (printf "open ~s\n" (srcloc-source src))
+          (when (number? (srcloc-position src))
+            (printf "go to ~s\n" (srcloc-position src))))))
     
     (define/private (update-info-editor pr)
       (send vp change-children (λ (l) (if pr (list ec1 lp) (list ec1))))
@@ -295,17 +292,16 @@
           (define show/hide-menu-item #f)
           
           (define/public (show/hide-sprof-panel show?)
-            (let ([main-children (send main-panel get-children)])
-              (send show/hide-menu-item 
-                    set-label
-                    (if show? sc-hide-sprof sc-show-sprof))
-              (unless (or (and show? (= 2 (length main-children)))
-                          (and (not show?) (= 1 (length main-children))))
-                (send main-panel change-children 
-                      (λ (l) 
-                        (if show?
-                            (list everything-else sprof-main-panel)
-                            (list everything-else)))))))
+            (define main-children (send main-panel get-children))
+            (send show/hide-menu-item set-label (if show? sc-hide-sprof sc-show-sprof))
+            (unless (or (and show? (= 2 (length main-children)))
+                        (and (not show?) (= 1 (length main-children))))
+              (send main-panel
+                    change-children
+                    (λ (l)
+                      (if show?
+                          (list everything-else sprof-main-panel)
+                          (list everything-else))))))
           
           (define/override (make-root-area-container cls parent)
             (set! main-panel (super make-root-area-container panel:horizontal-dragable% parent))
@@ -377,15 +373,14 @@
         (mixin (drscheme:rep:text<%>) ()
           (inherit get-user-custodian)
           (define/public (get-threads-to-profile)
-            (let ([thds '()])
-              (let loop ([cust (get-user-custodian)])
-                (for-each
-                 (λ (obj)
-                   (cond 
-                     [(custodian? obj) (loop obj)]
-                     [(thread? obj) (set! thds (cons obj thds))]))
-                 (custodian-managed-list cust system-custodian)))
-              thds))
+            (define thds '())
+            (let loop ([cust (get-user-custodian)])
+              (for-each (λ (obj)
+                          (cond
+                            [(custodian? obj) (loop obj)]
+                            [(thread? obj) (set! thds (cons obj thds))]))
+                        (custodian-managed-list cust system-custodian)))
+            thds)
 
           ;; FIX
           ;; something needs to happen here so that the profiling gets shutdown when the repl dies.

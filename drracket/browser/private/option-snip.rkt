@@ -31,9 +31,9 @@
         (set! current-option (cons o v)))
       (set! w #f)
       (set! h #f)
-      (let ([a (get-admin)])
-        (when a
-          (send a resized this #t))))
+      (define a (get-admin))
+      (when a
+        (send a resized this #t)))
     
     (define/public (get-value)
       (with-handlers ([exn:fail? (lambda (x) #f)])
@@ -41,30 +41,30 @@
                  (car options)))))
     
     (define/public (set-value v)
-      (let ([o (ormap (lambda (o) (and (equal? v (cdr o)) o)) options)])
-        (if o
-            (set! current-option o)
-            (set! look-for-option (box v)))))
+      (define o (ormap (lambda (o) (and (equal? v (cdr o)) o)) options))
+      (if o
+          (set! current-option o)
+          (set! look-for-option (box v))))
     
     (override*
      [get-extent  ; called by an editor to get the snip's size
       (lambda (dc x y wbox hbox descentbox spacebox lspacebox rspacebox)
         (unless w
-          (let ([font (send (get-style) get-font)])
-            (let ([w+h+ds
-                   (map (lambda (o)
-                          (let-values ([(tw th td ta) (send dc get-text-extent (car o) font)])
-                            (list tw th td)))
-                        options)])
-              (if (null? w+h+ds)
-                  (begin
-                    (set! w 10)
-                    (set! h 10)
-                    (set! d 2))
-                  (begin
-                    (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+h+ds))))
-                    (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cadr w+h+ds))))
-                    (set! d (+ inset 1 (apply max (map caddr w+h+ds)))))))))
+          (define font (send (get-style) get-font))
+          (define w+h+ds
+            (map (lambda (o)
+                   (let-values ([(tw th td ta) (send dc get-text-extent (car o) font)])
+                     (list tw th td)))
+                 options))
+          (if (null? w+h+ds)
+              (begin
+                (set! w 10)
+                (set! h 10)
+                (set! d 2))
+              (begin
+                (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+h+ds))))
+                (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cadr w+h+ds))))
+                (set! d (+ inset 1 (apply max (map caddr w+h+ds)))))))
         (when hbox
           (set-box! hbox h))
         (when wbox
