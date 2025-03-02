@@ -88,19 +88,17 @@
    (define (tool-files id)
      (apply 
       append
-      (map
-       (λ (x)
-         (define proc (get-info/full x))
-         (if proc
-             (map (λ (dirs)
-                    (apply build-path 
-                           x
-                           (if (list? dirs)
-                               dirs
-                               (list dirs))))
-                  (proc id (λ () '())))
-             '()))
-       (find-relevant-directories (list id)))))
+      (for/list ([x (in-list (find-relevant-directories (list id)))])
+        (define proc (get-info/full x))
+        (if proc
+            (map (λ (dirs)
+                   (apply build-path
+                          x
+                          (if (list? dirs)
+                              dirs
+                              (list dirs))))
+                 (proc id (λ () '())))
+            '()))))
    
    (define make-compilation-manager-load/use-compiled-handler
      (parameterize ([current-namespace (make-base-empty-namespace)])
