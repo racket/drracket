@@ -106,16 +106,16 @@
     (define/override (on-event event)
       (cond
         [(send event button-up? 'left)
-         (let ([admin (get-admin)])
-           (when admin
-             (let ([dc (send admin get-dc)])
-               (let-values ([(x y) (dc-location-to-editor-location (send event get-x)
-                                                                   (send event get-y))])
-                 (let* ([loc (find-position x y)]
-                        [para (position-paragraph loc)])
-                   (set! clicked-srcloc-pr (and (<= 0 para (last-paragraph))
-                                                (car (list-ref gui-display-data para))))
-                   (update-gui-display))))))]
+         (define admin (get-admin))
+         (when admin
+           (let ([dc (send admin get-dc)])
+             (let-values ([(x y) (dc-location-to-editor-location (send event get-x)
+                                                                 (send event get-y))])
+               (let* ([loc (find-position x y)]
+                      [para (position-paragraph loc)])
+                 (set! clicked-srcloc-pr
+                       (and (<= 0 para (last-paragraph)) (car (list-ref gui-display-data para))))
+                 (update-gui-display)))))]
         [else (void)]))
 
     (define/public (set-gui-display-data/refresh traces-table)

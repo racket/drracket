@@ -55,14 +55,14 @@
        (run-trace-thread)))]
   [install-cm?
    (flprintf "PLTDRCM: loading compilation manager\n")
-   (let ([make-compilation-manager-load/use-compiled-handler
-          (parameterize ([current-namespace (make-base-empty-namespace)])
-            (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler))])
-     (flprintf "PLTDRCM: installing compilation manager\n")
-     (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
-     (when cm-trace?
-       (flprintf "PLTDRCM: enabling CM tracing\n")
-       (run-trace-thread)))]
+   (define make-compilation-manager-load/use-compiled-handler
+     (parameterize ([current-namespace (make-base-empty-namespace)])
+       (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler)))
+   (flprintf "PLTDRCM: installing compilation manager\n")
+   (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
+   (when cm-trace?
+     (flprintf "PLTDRCM: enabling CM tracing\n")
+     (run-trace-thread))]
   [first-parallel?
    (flprintf "PLTDRPAR: loading compilation manager\n")
    (define tools? (not (getenv "PLTNOTOOLS")))
