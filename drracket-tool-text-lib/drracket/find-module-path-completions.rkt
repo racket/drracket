@@ -5,6 +5,7 @@
          racket/port
          racket/contract
          racket/list
+         racket/match
          pkg/lib
          compiler/module-suffix)
 
@@ -205,11 +206,9 @@
    (apply
     append
     (for/list ([just-one (in-list link-content)])
-      (define-values (what pth) (apply values just-one))
-      (cond
-        [(string? what)
-         (list just-one)]
-        [else
+      (match just-one
+        [(list (? string?) _) (list just-one)]
+        [(list what pth)
          (cond
            [(safe-directory-exists? pth)
             (for/list ([dir (in-list (safe-directory-list pth))]
