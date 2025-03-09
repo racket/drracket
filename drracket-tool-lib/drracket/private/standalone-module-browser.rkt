@@ -1263,15 +1263,15 @@
                  (if m
                      (cadr m)
                      word))
-               (if (string=? short-name "")
-                   ""
-                   (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
-                     (cond
-                       [(null? ms) (substring short-name 0 (min 2 (string-length short-name)))]
-                       [else
-                        (apply string-append
-                               (cons (substring short-name 0 1)
-                                     (map (λ (x) (substring x 1 2)) ms)))])))]
+               (cond
+                 [(string=? short-name "") ""]
+                 [else
+                  (define ms (regexp-match* #rx"-[^-]*" short-name))
+                  (cond
+                    [(null? ms) (substring short-name 0 (min 2 (string-length short-name)))]
+                    [else
+                     (apply string-append
+                            (cons (substring short-name 0 1) (map (λ (x) (substring x 1 2)) ms)))])])]
               [(long) word]
               [(very-long) (string-append word ": " (format "~s" require-phases))]))
            last-name]))
@@ -1350,14 +1350,15 @@
             (λ (filename)
               (define p (open-input-file filename))
               (define wxme? (regexp-match-peek #rx#"^WXME" p))
-              (if wxme?
-                  (let ([t (new text%)])
-                    (close-input-port p)
-                    (send t load-file filename)
-                    (let ([prt (open-input-text-editor t)])
-                      (port-count-lines! prt)
-                      prt))
-                  p)))
+              (cond
+                [wxme?
+                 (define t (new text%))
+                 (close-input-port p)
+                 (send t load-file filename)
+                 (define prt (open-input-text-editor t))
+                 (port-count-lines! prt)
+                 prt]
+                [else p])))
            (current-load-relative-directory #f)
            (define relative? (eq? init-dir 'relative))
            (unless relative? ; already there
