@@ -964,7 +964,9 @@
            (with-handlers ((exn:fail? (λ (x) #f)))
              (normal-case-path (normalize-path file))))
          (cond
-           [(not normalized-file) (values #f void)]
+           [(or (not normalized-file)
+                (not (file-exists? normalized-file)))
+            (values #f void)]
            [(send (group:get-the-frame-group)
                   locate-file
                   normalized-file)
@@ -1077,7 +1079,15 @@
                 srclocs))
       (define frame
         (cond
-          [(path? debug-source) (handler:edit-file debug-source)]
+          [(path? debug-source)
+           (cond
+             [(file-exists? debug-source)
+              (handler:edit-file debug-source)]
+             [else
+              (message-box (string-constant drracket)
+                           (format (string-constant cannot-open-because-dne)
+                                   debug-source))
+              #f])]
           [(and (symbol? debug-source)
                 (text:lookup-port-name debug-source))
            =>
