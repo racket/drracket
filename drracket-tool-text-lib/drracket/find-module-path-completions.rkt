@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require racket/contract/base
-         racket/system
-         racket/port
-         racket/contract
-         racket/list
+(require compiler/module-suffix
          pkg/lib
-         compiler/module-suffix)
+         racket/contract
+         racket/contract/base
+         racket/list
+         racket/port
+         racket/system)
 
 (define current-library-collection-links-info/c
   (listof (or/c #f
@@ -182,20 +182,20 @@
                                    (and (regexp? (list-ref link-ent 2))
                                         (regexp-match (list-ref link-ent 2) (version)))
                                    #t))
-               `(,(list-ref link-ent 0)
-                 ,(simplify-path
-                   (let* ([encoded-path (list-ref link-ent 1)]
-                          [path (cond
-                                  [(string? encoded-path) encoded-path]
-                                  [(bytes? encoded-path) (bytes->path encoded-path)]
-                                  [else (apply build-path
-                                               (for/list ([elem (in-list encoded-path)])
-                                                 (if (bytes? elem)
-                                                     (bytes->path-element elem)
-                                                     elem)))])])
-                     (if (relative-path? path)
-                         (build-path base path)
-                         path)))))]
+               (list (list-ref link-ent 0)
+                     (simplify-path (let* ([encoded-path (list-ref link-ent 1)]
+                                           [path (cond
+                                                   [(string? encoded-path) encoded-path]
+                                                   [(bytes? encoded-path) (bytes->path encoded-path)]
+                                                   [else
+                                                    (apply build-path
+                                                           (for/list ([elem (in-list encoded-path)])
+                                                             (if (bytes? elem)
+                                                                 (bytes->path-element elem)
+                                                                 elem)))])])
+                                      (if (relative-path? path)
+                                          (build-path base path)
+                                          path)))))]
             [else '()])]
          [else
           (for/list ([clp (in-list library-collection-paths)])
@@ -207,15 +207,12 @@
     (for/list ([just-one (in-list link-content)])
       (define-values (what pth) (apply values just-one))
       (cond
-        [(string? what)
-         (list just-one)]
-        [else
-         (cond
-           [(safe-directory-exists? pth)
-            (for/list ([dir (in-list (safe-directory-list pth))]
-                       #:when (safe-directory-exists? (build-path pth dir)))
-              (list (path->string dir) (build-path pth dir)))]
-           [else '()])])))))
+        [(string? what) (list just-one)]
+        [(safe-directory-exists? pth)
+         (for/list ([dir (in-list (safe-directory-list pth))]
+                    #:when (safe-directory-exists? (build-path pth dir)))
+           (list (path->string dir) (build-path pth dir)))]
+        [else '()])))))
 
 (define-syntax-rule (thunk-and-quote e)
   (values (λ () e) 'e))
@@ -296,10 +293,10 @@
     [else (use-current-racket 3)]))
 
 (module+ test
-  (require rackunit
+  (require racket/contract
            racket/list
-           racket/contract
-           racket/match)
+           racket/match
+           rackunit)
   
   (define/contract find-completions/c
     (-> string? (listof (list/c string? path?)) (-> path? (listof path?)) (-> path? boolean?)

@@ -1,6 +1,8 @@
 #lang racket
-(require gui-debugger/annotator  gui-debugger/load-sandbox syntax/parse
-         gui-debugger/marks)
+(require gui-debugger/annotator
+         gui-debugger/load-sandbox
+         gui-debugger/marks
+         syntax/parse)
 (provide run-code-with-annotator break/test)
 
 ;; Syntax -> Any

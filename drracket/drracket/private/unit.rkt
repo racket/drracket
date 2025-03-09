@@ -1,51 +1,47 @@
 #lang racket/base
 
-(require racket/contract
-         racket/unit
-         racket/class
-         racket/path
-         racket/port
-         racket/list
-         racket/match
-         racket/format
-         string-constants
-         framework
-         framework/private/srcloc-panel
-         mrlib/name-message
-         mrlib/switchable-button
-         mrlib/cache-image-snip
-         (prefix-in image-core: mrlib/image-core)
-         mrlib/close-icon
-         mrlib/panel-wob
-         net/sendurl
-         net/url
-         
+(require drracket/get-module-path
          drracket/private/drsig
          drracket/private/standalone-module-browser
-         "insulated-read-language.rkt"
-         "insert-large-letters.rkt"
-         "get-defs.rkt"
-         "local-member-names.rkt"
-         "eval-helpers-and-pref-init.rkt"
-         "parse-logger-args.rkt"
-         drracket/get-module-path
-         "named-undefined.rkt"
+         framework
+         framework/private/aspell
+         framework/private/logging-timer
+         framework/private/srcloc-panel
+         mred
+         mrlib/cache-image-snip
+         mrlib/close-icon
+         mrlib/name-message
+         mrlib/panel-wob
+         mrlib/switchable-button
+         mzlib/date
+         net/sendurl
+         net/url
+         racket/class
+         racket/contract
+         racket/format
+         racket/list
+         racket/match
+         racket/path
+         racket/port
+         racket/unit
+         scribble/tag
+         scribble/xref
+         setup/collects
+         setup/xref
+         string-constants
+         (prefix-in image-core: mrlib/image-core)
          (prefix-in pict-snip: "pict-snip.rkt")
          (prefix-in drracket:arrow: "../arrow.rkt")
          (prefix-in icons: images/compile-time)
-         mred
          (prefix-in mred: mred)
-         
-         mzlib/date
-         
-         framework/private/aspell
-         framework/private/logging-timer
-         
-         setup/collects
-         scribble/xref
-         setup/xref
-         scribble/tag
-         (only-in scribble/base doc-prefix))
+         (only-in scribble/base doc-prefix)
+         "eval-helpers-and-pref-init.rkt"
+         "get-defs.rkt"
+         "insert-large-letters.rkt"
+         "insulated-read-language.rkt"
+         "local-member-names.rkt"
+         "named-undefined.rkt"
+         "parse-logger-args.rkt")
 
 (provide unit@)
 
@@ -143,59 +139,57 @@
                       (is-a? text drracket:rep:text%))
                   (is-a? event mouse-event%))
          
-         (let ([add-sep
-                (let ([added? #f])
-                  (λ ()
-                    (unless added?
-                      (set! added? #t)
-                      (new separator-menu-item% [parent menu]))))])
-           
-           (add-search-help-desk-menu-item text menu
-                                           (let-values ([(x y)
-                                                         (send text dc-location-to-editor-location
-                                                               (send event get-x)
-                                                               (send event get-y))])
-                                             (send text find-position x y))
-                                           add-sep)
-           
-           (when (is-a? text editor:basic<%>)
-             (let-values ([(pos text) (send text get-pos/text event)])
-               (when (and pos (is-a? text text%))
-                 (send text split-snip pos)
-                 (send text split-snip (+ pos 1))
-                 (let ([snip (send text find-snip pos 'after-or-none)])
-                   (when (or (is-a? snip image-snip%)
-                             (is-a? snip image-core:image%)
-                             (is-a? snip cache-image-snip%)
-                             (is-a? snip pict-snip:pict-snip%))
-                     (add-sep)
-                     (define (save-image-callback _1 _2)
-                       (define fn
-                         (put-file #f 
-                                   (send text get-top-level-window)
-                                   #f "untitled.png" "png"))
-                       (when fn
-                         (define kind (filename->kind fn))
-                         (cond
-                           [kind
-                            (cond
-                              [(or (is-a? snip image-snip%)
-                                   (is-a? snip cache-image-snip%)
-                                   (is-a? snip pict-snip:pict-snip%))
-                               (send (send snip get-bitmap) save-file fn kind)]
-                              [else
-                               (image-core:save-image-as-bitmap snip fn kind)])]
-                           [else
-                            (message-box 
-                             (string-constant drscheme)
-                             "Must choose a filename that ends with either .png, .jpg, .xbm, or .xpm"
-                             #:dialog-mixin frame:focus-table-mixin)])))
-                     (new menu-item%
-                          [parent menu]
-                          [label (string-constant save-image)]
-                          [callback save-image-callback]))))))
-           
-           (void))))))
+         (define add-sep
+           (let ([added? #f])
+             (λ ()
+               (unless added?
+                 (set! added? #t)
+                 (new separator-menu-item% [parent menu])))))
+         
+         (add-search-help-desk-menu-item text
+                                         menu
+                                         (let-values ([(x y) (send text
+                                                                   dc-location-to-editor-location
+                                                                   (send event get-x)
+                                                                   (send event get-y))])
+                                           (send text find-position x y))
+                                         add-sep)
+         
+         (when (is-a? text editor:basic<%>)
+           (let-values ([(pos text) (send text get-pos/text event)])
+             (when (and pos (is-a? text text%))
+               (send text split-snip pos)
+               (send text split-snip (+ pos 1))
+               (let ([snip (send text find-snip pos 'after-or-none)])
+                 (when (or (is-a? snip image-snip%)
+                           (is-a? snip image-core:image%)
+                           (is-a? snip cache-image-snip%)
+                           (is-a? snip pict-snip:pict-snip%))
+                   (add-sep)
+                   (define (save-image-callback _1 _2)
+                     (define fn
+                       (put-file #f (send text get-top-level-window) #f "untitled.png" "png"))
+                     (when fn
+                       (define kind (filename->kind fn))
+                       (cond
+                         [kind
+                          (cond
+                            [(or (is-a? snip image-snip%)
+                                 (is-a? snip cache-image-snip%)
+                                 (is-a? snip pict-snip:pict-snip%))
+                             (send (send snip get-bitmap) save-file fn kind)]
+                            [else (image-core:save-image-as-bitmap snip fn kind)])]
+                         [else
+                          (message-box
+                           (string-constant drscheme)
+                           "Must choose a filename that ends with either .png, .jpg, .xbm, or .xpm"
+                           #:dialog-mixin frame:focus-table-mixin)])))
+                   (new menu-item%
+                        [parent menu]
+                        [label (string-constant save-image)]
+                        [callback save-image-callback]))))))
+         
+         (void)))))
   
   (define (add-search-help-desk-menu-item text menu position [add-sep void])
     (let* ([end (send text get-end-position)]
