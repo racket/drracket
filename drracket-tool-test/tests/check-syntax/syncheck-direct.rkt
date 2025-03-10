@@ -517,6 +517,289 @@
   '((66 77) (92 95)) ;; sketchy; should we eliminate?
   '((85 88) (92 95))))
 
+
+
+;                                                                                               
+;                                                                                               
+;                                                                                               
+;                                                                                               
+;                                                                                               
+;       ;;;            ;;;;;;;                         ;;;                             ;;;      
+;       ;;;           ;;;                              ;;;                             ;;;      
+;    ;; ;;;    ;;;   ;;;;; ;;;  ;;; ;;     ;;;         ;;;    ;;;      ;;;     ;;;;;   ;;;      
+;   ;;;;;;;   ;;;;;  ;;;;; ;;;  ;;;;;;;   ;;;;;        ;;;   ;;;;;    ;;;;;   ;;;;;;;  ;;;      
+;   ;;; ;;;  ;;; ;;;  ;;;  ;;;  ;;; ;;;  ;;; ;;;       ;;;  ;;; ;;;  ;;; ;;;  ;;; ;;;  ;;;      
+;   ;;; ;;;  ;;; ;;;  ;;;  ;;;  ;;; ;;;  ;;; ;;; ;;;;  ;;;  ;;; ;;;  ;;;         ;;;;  ;;; ;;;; 
+;   ;;; ;;;  ;;;;;;;  ;;;  ;;;  ;;; ;;;  ;;;;;;; ;;;;  ;;;  ;;; ;;;  ;;;       ;; ;;;  ;;; ;;;; 
+;   ;;; ;;;  ;;;      ;;;  ;;;  ;;; ;;;  ;;;           ;;;  ;;; ;;;  ;;; ;;;  ;;; ;;;  ;;;      
+;   ;;;;;;;   ;;;;;;  ;;;  ;;;  ;;; ;;;   ;;;;;;       ;;;   ;;;;;    ;;;;;   ;;;;;;;  ;;;      
+;    ;; ;;;    ;;;;   ;;;  ;;;  ;;; ;;;    ;;;;        ;;;    ;;;      ;;;     ;;;;;;  ;;;      
+;                                                                                               
+;
+;
+;                                                                                                             
+;                                                                                                             
+;                                        ;;;                                                                  
+;                                        ;;;                                                                  
+;   ;;; ;; ;;;      ;;;    ;;; ;; ;;;    ;;; ;;     ;;;    ;;; ;;     ;;; ;;    ;;;;;   ;;; ;; ;;;      ;;;   
+;   ;;;;;;;;;;;    ;;;;;   ;;;;;;;;;;;   ;;;;;;;   ;;;;;   ;;;;;      ;;;;;;;  ;;;;;;;  ;;;;;;;;;;;    ;;;;;  
+;   ;;; ;;; ;;;   ;;; ;;;  ;;; ;;; ;;;   ;;; ;;;  ;;; ;;;  ;;;        ;;; ;;;  ;;; ;;;  ;;; ;;; ;;;   ;;; ;;; 
+;   ;;; ;;; ;;;   ;;; ;;;  ;;; ;;; ;;;   ;;; ;;;  ;;; ;;;  ;;;  ;;;;  ;;; ;;;     ;;;;  ;;; ;;; ;;;   ;;; ;;; 
+;   ;;; ;;; ;;;   ;;;;;;;  ;;; ;;; ;;;   ;;; ;;;  ;;;;;;;  ;;;  ;;;;  ;;; ;;;   ;; ;;;  ;;; ;;; ;;;   ;;;;;;; 
+;   ;;; ;;; ;;;   ;;;      ;;; ;;; ;;;   ;;; ;;;  ;;;      ;;;        ;;; ;;;  ;;; ;;;  ;;; ;;; ;;;   ;;;     
+;   ;;; ;;; ;;;    ;;;;;;  ;;; ;;; ;;;   ;;;;;;;   ;;;;;;  ;;;        ;;; ;;;  ;;;;;;;  ;;; ;;; ;;;    ;;;;;; 
+;   ;;; ;;; ;;;     ;;;;   ;;; ;;; ;;;   ;;; ;;     ;;;;   ;;;        ;;; ;;;   ;;;;;;  ;;; ;;; ;;;     ;;;;  
+;                                                                                                             
+;                                                                                                             
+;                                                                                                             
+;                                                                                                             
+;                                                                                                             
+
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-method-name)\n"
+                 "  (class object% (define/public (the-method-name x) 0))\n"
+                 "  (send #f the-method-name))\n")))]
+           ;; filter out arrows that don't start on `the-method-name`
+           #:when (equal? '(45 60) (car e)))
+   e)
+ (set
+  '((45 60) (129 144))
+  '((45 60) (95 110))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-method-name)\n"
+                 "  (class object%\n"
+                 "    (define/public (the-method-name n)\n"
+                 "      (unless (zero? n)\n"
+                 "        (if (even? n)\n"
+                 "            (send this the-method-name (- n 1))\n"
+                 "            (the-method-name (- n 1)))))))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-method-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? '(45 60) (car e)))
+   e)
+ (set
+  '((45 60) (99 114))
+  '((45 60) (187 202))
+  '((45 60) (225 240))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-method-name)\n"
+                 "  (define c%\n"
+                 "    (class object%\n"
+                 "      (define/pubment (the-method-name n)\n"
+                 "        (inner 0 the-method-name n))\n"
+                 "      (super-new))))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-method-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? '(45 60) (car e)))
+   e)
+ (set
+  '((45 60) (117 132))
+  '((45 60) (153 168))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-method-name)\n"
+                 "  (define c%\n"
+                 "    (class object%\n"
+                 "      (define/override (the-method-name n)\n"
+                 "        (super the-method-name n))\n"
+                 "      (super-new))))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-method-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? '(45 60) (car e)))
+   e)
+ (set
+  '((45 60) (118 133))
+  '((45 60) (152 167))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-method-name)\n"
+                 "  (class* object% ()\n"
+                 "    (define/public the-method-name\n"
+                 "      (letrec ([f (λ ()\n"
+                 "                    (the-method-name)\n"
+                 "                    (send this the-method-name))])\n"
+                 "        f))\n"
+                 "    (super-new)))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-method-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? '(45 60) (car e)))
+   e)
+ (set
+  '((45 60) (102 117))
+  '((45 60) (163 178))
+  '((45 60) (211 226))))
+
+
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-init-name)\n"
+                 "  (define c%\n"
+                 "    (class* object% ()\n"
+                 "      (init [the-init-name (λ (x) x)])\n"
+                 "      (set! the-init-name void)\n"
+                 "      (list the-init-name)\n"
+                 "      (the-init-name 5)\n"
+                 "      (super-new))))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-init-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? '(45 58) (car e)))
+   e)
+ (set
+  '((45 58) (109 122))
+  '((45 58) (147 160))
+  '((45 58) (179 192))
+  '((45 58) (201 214))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-field-name)\n"
+                 "  (define c%\n"
+                 "    (class* object% ()\n"
+                 "      (field [the-field-name (λ (x) x)])\n"
+                 "      (set! the-field-name void)\n"
+                 "      (list the-field-name)\n"
+                 "      (the-field-name 5)\n"
+                 "      (super-new)))\n"
+                 "\n"
+                 "  (class c%\n"
+                 "    (inherit-field the-field-name)\n"
+                 "    (super-new)))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-init-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? '(45 59) (car e)))
+   e)
+ (set
+  '((45 59) (111 125))
+  '((45 59) (150 164))
+  '((45 59) (183 197))
+  '((45 59) (206 220))
+  '((45 59) (276 290))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name\n"
+                 "    the-method-name1\n"
+                 "    the-method-name2)\n"
+                 "  (define (m %)\n"
+                 "    (class* % ()\n"
+                 "      (rename-super [the-super-method-name the-method-name1])\n"
+                 "      (rename-inner [the-inner-method-name the-method-name2])\n"
+                 "      (define/public (m x)\n"
+                 "        (the-super-method-name x)\n"
+                 "        (the-inner-method-name (lambda () 0) x))\n"
+                 "      (super-new))))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-init-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (member (car e) (list '(49 65) '(70 86))))
+   e)
+ (set
+  '((49 65) (164 180))
+  '((70 86) (226 242))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-method-name)\n"
+                 "  (define %\n"
+                 "    (class* object% ()\n"
+                 "      (define/public (the-method-name x)\n"
+                 "        (class object%\n"
+                 "          (define/public (the-method-name x)\n"
+                 "            x)\n"
+                 "          (super-new)))\n"
+                 "      (define/public (another-method)\n"
+                 "        (class object%\n"
+                 "          (define/public (the-method-name x)\n"
+                 "            x)\n"
+                 "          (super-new)))\n"
+                 "      (super-new))))\n")))]
+           ;; filter out arrows that don't start on the
+           ;; `the-init-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? (car e) '(45 60)))
+   e)
+ (set
+  '((45 60) (119 134))
+  '((45 60) (187 202))
+  '((45 60) (332 347))))
+
+(check-equal?
+ (for/set ([e (in-set
+               (get-binding-arrows
+                (string-append
+                 "(module m racket\n"
+                 "  (define-local-member-name the-method-name)\n"
+                 "  (define %\n"
+                 "    (class* object% ()\n"
+                 "      (define/public (the-method-name x)\n"
+                 "        (class object%\n"
+                 "          (define/public (the-method-name x)\n"
+                 "            (the-method-name x)\n"
+                 "            (send this the-method-name x))\n"
+                 "          (super-new)))\n"
+                 "      (define/public (another-method)\n"
+                 "        (class object%\n"
+                 "          (define/public (the-method-name x)\n"
+                 "            (the-method-name x)\n"
+                 "            (send this the-method-name x))\n"
+                 "          (super-new)))\n"
+                 "      (super-new))))\n")))]
+           ;; `the-init-name` that appears inside
+           ;; `define-local-member-name`
+           #:when (equal? (car e) '(45 60)))
+   e)
+ (set
+  '((45 60) (119 134))
+  '((45 60) (187 202))
+  '((45 60) (219 234))
+  '((45 60) (261 276))
+  '((45 60) (392 407))
+  '((45 60) (424 439))
+  '((45 60) (466 481))))
+
+
 ;                                                       
 ;                                                       
 ;                                                       
