@@ -30,9 +30,11 @@
   ;; wait until the definitions are instantiated, return top-level window
   (define (wait-for-definitions)
     (define ws (get-top-level-windows))
-    (if (null? ws)
-      (begin (sleep 1) (wait-for-definitions))
-      (car ws)))
+    (cond
+      [(null? ws)
+       (sleep 1)
+       (wait-for-definitions)]
+      [else (car ws)]))
   #| ;; Cute code, but may resize the window if too much space, and people
      ;; didn't like this way of asking if you want update checks.
   ;; show a message and a disable button
@@ -181,4 +183,4 @@
              (super help-menu:after-about m))
            (super-new))))
       (thread check-for-updates))
-    (when (> patchlevel 0) (version:add-spec 'p patchlevel))))
+    (when (positive? patchlevel) (version:add-spec 'p patchlevel))))

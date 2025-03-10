@@ -41,13 +41,17 @@
 
 ;; load-status : boolean string (union #f url) -> void
 (define (load-status push? what url)
-  (let ([s (format "Loading ~a ~a..." 
-                   what 
-                   (if url
-                       (trim 150 (url->string url))
-                       "unknown url"))])
-    (status-stack (cons s (if push? (status-stack) null)))
-    (status "~a" s)))
+  (define s
+    (format "Loading ~a ~a..."
+            what
+            (if url
+                (trim 150 (url->string url))
+                "unknown url")))
+  (status-stack (cons s
+                      (if push?
+                          (status-stack)
+                          null)))
+  (status "~a" s))
 
 (define (pop-status)
   (status-stack (cdr (status-stack)))
@@ -86,52 +90,45 @@
         (cond
          [(null? rects) #f]
          [else
-          (let ([rect (car rects)])
-            (if (and (<= (image-map-rect-left rect) x (image-map-rect-right rect))
-                     (<= (image-map-rect-top rect) y (image-map-rect-bottom rect)))
-                rect
-                (loop (cdr rects))))])))
+          (define rect (car rects))
+          (if (and (<= (image-map-rect-left rect) x (image-map-rect-right rect))
+                   (<= (image-map-rect-top rect) y (image-map-rect-bottom rect)))
+              rect
+              (loop (cdr rects)))])))
     
     ;; add-area : string (listof number) string -> void
     ;; currently only supports rect shapes
     (define/public (add-area shape coords href)
       (when (and (equal? shape "rect")
                  (= 4 (length coords)))
-        (let ([x1 (car coords)]
-              [y1 (cadr coords)]
-              [x2 (caddr coords)]
-              [y2 (cadddr coords)])
-          (set! rects (cons (make-image-map-rect
-                             href
-                             (min x1 x2)
-                             (min y1 y2)
-                             (max x1 x2)
-                             (max y1 y2))
-                            rects)))))
+        (define x1 (car coords))
+        (define y1 (cadr coords))
+        (define x2 (caddr coords))
+        (define y2 (cadddr coords))
+        (set! rects
+              (cons (make-image-map-rect href (min x1 x2) (min y1 y2) (max x1 x2) (max y1 y2)) rects))))
     
     (define/override (on-event dc x y editor-x editor-y evt)
       (when (send evt button-up?)
-        (let* ([snipx (- (send evt get-x) x)]
-               [snipy (- (send evt get-y) y)]
-               [rect (find-rect snipx snipy)])
-          (when rect
-            (send html-text post-url (image-map-rect-href rect)))))
+        (define snipx (- (send evt get-x) x))
+        (define snipy (- (send evt get-y) y))
+        (define rect (find-rect snipx snipy))
+        (when rect
+          (send html-text post-url (image-map-rect-href rect))))
       (super on-event dc x y editor-x editor-y evt))
     
     (define/override (adjust-cursor dc x y editor-x editor-y evt)
-      (let ([snipx (- (send evt get-x) x)]
-            [snipy (- (send evt get-y) y)])
-        (if (find-rect snipx snipy)
-            finger-cursor
-            #f)))
+      (define snipx (- (send evt get-x) x))
+      (define snipy (- (send evt get-y) y))
+      (if (find-rect snipx snipy) finger-cursor #f))
 
     ;; warning: buggy. This doesn't actually copy the bitmap
     ;; over because there's no get-bitmap method for image-snip%
     ;; at the time of this writing.
     (define/override (copy)
-      (let ([cp (new image-map-snip% (html-text html-text))])
-        (send cp set-key key)
-        (send cp set-rects rects)))
+      (define cp (new image-map-snip% (html-text html-text)))
+      (send cp set-key key)
+      (send cp set-rects rects))
     
     (super-make-object)
     
@@ -144,9 +141,9 @@
 ;;
 
 (define (make-racket-color-delta col)
-  (let ([d (make-object style-delta%)])
-    (send d set-delta-foreground col)
-    d))
+  (define d (make-object style-delta%))
+  (send d set-delta-foreground col)
+  d)
 
 (define racket-code-delta (make-racket-color-delta "brown"))
 (define racket-code-delta/keyword
@@ -164,17 +161,17 @@
 (define current-style-class (make-parameter null))
 
 (define (lookup-class-delta class)
-  (let ([class-path (cons class (current-style-class))])
-    (cond
-     [(sub-path? class-path '("racket")) racket-code-delta]
-     [(sub-path? class-path '("keyword" "racket")) racket-code-delta/keyword]
-     [(sub-path? class-path '("variable" "racket")) racket-code-delta/variable]
-     [(sub-path? class-path '("global" "racket")) racket-code-delta/global]
-     [(or (sub-path? class-path '("selfeval" "racket"))
-          (sub-path? class-path '("racketresponse"))) racket-code-delta/selfeval]
-     [(sub-path? class-path '("comment" "racket")) racket-code-delta/comment]
-     [(sub-path? class-path '("navigation")) navigation-delta]
-     [else #f])))
+  (define class-path (cons class (current-style-class)))
+  (cond
+    [(sub-path? class-path '("racket")) racket-code-delta]
+    [(sub-path? class-path '("keyword" "racket")) racket-code-delta/keyword]
+    [(sub-path? class-path '("variable" "racket")) racket-code-delta/variable]
+    [(sub-path? class-path '("global" "racket")) racket-code-delta/global]
+    [(or (sub-path? class-path '("selfeval" "racket")) (sub-path? class-path '("racketresponse")))
+     racket-code-delta/selfeval]
+    [(sub-path? class-path '("comment" "racket")) racket-code-delta/comment]
+    [(sub-path? class-path '("navigation")) navigation-delta]
+    [else #f]))
 
 (define (sub-path? a b)
   (cond
@@ -194,15 +191,14 @@
 (define re:hexcolor 
   (regexp "^#([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])$"))
 
-(define color-string->color
-  (lambda (str)
-    (let ([m (regexp-match re:hexcolor str)])
-      (if m
-          (make-object color%
-                       (string->number (cadr m) 16)
-                       (string->number (caddr m) 16)
-                       (string->number (cadddr m) 16))
-          (send the-color-database find-color str)))))
+(define (color-string->color str)
+  (let ([m (regexp-match re:hexcolor str)])
+    (if m
+        (make-object color%
+                     (string->number (cadr m) 16)
+                     (string->number (caddr m) 16)
+                     (string->number (cadddr m) 16))
+        (send the-color-database find-color str))))
 
 (define html-eval-ok (make-parameter #t))
 (define html-img-ok (make-parameter #t))
