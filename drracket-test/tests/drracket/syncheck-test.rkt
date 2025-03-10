@@ -1,21 +1,21 @@
 #lang racket/base
 
-  (require "private/drracket-test-util.rkt"
+  (require (for-syntax racket/base)
            drracket/private/syncheck/local-member-names
            drracket/syncheck-drracket-button
-           string-constants/string-constant
-           "private/gui.rkt"
-           racket/path
-           racket/class
-           racket/list
-           racket/file
-           racket/set
-           racket/port
-           racket/pretty
-           racket/gui/base
            framework
            mrlib/text-string-style-desc
-           (for-syntax racket/base))
+           racket/class
+           racket/file
+           racket/gui/base
+           racket/list
+           racket/path
+           racket/port
+           racket/pretty
+           racket/set
+           string-constants/string-constant
+           "private/drracket-test-util.rkt"
+           "private/gui.rkt")
   
   (provide main)
   
