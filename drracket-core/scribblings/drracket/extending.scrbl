@@ -3,6 +3,7 @@
           (for-label compiler/cm setup/parallel-build racket/promise))
 
 @(define racodoc '(lib "scribblings/raco/raco.scrbl"))
+@(define tools-manual @other-doc['(lib "scribblings/tools/tools.scrbl") #:indirect "DrRacket Plugins"])
 
 @title[#:tag "extending-drracket"]{Extending DrRacket}
 
@@ -20,7 +21,7 @@ DrRacket supports four forms of extension to the programming
   it easy to extend DrRacket with small Racket scripts that can be used
   in the definition (or interaction) window, or to graphically interact
   with the user. For information on creating @tech{scripts}, see 
-  @other-doc['(lib "quickscript/scribblings/quickscript.scrbl")].}
+  @other-doc['(lib "quickscript/scribblings/quickscript.scrbl") #:indirect "Quickscript"].}
 
 @item{@index['("languages" "extending")]{@index['("DrRacket
   Teachpacks")]{A @deftech{teachpack}}} extends the set of procedures
@@ -39,8 +40,7 @@ DrRacket supports four forms of extension to the programming
 @item{A @deftech{plugin} extends the set of utilities within the
   DrRacket environment. For example, DrRacket's @onscreen{Check
   Syntax} button starts a syntax-checking plugin. For information on
-  creating @tech{plugin}s, see @other-manual['(lib
-  "scribblings/tools/tools.scrbl")].}
+  creating @tech{plugin}s, see @|tools-manual|.}
   
 ]
 
@@ -191,7 +191,7 @@ Several environment variables can affect DrRacket's behavior:
  @item{@indexed-envvar{PLTDRREPL} : When this environment variable is
         set, DrRacket starts a read-eval-print loop with all of
         the forms and functions from the @racketmodname[racket]
-        module and those described in @other-doc['(lib "scribblings/tools/tools.scrbl")].
+        module and those described in @|tools-manual|.
         
         If it is not set to @litchar{-q}, then @racket[(find-system-path 'init-file)]
         is loaded as well.

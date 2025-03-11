@@ -21,8 +21,6 @@
          syntax/toplevel
          browser/external
          mrlib/panel-wob
-         lang/htdp-langs-save-file-prefix
-         (only-in mzlib/struct make-->vector)
 
          ;; ensure that this module is always loaded since it is shared below for pretty big
          (prefix-in : mred/mred))
@@ -1942,7 +1940,15 @@
         (super-instantiate ())))
     
     (define-struct (simple-settings+assume drracket:language:simple-settings) (no-redef?))
-    (define simple-settings+assume->vector (make-->vector simple-settings+assume))
+    (define (simple-settings+assume->vector s)
+      (vector
+       (drracket:language:simple-settings-case-sensitive s)
+       (drracket:language:simple-settings-printing-style s)
+       (drracket:language:simple-settings-fraction-style s)
+       (drracket:language:simple-settings-show-sharing s)
+       (drracket:language:simple-settings-insert-newlines s)
+       (drracket:language:simple-settings-annotations s)
+       (simple-settings+assume-no-redef? s)))
 
     (define (macro-stepper-mixin %)
       (class %

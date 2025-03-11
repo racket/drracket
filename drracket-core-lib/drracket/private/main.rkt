@@ -17,7 +17,6 @@
          racket/set
          racket/match
          browser/external
-         setup/plt-installer
          "suffix.rkt"
          
          scribble/tag
@@ -517,20 +516,6 @@
  "Units"
  (λ (filename) #t)
  drracket:unit:open-drscheme-window)
-
-;; add a handler to open .plt files.
-(handler:insert-format-handler
- "PLT Files"
- (λ (filename)
-   (and (regexp-match? #rx"^(?i:plt)$"
-                       (or (filename-extension filename) #""))
-        (gui-utils:get-choice
-         (format (string-constant install-plt-file) filename)
-         (string-constant install-plt-file/yes)
-         (string-constant install-plt-file/no))))
- (λ (filename)
-   (run-installer filename)
-   #f))
 
 ;; trim old console-previous-exprs preferences to compenstate 
 ;; for a bug that let it grow without bound

@@ -8,7 +8,6 @@
          setup/dirs
          setup/materialize-user-docs
          help/search
-         help/private/buginfo
          drracket/private/drsig
          string-constants
          setup/dirs
@@ -34,8 +33,6 @@
      (list
       (send language get-language-position)
       (send language marshall-settings settings)))))
-
-(set-bug-report-info! "Computer Language" get-computer-language-info)
 
 (define lang-message%
   (class canvas%

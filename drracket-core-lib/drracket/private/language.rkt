@@ -14,7 +14,6 @@
          
          mzlib/pconvert
          racket/pretty
-         mzlib/struct
          racket/class
          racket/file
          racket/list
@@ -211,7 +210,13 @@
 (define make-simple-settings make-drracket:language:simple-settings)
 (define simple-settings make-simple-settings)
 
-  (define simple-settings->vector (make-->vector drracket:language:simple-settings))
+(define (simple-settings->vector s)
+  (vector (drracket:language:simple-settings-case-sensitive s)
+          (drracket:language:simple-settings-printing-style s)
+          (drracket:language:simple-settings-fraction-style s)
+          (drracket:language:simple-settings-show-sharing s)
+          (drracket:language:simple-settings-insert-newlines s)
+          (drracket:language:simple-settings-annotations s)))
   
   ;; simple-module-based-language-config-panel :
   ;;   parent [#:case-sensitive (union #f #t '?)]

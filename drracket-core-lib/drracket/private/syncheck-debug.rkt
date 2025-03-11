@@ -1,9 +1,9 @@
-#lang mzscheme
+#lang racket/base
 
-  (require mzlib/pretty
-           mzlib/list
-           mzlib/class
-           mred)
+  (require racket/pretty
+           racket/list
+           racket/class
+           racket/gui/base)
   
   (provide debug-origin)  ;; : syntax [syntax] -> void
   ;; creates a frame for examining the 
@@ -23,18 +23,18 @@
        
        ;; assume that there aren't any eq? sub structures, only eq? flat stuff (symbols, etc)
        ;; this is guaranteed by syntax-object->datum/ht
-       (define range-start-ht (make-hash-table))
-       (define range-ht (make-hash-table))
+       (define range-start-ht (make-hasheq))
+       (define range-ht (make-hasheq))
        (define original-output-port (current-output-port))
        (define (range-pretty-print-pre-hook x v)
-         (hash-table-put! range-start-ht x (send output-text last-position)))
+         (hash-set! range-start-ht x (send output-text last-position)))
        (define (range-pretty-print-post-hook x v)
-         (hash-table-put! range-ht x 
-                          (cons
-                           (cons
-                            (hash-table-get range-start-ht x)
-                            (send output-text last-position))
-                           (hash-table-get range-ht x (λ () null)))))
+         (hash-set! range-ht x 
+                    (cons
+                     (cons
+                      (hash-ref range-start-ht x)
+                      (send output-text last-position))
+                     (hash-ref range-ht x (λ () null)))))
        
        (define (make-modern text)
          (send text change-style
@@ -43,7 +43,7 @@
                (send text last-position)))
        
        (define dummy
-         (begin (pretty-print (syntax-object->datum original-object) output-port)
+         (begin (pretty-print (syntax->datum original-object) output-port)
                 (newline output-port)
                 (parameterize ([current-output-port output-port]
                                [pretty-print-pre-print-hook range-pretty-print-pre-hook]
@@ -54,14 +54,14 @@
        
        (define ranges 
          (sort 
-          (apply append (hash-table-map range-ht (λ (k vs) (map (λ (v) (cons k v)) vs))))
+          (apply append (hash-map range-ht (λ (k vs) (map (λ (v) (cons k v)) vs))))
           (λ (x y)
             (<= (- (car (cdr x)) (cdr (cdr x)))
                 (- (car (cdr y)) (cdr (cdr y)))))))
        
        (define (show-info stx)
          (fprintf info-port "datum: ~s\nsource: ~a\nposition: ~s\noffset: ~s\noriginal: ~s\nbound-in-source: ~s\n\n"
-                  (syntax-object->datum stx)
+                  (syntax->datum stx)
                   (syntax-source stx)
                   (syntax-position stx)
                   (syntax-span stx)
@@ -79,13 +79,13 @@
               (fprintf info-port
                        "  original? ~a\n  datum:\n  ~a\n\n"
                        (and (syntax? origin) (syntax-original? origin))
-                       (and (syntax? origin) (syntax-object->datum origin)))]
+                       (and (syntax? origin) (syntax->datum origin)))]
              [else (void)])))
        
        (for-each
         (λ (range)
           (let* ([obj (car range)]
-                 [stx (hash-table-get stx-ht obj)]
+                 [stx (hash-ref stx-ht obj)]
                  [start (cadr range)]
                  [end (cddr range)])
             (when (syntax? stx)
@@ -109,7 +109,7 @@
                  (send info-text begin-edit-sequence)
                  (send info-text erase)
                  (for-each (λ (rng)
-                             (let ([stx (hash-table-get stx-ht (car rng))])
+                             (let ([stx (hash-ref stx-ht (car rng))])
                                (when (syntax? stx)
                                  (show-info stx))))
                            ranges)
@@ -126,26 +126,26 @@
   ;; build-ht : stx -> hash-table
   ;; the resulting hash-table maps from the each sub-object's to its syntax.
   (define (syntax-object->datum/ht stx)
-    (let ([ht (make-hash-table)])
+    (let ([ht (make-hasheq)])
       (values (let loop ([stx stx])
                 (let ([obj (syntax-e stx)])
                   (cond
                     [(list? obj) 
                      (let ([res (map loop obj)])
-                       (hash-table-put! ht res stx)
+                       (hash-set! ht res stx)
                        res)]
                     [(pair? obj) 
                      (let ([res (cons (loop (car obj))
                                       (loop (cdr obj)))])
-                       (hash-table-put! ht res stx)
+                       (hash-set! ht res stx)
                        res)]
                     [(vector? obj) 
                      (let ([res (list->vector (map loop (vector->list obj)))])
-                       (hash-table-put! ht res stx)
+                       (hash-set! ht res stx)
                        res)]
                     [else 
-                     (let ([res (syntax-object->datum stx)])
-                       (hash-table-put! ht res stx)
+                     (let ([res (syntax->datum stx)])
+                       (hash-set! ht res stx)
                        res)])))
               ht)))
   

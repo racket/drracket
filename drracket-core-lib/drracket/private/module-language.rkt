@@ -32,12 +32,11 @@
          pkg/lib
          pkg/gui
          mrlib/panel-wob
+         pict
+         pict/flash
          framework/private/logging-timer
          (submod "frame.rkt" install-pkg)
-         (for-syntax racket/base)
-         (prefix-in 2: (combine-in 2htdp/image
-                                   (only-in mrlib/image-core
-                                            render-image))))
+         (for-syntax racket/base))
 
 (struct exn-info (str full-str src-vecs exn-stack missing-mods) #:prefab)
 
@@ -1890,10 +1889,12 @@
                    (cond
                      [(hash-ref star-table color #f) => values]
                      [else
-                      (define i (2:star-polygon 6 9 4 "solid" color))
-                      (define bmp (make-bitmap (2:image-width i) (2:image-height i)))
+                      (define i (colorize (filled-flash 10 10 9 3/4) "forestgreen"))
+                      (define bmp (make-bitmap (inexact->exact (ceiling (pict-width i)))
+                                               (inexact->exact (ceiling (pict-height i)))))
                       (define bdc (make-object bitmap-dc% bmp))
-                      (2:render-image i bdc 0 0)
+                      (send bdc set-smoothing 'smoothed)
+                      (draw-pict i bdc 0 0)
                       (send bdc set-bitmap #f)
                       (hash-set! star-table color bmp)
                       bmp]))

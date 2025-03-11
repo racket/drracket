@@ -79,7 +79,7 @@ Racket's default printing via the @racket[print] procedure. Output via
 @racket[print] is further configurable through run-time settings, such
 as the @racket[print-as-expression] parameter, and it may be adjusted
 by a @hash-lang[]-specified language. For example, the
-@racketmodname[scheme] language sets the @racket[print-as-expression]
+@racketmodname[scheme #:indirect] language sets the @racket[print-as-expression]
 parameter to @racket[#f], which essentially makes @onscreen{print}
 mode act like @onscreen{write} mode.
 

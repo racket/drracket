@@ -8,7 +8,7 @@
          racket/path
          racket/list
          racket/gui/base
-         mzlib/async-channel
+         racket/async-channel
          string-constants
          drracket/private/drsig
          mrlib/close-icon

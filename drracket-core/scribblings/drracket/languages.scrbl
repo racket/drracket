@@ -1,7 +1,7 @@
 #lang scribble/doc
 @(require "common.rkt"
           (for-label errortrace/errortrace-lib compiler/cm planet/config
-                     racket/pretty drracket/tool drracket/tool-lib pict))
+                     racket/pretty drracket/tool-lib pict))
 
 @title[#:tag "languages" #:style 'toc]{Languages}
 
@@ -99,7 +99,7 @@ of various libraries).
         checking it passes @racket[#t] and leaving it unchecked passes @racket[#f].
         }
  @item{@bold{Output Syntax}: The output syntax options correspond to settings in the @racketmodname[racket/pretty] library 
-       and the @racketmodname[mzlib/pconvert] library.}
+       and the @racketmodname[mzlib/pconvert #:indirect] library.}
  @item{@bold{Collection Paths}: This corresponds to setting the @racket[current-library-collection-paths] parameter.}
  @item{@bold{Command-line arguments}: This corresponds to setting the @racket[current-command-line-arguments] parameter.}
  @item{@bold{Automatic #lang line}: This panel controls the
@@ -122,20 +122,20 @@ without a @hash-lang[] prefix:
 
  @item{The @as-index{@drlang{R5RS} language} contains those
   primitives and syntax defined in the R@superscript{5}RS Scheme
-  standard. See the @racketmodname[r5rs] library for details.}
+  standard. See the @racketmodname[r5rs #:indirect] library for details.}
 
  @item{The @as-index{@defterm{PLT Pretty Big} language} provides a
   language roughly compatible with a language in earlier versions of
   DrRacket. It evaluates a program in the same way as @racket[load],
   and it starts by importing the following modules:
-  @racketmodname[mzscheme], @racketmodname[racket/gui/base],
-  @racketmodname[mzlib/class], @racketmodname[mzlib/etc],
-  @racketmodname[mzlib/file], @racketmodname[mzlib/list],
-  @racketmodname[mzlib/unit], @racketmodname[mzlib/include],
-  @racketmodname[mzlib/defmacro], @racketmodname[mzlib/pretty],
-  @racketmodname[mzlib/string], @racketmodname[mzlib/thread],
-  @racketmodname[mzlib/math], @racketmodname[mzlib/match], and
-  @racketmodname[mzlib/shared].}
+  @racketmodname[mzscheme #:indirect], @racketmodname[racket/gui/base],
+  @racketmodname[mzlib/class #:indirect], @racketmodname[mzlib/etc #:indirect],
+  @racketmodname[mzlib/file #:indirect], @racketmodname[mzlib/list #:indirect],
+  @racketmodname[mzlib/unit #:indirect], @racketmodname[mzlib/include #:indirect],
+  @racketmodname[mzlib/defmacro #:indirect], @racketmodname[mzlib/pretty #:indirect],
+  @racketmodname[mzlib/string #:indirect], @racketmodname[mzlib/thread #:indirect],
+  @racketmodname[mzlib/math #:indirect], @racketmodname[mzlib/match #:indirect], and
+  @racketmodname[mzlib/shared #:indirect].}
 
  @item{The @as-index{@drlang{Swindle} language} starts with the same
   bindings as @racketmodname[swindle #:indirect], and evaluates the program like

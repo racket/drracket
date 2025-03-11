@@ -34,16 +34,15 @@
         If no tabs were closed in current session, files from 
         previous sessions are opened.}
 
- @item{@defmenuitem{Install PLT File...} Opens a dialog asking for the
-   location of the @filepath{.plt} file (either on the local disk or
-   on the web) and installs the contents of the file.}
-
  @item{@defmenuitem{Install Package...} Opens a dialog asking for
   the name of a package to install. See @other-doc['(lib "pkg/scribblings/pkg.scrbl")]
   for more information on packages.}
  @item{@defmenuitem{Package Manager...} Provides a graphical interface
         to the command-line tool
         @seclink["cmdline" #:doc '(lib "pkg/scribblings/pkg.scrbl")]{@tt{raco} @tt{pkg}}.}
+ @item{@defmenuitem{Install PLT File...} Opens a dialog asking for the
+   location of the @filepath{.plt} file (either on the local disk or
+   on the web) and installs the contents of the file.}
  
  @item{@defmenuitem{Revert} Re-loads the file that is currently in the
   @tech{definitions window}. All changes since the file was last saved

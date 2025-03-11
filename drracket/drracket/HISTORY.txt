@@ -1,4 +1,11 @@
 ------------------------------
+       Version 8.17
+------------------------------
+
+  . split out the drracket-core package to provide a version of
+    drracket with a smaller set of dependencies
+
+------------------------------
        Version 8.16
 ------------------------------
 

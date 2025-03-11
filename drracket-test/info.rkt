@@ -14,7 +14,8 @@
                      "htdp"
                      "compiler-lib"
                      "cext-lib"
-                     "string-constants-lib"))
+                     "string-constants-lib"
+                     "drracket-core"))
 (define update-implies '("drracket"))
 
 (define pkg-desc "tests for \"drracket\"")

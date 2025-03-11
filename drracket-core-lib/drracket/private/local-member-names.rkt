@@ -102,3 +102,6 @@
 
 (provide start-new-tab-in-edit-sequence?)
 (define start-new-tab-in-edit-sequence? (make-parameter #f))
+
+(provide |How to Design Programs|)
+(define |How to Design Programs| "How to Design Programs")

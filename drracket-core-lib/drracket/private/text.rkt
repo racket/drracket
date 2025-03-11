@@ -1,5 +1,5 @@
 #lang racket/unit
-  (require mzlib/class
+  (require racket/class
            drracket/private/drsig
            framework)
   

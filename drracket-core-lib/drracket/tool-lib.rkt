@@ -413,7 +413,7 @@ all of the names in the tools library, for use defining keybindings
                               @item{@racketmodname[planet/terse-info]}]
                     If the @racket[gui-modules?] parameter is a true value, then
                     these modules are also shared:
-                    @itemize[@item{@racketmodname[mred/mred]} 
+                    @itemize[@item{@racketmodname[mred/mred #:indirect]} 
                               @item{@racketmodname[mrlib/cache-image-snip]}
                               @item{@racketmodname[mrlib/image-core]}
                               @item{@racketmodname[mrlib/matrix-snip]}]
@@ -2079,7 +2079,7 @@ all of the names in the tools library, for use defining keybindings
     @racket[simple-settings-printing-style] field of @racket[settings].
     If it is @racket['print], the
     result is @racket[(values value #f)]. If it is @racket['write] or @racket['trad-write],
-    the result is just @racket[value]. Otherwise, the result is produce by 
+    the result is just @racket[value]. Otherwise, the result is produced by 
     adjusting the @racket[constructor-style-printing] and @racket[show-sharing] 
     parameters based on @racket[settings], setting @racket[current-print-convert-hook]
     to ignore snips, and then applying @racket[print-convert] to @racket[value].})

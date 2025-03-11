@@ -538,7 +538,7 @@ for a list of the capabilities registered by default.
 @section{Check Syntax}
 
 Check Syntax is a part of the DrRacket collection, but is implemented via the 
-plugin API. See also @racketmodname[drracket/check-syntax].
+plugin API. See also @racketmodname[drracket/check-syntax #:indirect].
 
 @subsection{Check Syntax Button}
 

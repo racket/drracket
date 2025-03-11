@@ -8,6 +8,7 @@
          racket/list
          racket/match
          racket/format
+         racket/date
          string-constants
          framework
          framework/private/srcloc-panel
@@ -35,8 +36,6 @@
          (prefix-in icons: images/compile-time)
          mred
          (prefix-in mred: mred)
-         
-         mzlib/date
          
          framework/private/aspell
          framework/private/logging-timer

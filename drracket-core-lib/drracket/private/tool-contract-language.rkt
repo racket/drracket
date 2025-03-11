@@ -1,10 +1,9 @@
-#lang mzscheme
+#lang racket/base
 
-  (provide (rename -#%module-begin #%module-begin)
-           (all-from-except mzscheme #%module-begin))
+  (provide (rename-out [-#%module-begin #%module-begin])
+           (except-out (all-from-out racket/base) #%module-begin))
   
-  (require racket/contract)
-  (require-for-syntax mzlib/list)
+  (require racket/contract (for-syntax racket/base racket/list))
   
   (define-syntax (-#%module-begin stx)
     
@@ -18,8 +17,8 @@
          (make-def-binding (syntax name) (syntax expr))]
         [(name type type-names strs ...)
          (and (identifier? (syntax name))
-              (not (string? (syntax-object->datum (syntax type))))
-              (andmap (λ (x) (string? (syntax-object->datum x))) (syntax->list (syntax (strs ...)))))
+              (not (string? (syntax->datum (syntax type))))
+              (andmap (λ (x) (string? (syntax->datum x))) (syntax->list (syntax (strs ...)))))
          (make-ctc-binding (syntax name) (syntax type))]
         [else (raise-syntax-error 'tool-contract-language.rkt "unknown case" stx case-stx)]))
     
@@ -33,7 +32,7 @@
                        [(ctc ...) (map ctc-binding-arg ctc-cases)]
                        [(def-name ...) (map def-binding-var def-cases)]
                        [(def-exp ...) (map def-binding-arg def-cases)]
-                       [wrap-tool-inputs (datum->syntax-object stx 'wrap-tool-inputs #'here)])
+                       [wrap-tool-inputs (datum->syntax stx 'wrap-tool-inputs #'here)])
            (syntax/loc stx
              (#%module-begin
               (provide wrap-tool-inputs)
@@ -62,7 +61,7 @@
        (begin
          (for-each
           (λ (str-stx)
-            (when (string? (syntax-object->datum str-stx))
+            (when (string? (syntax->datum str-stx))
               (raise-syntax-error 'tool-contract-language.rkt "expected type name specification"
                                   stx
                                   str-stx)))
@@ -74,7 +73,7 @@
           (syntax->list (syntax (name ...))))
          (for-each
           (λ (str)
-            (unless (string? (syntax-object->datum str))
+            (unless (string? (syntax->datum str))
               (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))
           (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))]))
   
@@ -82,11 +81,11 @@
     (syntax-case stx ()
       [(_ (name type type-names strs ...) ...)
        (and (andmap identifier? (syntax->list (syntax (name ...))))
-            (andmap (λ (x) (not (string? (syntax-object->datum x))))
+            (andmap (λ (x) (not (string? (syntax->datum x))))
                     (syntax->list (syntax (type-names ...))))
-            (andmap (λ (x) (string? (syntax-object->datum x)))
+            (andmap (λ (x) (string? (syntax->datum x)))
                     (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))
-       (with-syntax ([wrap-tool-inputs (datum->syntax-object stx 'wrap-tool-inputs #'here)])
+       (with-syntax ([wrap-tool-inputs (datum->syntax stx 'wrap-tool-inputs #'here)])
          (syntax/loc stx
            (#%module-begin
             (provide wrap-tool-inputs)
@@ -119,7 +118,7 @@
        (begin
          (for-each
           (λ (str-stx)
-            (when (string? (syntax-object->datum str-stx))
+            (when (string? (syntax->datum str-stx))
               (raise-syntax-error 'tool-contract-language.rkt "expected type name specification"
                                   stx
                                   str-stx)))
@@ -131,6 +130,6 @@
           (syntax->list (syntax (name ...))))
          (for-each
           (λ (str)
-            (unless (string? (syntax-object->datum str))
+            (unless (string? (syntax->datum str))
               (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))
           (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))]))
