@@ -296,6 +296,7 @@
  'drracket:tools-configuration
  null
  list?)
+(drr:set-default 'drracket:module-language:auto-text #f (or/c #f string?))
 
 (drracket:font:setup-preferences)
 (color-prefs:add-color-scheme-preferences-panel
@@ -668,7 +669,6 @@
                    (or/c #f
                          (cons/c (or/c string? #f)
                                  (real-in 0 1024))))
-  (drr:set-default 'drracket:module-language:auto-text #f (or/c #f string?))
 
 (let ([drs-handler-recent-items-super%
        (class (drracket:frame:basics-mixin
