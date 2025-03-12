@@ -3,6 +3,7 @@
          framework/test
          racket/class
          racket/file
+         racket/path
          racket/gui/base
          rackunit/log
          rackunit)
@@ -107,13 +108,13 @@
 
   (define drracket-frame1 (wait-for-drracket-frame))
 
-  (define tmp1-rkt-file (make-temporary-file "drracket-tests-open-and-highlight1.rkt~a.rkt"))
+  (define tmp1-rkt-file (normalize-path (make-temporary-file "drracket-tests-open-and-highlight1.rkt~a.rkt")))
   (call-with-output-file tmp1-rkt-file
     (λ (port)
       (display "#lang racket/base\n(+ 1 #f)" port))
     #:exists 'truncate)
 
-  (define tmp2-rkt-file (make-temporary-file "drracket-tests-open-and-highlight2.rkt~a.rkt"))
+  (define tmp2-rkt-file (normalize-path (make-temporary-file "drracket-tests-open-and-highlight2.rkt~a.rkt")))
   (call-with-output-file tmp2-rkt-file
     (λ (port)
       (display "#lang racket/base\n(+ 2 #f)" port))
