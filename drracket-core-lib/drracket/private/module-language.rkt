@@ -660,7 +660,9 @@
              error-args)))
     
   ;; module-language-config-panel : panel -> (case-> (-> settings) (settings -> void))
-  (define (module-language-config-panel parent)
+  (define (module-language-config-panel parent
+                                        #:add-auto-text-controls? [add-auto-text-controls? #t]
+                                        #:something-changed [something-changed void])
     (define new-parent
       (new-vertical-panel%
            [parent parent]
@@ -692,6 +694,7 @@
     (define simple-case-lambda
       (drracket:language:simple-module-based-language-config-panel
        new-parent
+       #:something-changed something-changed
        #:case-sensitive #t
        
        #:get-debugging-radio-box (λ (rb-l rb-r) 
@@ -709,7 +712,9 @@
                     [label (string-constant automatically-compile)]
                     [parent dynamic-panel]
                     [callback
-                     (λ (_1 _2) (set! compilation-on? (send compilation-on-check-box get-value)))]))
+                     (λ (_1 _2)
+                       (set! compilation-on? (send compilation-on-check-box get-value))
+                       (something-changed))]))
          (set! save-stacktrace-on-check-box 
                (new check-box%
                     [label (string-constant preserve-stacktrace-information)]
@@ -731,7 +736,8 @@
                                 (λ (a b)
                                   (if (member item submodules-to-run)
                                       (set-submodules-to-run (remove item submodules-to-run))
-                                      (set-submodules-to-run (cons item submodules-to-run))))]
+                                      (set-submodules-to-run (cons item submodules-to-run)))
+                                  (something-changed))]
                                [parent menu]))
                         (new separator-menu-item% [parent menu])
                         (new menu-item% 
@@ -740,7 +746,8 @@
                               (λ (a b)
                                 (define new-submod (add-another-possible-submodule parent))
                                 (when new-submod
-                                  (set-submodules-to-run (cons new-submod submodules-to-run))))]
+                                  (set-submodules-to-run (cons new-submod submodules-to-run))
+                                  (something-changed)))]
                              [label (string-constant add-submodule)]))
                       (super-new
                        [font normal-control-font]
@@ -766,46 +773,9 @@
                                [parent args-panel]
                                [label #f]
                                [init-value "#()"]
-                               [callback void]))
-    (define auto-text-panel (new group-box-panel%
-                                 [parent new-parent]
-                                 [label (string-constant module-language-auto-text)]))
-    (define hp (new horizontal-panel%
-                    [parent auto-text-panel]
-                    [alignment '(center bottom)]))
-    (define auto-text-rb (new radio-box%
-                              [parent hp]
-                              [label #f]
-                              [choices
-                               (list
-                                (string-constant module-language-auto-text-most-recent)
-                                (string-constant module-language-auto-text-always-same))]
-                              [callback
-                               (λ (rb evt)
-                                 (preferences:set
-                                  'drracket:module-language:auto-text
-                                  (case (send rb get-selection)
-                                    [(0)
-                                     (turn-on/off-auto-text-text-box #f)
-                                     #f]
-                                    [(1)
-                                     (turn-on/off-auto-text-text-box #t)
-                                     "#lang racket\n"])))]))
-    (define auto-text-text-box (new text-field%
-                                    [parent hp]
-                                    [label #f]
-                                    [init-value ""]
-                                    [callback 
-                                     (λ (tf evt)
-                                       (preferences:set 'drracket:module-language:auto-text
-                                                        (get-auto-text)))]))
-    (define (turn-on/off-auto-text-text-box on?)
-      (send auto-text-text-box enable on?)
-      (send auto-text-text-box set-field-background
-            (color-prefs:lookup-in-color-scheme
-             (if on?
-                 'framework:basic-canvas-background
-                 'framework:disabled-background-color))))
+                               [callback (λ (_1 _2) (something-changed))]))
+
+    (when add-auto-text-controls? (add-auto-text-controls new-parent))
     
     ;; data associated with each item in listbox : boolean
     ;; indicates if the entry is the default paths.
@@ -813,26 +783,26 @@
                                      [parent cp-panel]
                                      [choices '("a" "b" "c")]
                                      [label #f]
-                                     [callback (λ (x y) (update-buttons))]))
+                                     [callback (λ (x y) (update-buttons) (something-changed))]))
     (define button-panel (new-horizontal-panel%
                               [parent cp-panel]
                               [alignment '(center center)]
                               [stretchable-height #f]))
     (define add-button
       (make-object button% (string-constant ml-cp-add) button-panel
-        (λ (x y) (add-callback))))
+        (λ (x y) (add-callback) (something-changed))))
     (define add-default-button
       (make-object button% (string-constant ml-cp-add-default) button-panel
-        (λ (x y) (add-default-callback))))
+        (λ (x y) (add-default-callback) (something-changed))))
     (define remove-button
       (make-object button% (string-constant ml-cp-remove) button-panel
-        (λ (x y) (remove-callback))))
+        (λ (x y) (remove-callback) (something-changed))))
     (define raise-button
       (make-object button% (string-constant ml-cp-raise) button-panel
-        (λ (x y) (move-callback -1))))
+        (λ (x y) (move-callback -1) (something-changed))))
     (define lower-button
       (make-object button% (string-constant ml-cp-lower) button-panel
-        (λ (x y) (move-callback +1))))
+        (λ (x y) (move-callback +1) (something-changed))))
     
     (define (update-buttons)
       (let ([lb-selection (send collection-paths-lb get-selection)]
@@ -922,28 +892,8 @@
             (parameterize ([print-vector-length #f])
               (format "~s" vec))))
     
-    (define (get-auto-text)
-      (case (send auto-text-rb get-selection)
-        [(0) #f]
-        [(1)
-         (define str (send auto-text-text-box get-value))
-         (cond
-           [(equal? str "") ""]
-           [else (string-append str "\n")])]))
-    
-    (define (install-auto-text str)
-      (cond
-        [(string? str)
-         (send auto-text-rb set-selection 1)
-         (send auto-text-text-box set-value (regexp-replace #rx"\n$" str ""))
-         (turn-on/off-auto-text-text-box #t)]
-        [else
-         (send auto-text-rb set-selection 0)
-         (turn-on/off-auto-text-text-box #f)]))
-    
     (install-collection-paths '(default))
     (update-buttons)
-    (install-auto-text (preferences:get 'drracket:module-language:auto-text))
     (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
 
     (case-lambda
@@ -973,7 +923,70 @@
        (send enforce-module-constants-checkbox set-value
              (module-language-settings-enforce-module-constants settings))
        (update-buttons)]))
-  
+
+  (define (add-auto-text-controls new-parent)
+    (define auto-text-panel (new group-box-panel%
+                                 [parent new-parent]
+                                 [stretchable-height #f]
+                                 [label (string-constant module-language-auto-text)]))
+    (define hp (new horizontal-panel%
+                    [parent auto-text-panel]
+                    [alignment '(center bottom)]))
+    (define auto-text-rb (new radio-box%
+                              [parent hp]
+                              [label #f]
+                              [choices
+                               (list
+                                (string-constant module-language-auto-text-most-recent)
+                                (string-constant module-language-auto-text-always-same))]
+                              [callback
+                               (λ (rb evt)
+                                 (preferences:set
+                                  'drracket:module-language:auto-text
+                                  (case (send rb get-selection)
+                                    [(0)
+                                     (turn-on/off-auto-text-text-box #f)
+                                     #f]
+                                    [(1)
+                                     (turn-on/off-auto-text-text-box #t)
+                                     "#lang racket\n"])))]))
+    (define auto-text-text-box (new text-field%
+                                    [parent hp]
+                                    [label #f]
+                                    [init-value ""]
+                                    [callback
+                                     (λ (tf evt)
+                                       (preferences:set 'drracket:module-language:auto-text
+                                                        (get-auto-text)))]))
+    (define (turn-on/off-auto-text-text-box on?)
+      (send auto-text-text-box enable on?)
+      (send auto-text-text-box set-field-background
+            (color-prefs:lookup-in-color-scheme
+             (if on?
+                 'framework:basic-canvas-background
+                 'framework:disabled-background-color))))
+
+    (define (get-auto-text)
+      (case (send auto-text-rb get-selection)
+        [(0) #f]
+        [(1)
+         (define str (send auto-text-text-box get-value))
+         (cond
+           [(equal? str "") ""]
+           [else (string-append str "\n")])]))
+
+    (define (install-auto-text str)
+      (cond
+        [(string? str)
+         (send auto-text-rb set-selection 1)
+         (send auto-text-text-box set-value (regexp-replace #rx"\n$" str ""))
+         (turn-on/off-auto-text-text-box #t)]
+        [else
+         (send auto-text-rb set-selection 0)
+         (turn-on/off-auto-text-text-box #f)]))
+
+    (install-auto-text (preferences:get 'drracket:module-language:auto-text)))
+
   (define (add-another-possible-submodule parent)
     (define (get-sexp x)
       (with-handlers ((exn:fail:read? (λ (x) #f)))
@@ -2725,8 +2738,54 @@
                 module-language<%>)
          (drracket:modes:mode-intended-to-edit-programs? mode)
          (drracket:language-configuration:language-settings-settings settings)))
-  
+
   (define (initialize-prefs-panel)
+    (when (drracket:language-configuration:only-module-language?)
+      (preferences:add-panel
+       (string-constant execute-button-label)
+       (λ (parent)
+         (define parent-vp (new-vertical-panel%
+                            [parent parent]
+                            [alignment '(center top)]))
+         (define get/set-language-settings
+           (module-language-config-panel parent-vp #:add-auto-text-controls? #f
+                                         #:something-changed (λ () (update-preferences))))
+         (define skip-callback? #f)
+         (define (update-preferences)
+           ;; this should always pass, but we check it here to avoid setting corrupt preferences
+           (when (drracket:language-configuration:only-module-language?)
+             (define lang (car (drracket:language-configuration:get-languages)))
+             (define old (preferences:get drracket:language-configuration:settings-preferences-symbol))
+             (set! skip-callback? #t)
+             (define new-lang
+               (drracket:language-configuration:language-settings
+                lang
+                (get/set-language-settings)))
+             (preferences:set
+              drracket:language-configuration:settings-preferences-symbol
+              new-lang)
+             (for ([frame (in-list (get-top-level-windows))])
+               (when (is-a? frame drracket:unit:frame<%>)
+                 (for ([tab (in-list (send frame get-tabs))])
+                   (send (send tab get-defs) set-next-settings new-lang))))
+             (set! skip-callback? #f)))
+         (get/set-language-settings
+          (drracket:language-configuration:language-settings-settings
+           (preferences:get
+            drracket:language-configuration:settings-preferences-symbol)))
+         (preferences:add-callback
+          drracket:language-configuration:settings-preferences-symbol
+          (λ (sym val)
+            (unless skip-callback?
+              ;; this should always pass, but we check it here to avoid setting corrupt preferences
+              (when (drracket:language-configuration:only-module-language?)
+                (get/set-language-settings
+                 (drracket:language-configuration:language-settings-settings val))))))
+         parent-vp))
+
+      (preferences:add-to-editor-checkbox-panel
+       (λ (parent)
+         (add-auto-text-controls parent))))
     (preferences:add-panel
      (string-constant online-expansion)
      (λ (parent)

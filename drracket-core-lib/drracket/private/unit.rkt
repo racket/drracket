@@ -2255,15 +2255,16 @@
         (define settings (send definitions-text get-next-settings))
         (define language (drracket:language-configuration:language-settings-language settings))
         (update-func-defs)
-        (send language-message set-yellow/lang
-              (not (send definitions-text this-and-next-language-the-same?))
-              (string-append (send language get-language-name)
-                             (if (send language default-settings? 
-                                       (drracket:language-configuration:language-settings-settings
-                                        settings))
-                                 ""
-                                 (string-append " [" (string-constant custom) "]"))
-                             " "))
+        (when language-message
+          (send language-message set-yellow/lang
+                (not (send definitions-text this-and-next-language-the-same?))
+                (string-append (send language get-language-name)
+                               (if (send language default-settings?
+                                         (drracket:language-configuration:language-settings-settings
+                                          settings))
+                                   ""
+                                   (string-append " [" (string-constant custom) "]"))
+                               " ")))
         (update-teachpack-menu)
         (update-comment-out-menu-items)
         (when (is-a? language-specific-menu menu%)
@@ -2454,7 +2455,8 @@
            (send definitions-text begin-edit-sequence #t #f)
            (send definitions-text load-file/gui-error name)
            (send definitions-text end-edit-sequence)
-           (send language-message set-yellow #f)]
+           (when language-message
+             (send language-message set-yellow #f))]
           [name
            (send definitions-text set-filename name)]
           [else (send definitions-text clear)])
@@ -2934,7 +2936,7 @@
               (record-definitions)
               (record-interactions))
             (send definitions-text just-executed)
-            (send language-message set-yellow #f)
+            (when language-message (send language-message set-yellow #f))
             (send interactions-canvas focus)
             (send interactions-text reset-console)
             (send interactions-text clear-undos)
@@ -4513,9 +4515,14 @@
       
       (define/private (initialize-menus)
         (define mb (get-menu-bar))
-        (set! language-menu (new (get-menu%) 
-                                 [label (string-constant language-menu-name)]
-                                 [parent mb]))
+        (set! language-menu
+              (cond
+                [(drracket:language-configuration:only-module-language?)
+                 'no-language-menu-when-there-is-only-the-module-language]
+                [else
+                 (new (get-menu%)
+                      [label (string-constant language-menu-name)]
+                      [parent mb])]))
         (set! language-specific-menu (new (get-menu%) 
                                           [label (drracket:language:get-capability-default
                                                   'drscheme:language-menu-title)]
@@ -4527,12 +4534,12 @@
         (define (show/hide-capability-menus)
           (for ([menu (in-list (send (get-menu-bar) get-items))])
             (update-items/capability menu)))
-        
-        (make-object menu:can-restore-menu-item%
-          (string-constant choose-language-menu-item-label)
-          language-menu
-          (λ (_1 _2) (choose-language-callback))
-          #\l)
+        (unless (drracket:language-configuration:only-module-language?)
+          (make-object menu:can-restore-menu-item%
+            (string-constant choose-language-menu-item-label)
+            language-menu
+            (λ (_1 _2) (choose-language-callback))
+            #\l))
         
         (set! execute-menu-item
               (make-object menu:can-restore-menu-item%
@@ -5214,17 +5221,23 @@
          (and m (send m is-modified?))))
       
       (define language-message
-        (let* ([info-panel (get-info-panel)]
-               [p (new-vertical-panel% 
-                       [parent info-panel]
-                       [alignment '(left center)])]
-               [language-message (new language-label-message% [parent p] [frame this])])
-          (send info-panel change-children 
-                (λ (l)
-                  (list* p
-                         (remq* (list p)
-                                l))))
-          language-message))
+        (cond
+          [(drracket:language-configuration:only-module-language?)
+           #f]
+          [else
+           (define info-panel (get-info-panel))
+           (define p
+             (new-vertical-panel%
+              [parent info-panel]
+              [alignment '(left center)]))
+           (define language-message
+             (new language-label-message% [parent p] [frame this]))
+           (send info-panel change-children
+                 (λ (l)
+                   (list* p
+                          (remq* (list p)
+                                 l))))
+           language-message]))
       
       (update-save-message)
       (update-save-button)

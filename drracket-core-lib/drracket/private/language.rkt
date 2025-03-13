@@ -227,7 +227,12 @@
            #:dynamic-panel-extras [dynamic-panel-extras void]
            #:get-debugging-radio-box [get-debugging-radio-box void]
            #:debugging-radio-box-callback [debugging-radio-box-callback void]
-           #:include-print-mode? [include-print-mode? #t])
+           #:include-print-mode? [include-print-mode? #t]
+
+           ;; called whenever any of the settings changed; used when the settings
+           ;; are put into the preferences dialog (which doesn't have an explicit
+           ;; close action that the user takes)
+           #:something-changed [something-changed void])
     (letrec ([parent (instantiate vertical-panel% ()
                        (parent _parent)
                        (alignment '(center center)))]
@@ -252,7 +257,7 @@
                                   (make-object check-box%
                                     (string-constant case-sensitive-label)
                                     input-panel
-                                    void))]
+                                    (λ (_1 _2) (something-changed))))]
              [debugging-panel (new-horizontal-panel%
                                    [parent dynamic-panel]
                                    [stretchable-height #f]
@@ -266,7 +271,8 @@
                                   (callback
                                    (λ (a b)
                                      (send debugging-right set-selection #f)
-                                     (debugging-radio-box-callback a b))))]
+                                     (debugging-radio-box-callback a b)
+                                     (something-changed))))]
              [debugging-right (new radio-box%
                                    (label #f)
                                    (choices 
@@ -276,7 +282,8 @@
                                    (callback
                                     (λ (a b)
                                       (send debugging-left set-selection #f)
-                                      (debugging-radio-box-callback a b))))]
+                                      (debugging-radio-box-callback a b)
+                                      (something-changed))))]
              [output-style (make-object radio-box%
                              (string-constant output-style-label)
                              (flatten
@@ -287,24 +294,25 @@
                                         (string-constant print-printing-style)
                                         '())))
                              output-panel
-                             (λ (rb evt) (enable-fraction-style))
+                             (λ (rb evt) (enable-fraction-style) (something-changed))
                              '(horizontal vertical-label))]
              [enable-fraction-style 
               (lambda ()
                 (let ([on? (member (send output-style get-selection) '(0 1))])
-                  (send fraction-style enable on?)))]
+                  (send fraction-style enable on?)
+                  (something-changed)))]
              [show-sharing (make-object check-box%
                              (string-constant sharing-printing-label)
                              output-panel
-                             void)]
+                             (λ (_1 _2) (something-changed)))]
              [insert-newlines (make-object check-box%
                                 (string-constant use-pretty-printer-label)
                                 output-panel
-                                void)]
+                                (λ (_1 _2) (something-changed)))]
              [fraction-style
               (make-object check-box% (string-constant decimal-notation-for-rationals)
                 output-panel
-                void)])
+                (λ (_1 _2) (something-changed)))])
       (get-debugging-radio-box debugging-left debugging-right)
       (dynamic-panel-extras dynamic-panel)
       

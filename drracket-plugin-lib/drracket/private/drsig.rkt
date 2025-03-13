@@ -200,7 +200,8 @@
    add-built-in-languages
    add-no-language-chosen-language-if-there-are-choices
    not-a-language-language<%>
-   language-allows-executable-creation?))
+   language-allows-executable-creation?
+   only-module-language?))
 
 (define-signature drracket:tools-cm^
   ())

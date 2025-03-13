@@ -165,6 +165,17 @@
                              (get-languages))
                       (list-ref (get-languages) 0))])
         (language-settings lang (send lang default-settings))))
+
+    ;; only-module-language? : -> boolean
+    ;; returns #t when the only language that's been installed is the module language
+    (define (only-module-language?)
+      (drracket:tools:only-in-phase
+       'drracket:language-configuration:get-languages
+       'init-complete)
+      (define langs (get-languages))
+      (and (pair? langs)
+           (is-a? (car langs) drracket:module-language:module-language<%>)
+           (null? (cdr langs))))
     
     
     

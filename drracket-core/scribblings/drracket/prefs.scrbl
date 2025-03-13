@@ -110,25 +110,18 @@ The @onscreen{Editing} panel consists of several sub-panels:
       @itemize[
       @item{@PrefItem{Map delete to backspace} --- If checked, the editor
             treats the Delete key like the Backspace key.}
+      @item{@PrefItem{Color syntax interactively} --- If checked,
+            DrRacket colors your syntax as you type.}
       @item{@PrefItem{Wrap words in editor buffers} --- If checked,
             DrRacket editors auto-wrap text lines by default.  Changing
             this preference affects new windows only.}
-      @item{@PrefItem{Enable keybindings in menus} --- If checked, some
-            DrRacket menu items have keybindings.  Otherwise, no menu
-            items have key bindings.  This preference is designed for
-            people who are comfortable editing in Emacs and find the
-            standard menu keybindings interfere with the Emacs
-            keybindings.}
-      @item{@PrefItem{Treat command key as meta} --- If checked,
-            DrRacket will use the command key for some Emacs-like
-            keybindings, instead of using it for menu shortcuts. This
-            option is only available on Mac OS.}
-      @item{@PrefItem{Color syntax interactively} --- If checked,
-            DrRacket colors your syntax as you type.}
       @item{@PrefItem{Search using anchors} --- If checked, DrRacket's
             searching mode will jump directly to the first search hit,
             using an ``anchor'' to determine where to search if the
             search string changes.}
+      @item{@PrefItem{Disable caret blinking} --- If checked, the insertion
+             point in the definitions and interactions windows (and other
+             editors) does not blink.}
       @item{@PrefItem{Normalize pasted strings} --- If checked, DrRacket
             adjusts strings that are pasted into the editor to avoid
             confusion.  For example, non-breaking spaces look just like
@@ -136,19 +129,17 @@ The @onscreen{Editing} panel consists of several sub-panels:
             spaces are.  If this is checked DrRacket will automatically
             turn those non-breaking spaces into regular spaces.
             Similarly with other (less common) characters.}
+      @item{@PrefItem{Treat alt key as meta} --- If checked,
+            DrRacket will use the alt (option) key for some Emacs-like
+            keybindings, instead of using it for menu shortcuts. This
+            option is only available on Mac OS.}
       @item{@PrefItem{Enable overwrite mode keybindings} --- If checked,
             DrRacket enables the insert keybinding to swap into
             overwrite mode}
-      @item{@PrefItem{Enable automatic parentheses} --- If checked,
-             typing an open parenthesis, curly brace, square bracket, double quote,
-             or vertical bar character automatically inserts a matching one.
-             Additionally, backspace will automatically remove matched empty pairs
-             of such characters when the caret is between them in many cases.}
-      @item{@PrefItem{Add one pixel of extra space between lines} ---
-             If checked, then an extra pixel of whitespace is added
-             between lines in the editor. The default value is platform-specific;
-             some fonts (notably those with @tt{╔══╗} characters) only look right with
-             this unchecked.}
+      @item{@PrefItem{Treat command key as meta} --- If checked,
+            DrRacket will use the command key for some Emacs-like
+            keybindings, instead of using it for menu shortcuts. This
+            option is only available on Mac OS.}
       @item{@PrefItem{Always use the platform-specific linefeed convention} ---
              If checked, DrRacket always saves files with CRLF line terminators. 
              If unchecked, DrRacket looks at each file as it is opened and if every
@@ -159,8 +150,25 @@ The @onscreen{Editing} panel consists of several sub-panels:
              with CRLF terminators, then the status line at the bottom of the
              DrRacket window shows ``CRLF''.
              
-             This option is only available under Windows. On other operating
+             This option is available only under Windows. On other operating
              systems, all files are always saved with LF line terminators.}
+      @item{@PrefItem{Enable keybindings in menus} --- If checked, some
+            DrRacket menu items have keybindings.  Otherwise, no menu
+            items have key bindings.  This preference is designed for
+            people who are comfortable editing in Emacs and find the
+            standard menu keybindings interfere with the Emacs
+            keybindings.}
+      @item{@PrefItem{Enable automatic parentheses, square brackets, and quotes} --- If checked,
+             typing an open parenthesis, curly brace, square bracket, double quote,
+             or vertical bar character automatically inserts a matching one.
+             Additionally, backspace will automatically remove matched empty pairs
+             of such characters when the caret is between them in many cases.}
+      @item{@PrefItem{Add one pixel of extra space between lines} ---
+             If checked, then an extra pixel of whitespace is added
+             between lines in the editor. The default value is platform-specific;
+             some fonts (notably those with @tt{╔══╗} characters) only look right with
+             this unchecked.}
+ 
       @item{@PrefItem{Maximum character width guide} --- If checked, DrRacket
              draws a vertical line in files that exceed the given maximum
              width. The vertical line shows where the given maximum width is.}
@@ -177,7 +185,10 @@ The @onscreen{Editing} panel consists of several sub-panels:
     When @PrefItem{Ask me each time} is selected and some files were open in the previous session,
     DrRacket will open a dialog box asking if you would like to open the same files as last time.
     If DrRacket is started from the command-line (or via Mac OS's @tt{open} command) and files are
-    supplied, then this preference is ignored, and only those files are opened.}]}
+    supplied, then this preference is ignored, and only those files are opened.}
+ @item{@PrefItem{Automatic @tt{#lang} line} --- When new files are opened in DrRacket,
+        it will use this for the first line of the buffer.}
+ ]}
 
 @item{@onscreen{Racket}
 
