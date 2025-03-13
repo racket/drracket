@@ -1,11 +1,11 @@
 #lang racket/base
-(require "drracket-errortrace-key.rkt"
-         racket/class
+(require racket/class
          racket/contract
          racket/gui/base
          racket/math
          racket/match
          framework
+         errortrace/errortrace-key
          "interface.rkt")
 (module+ test (require (rename-in rackunit [check r:check]) racket/list racket/bool))
 
@@ -171,17 +171,14 @@
 
 (define (cms->errortrace-viewable-stack cms interesting-editors
                                         #:share-cache [a-viewable-stack #f])
-  (build-viewable-stack (continuation-mark-set->list cms drracket-errortrace-key)
+  (build-viewable-stack (continuation-mark-set->list cms errortrace-key)
                         errortrace-stack-item->srcloc
                         interesting-editors
                         a-viewable-stack))
 
+; this needs to be alligned with make-with-mark
 (define (errortrace-stack-item->srcloc x)
-  (make-srcloc (vector-ref x 0)
-               (vector-ref x 1)
-               (vector-ref x 2)
-               (vector-ref x 3)
-               (vector-ref x 4)))
+  (apply make-srcloc (cdr x)))
 
 (define (cms->builtin-viewable-stack cms interesting-editors
                                      #:share-cache [a-viewable-stack #f])

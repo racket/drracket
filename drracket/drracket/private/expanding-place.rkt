@@ -565,5 +565,5 @@
 (define profiling-enabled (make-parameter #f))
 (define (register-profile-start key) (void))
 (define (register-profile-done key start) (void))
-(define key-module-name 'drracket/private/drracket-errortrace-key)
+(define key-module-name 'errortrace/errortrace-key)
 (define-values/invoke-unit/infer stacktrace/errortrace-annotate/key-module-name@)
