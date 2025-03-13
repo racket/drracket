@@ -4483,31 +4483,35 @@
                                       ((teachpack-callbacks-remove tp-callbacks)
                                        settings name)))]))
                            tp-names))))]
-            [else 
-             (set! teachpack-items 
-                   (list
-                    (new menu:can-restore-menu-item%
-                         [label (string-constant add-teachpack-menu-item-label)]
-                         [parent language-menu]
-                         [callback
-                          (λ (_1 _2)
-                            (define strs
-                              (for/list ([l (in-list (drracket:language-configuration:get-languages))])
-                                (define has-it?
-                                  (drracket:module-language-tools:call-capability-value
-                                   l
-                                   (get-definitions-text)
-                                   'drscheme:teachpack-menu-items))
-                                (and has-it? (send l get-language-name))))
-                            (define sorted (sort (filter values strs) string<?))
-                            (define str (apply string-append (map (λ (x) (~a "\n  " x)) sorted)))
-                            (message-box 
-                             (string-constant drscheme)
-                             (format
-                              (string-constant teachpacks-only-in-languages)
-                              str)
-                             this
-                             #:dialog-mixin frame:focus-table-mixin))])))])))
+            [else
+             (define strs
+               (filter
+                values
+                (for/list ([l (in-list (drracket:language-configuration:get-languages))])
+                  (define has-it?
+                    (drracket:module-language-tools:call-capability-value
+                     l
+                     (get-definitions-text)
+                     'drscheme:teachpack-menu-items))
+                  (and has-it? (send l get-language-name)))))
+             (set! teachpack-items
+                   (if (null? strs)
+                       '()
+                       (list
+                        (new menu:can-restore-menu-item%
+                             [label (string-constant add-teachpack-menu-item-label)]
+                             [parent language-menu]
+                             [callback
+                              (λ (_1 _2)
+                                (define sorted (sort strs string<?))
+                                (define str (apply string-append (map (λ (x) (~a "\n  " x)) sorted)))
+                                (message-box
+                                 (string-constant drscheme)
+                                 (format
+                                  (string-constant teachpacks-only-in-languages)
+                                  str)
+                                 this
+                                 #:dialog-mixin frame:focus-table-mixin))]))))])))
       
       (define/private (initialize-menus)
         (define mb (get-menu-bar))
