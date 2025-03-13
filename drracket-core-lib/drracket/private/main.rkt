@@ -549,7 +549,8 @@
  (λ () 
    (drracket:language-configuration:add-built-in-languages)
    (drracket:module-language:add-module-language)
-   (drracket:language-configuration:add-info-specified-languages)))
+   (drracket:language-configuration:add-info-specified-languages)
+   (drracket:language-configuration:add-no-language-chosen-language-if-there-are-choices)))
 
 ;; no more extension after this point
 (drracket:get/extend:get-interactions-canvas)

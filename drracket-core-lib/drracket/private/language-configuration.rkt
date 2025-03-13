@@ -2089,66 +2089,35 @@
     
     ;; add-built-in-languages : -> void
     (define (add-built-in-languages)
-      (let* ([words #f]
-             [extras-mixin
-              (λ (mred-launcher? one-line-summary)
-                (λ (%)
-                  (class* % (drracket:language:language<%>)
-                    (define/override (get-one-line-summary) one-line-summary)
-                    (inherit get-module get-transformer-module get-init-code
-                             use-namespace-require/copy-from-setting?)
-                    (define/override (front-end/interaction port settings)
-                      (let ([t (super front-end/interaction port settings)])
-                        (λ ()
-                          (parameterize ([read-accept-lang #f])
-                            (t)))))
-                    (define/augment (capability-value key)
-                      (cond
-                        [(eq? key 'drscheme:autocomplete-words) 
-                         (get-all-manual-keywords)]
-                        [else (inner
-                               (drracket:language:get-capability-default key)
-                               capability-value key)]))
-                    (super-new))))]
-             [make-simple
-              (λ (module id position numbers mred-launcher? one-line-summary extra-mixin)
-                (define %
-                  (extra-mixin
-                   ((extras-mixin mred-launcher? one-line-summary)
-                    ((drracket:language:get-default-mixin)
-                     (drracket:language:module-based-language->language-mixin
-                      (drracket:language:simple-module-based-language->module-based-language-mixin
-                       drracket:language:simple-module-based-language%))))))
-                (new % 
-                     (module module)
-                     (language-id id)
-                     (language-position position)
-                     (language-numbers numbers)))])
-        (add-language
-         (make-simple '(lib "lang/plt-pretty-big.rkt")
-                      "plt:pretty-big"
-                      (list (string-constant legacy-languages)
-                            (string-constant pretty-big-scheme))
-                      (list -200 3)
-                      #t
-                      (string-constant pretty-big-scheme-one-line-summary)
-                      (λ (%) (pretty-big-mixin
-                              (macro-stepper-mixin
-                               (assume-mixin
-                                (pretty-big-config-panel-mixin
-                                 (add-errortrace-key-mixin %))))))))
-        (add-language
-         (make-simple '(lib "r5rs/lang.rkt")
-                      "plt:r5rs"
-                      (list (string-constant legacy-languages)
-                            (string-constant r5rs-language-name))
-                      (list -200 -1000)
-                      #f
-                      (string-constant r5rs-one-line-summary)
-                      (lambda (%) (r5rs-mixin
-                                   (macro-stepper-mixin
-                                    (assume-mixin (add-errortrace-key-mixin %)))))))
-        
+      (define pb
+        (make-simple '(lib "lang/plt-pretty-big.rkt")
+                     "plt:pretty-big"
+                     (list (string-constant legacy-languages)
+                           (string-constant pretty-big-scheme))
+                     (list -200 3)
+                     #t
+                     (string-constant pretty-big-scheme-one-line-summary)
+                     (λ (%) (pretty-big-mixin
+                             (macro-stepper-mixin
+                              (assume-mixin
+                               (pretty-big-config-panel-mixin
+                                (add-errortrace-key-mixin %))))))))
+      (when pb (add-language pb))
+      (define r5
+        (make-simple '(lib "r5rs/lang.rkt")
+                     "plt:r5rs"
+                     (list (string-constant legacy-languages)
+                           (string-constant r5rs-language-name))
+                     (list -200 -1000)
+                     #f
+                     (string-constant r5rs-one-line-summary)
+                     (lambda (%) (r5rs-mixin
+                                  (macro-stepper-mixin
+                                   (assume-mixin (add-errortrace-key-mixin %)))))))
+      (when r5 (add-language r5)))
+
+    (define (add-no-language-chosen-language-if-there-are-choices)
+      (when ((length languages) . >= . 2)
         (add-language
          (make-simple 'racket/base
                       "plt:no-language-chosen"
@@ -2158,6 +2127,43 @@
                       #f
                       "Helps the user choose an initial language"
                       not-a-language-extra-mixin))))
+
+    (define ((extras-mixin mred-launcher? one-line-summary) %)
+      (class* % (drracket:language:language<%>)
+        (define/override (get-one-line-summary) one-line-summary)
+        (inherit get-module get-transformer-module get-init-code
+                 use-namespace-require/copy-from-setting?)
+        (define/override (front-end/interaction port settings)
+          (let ([t (super front-end/interaction port settings)])
+            (λ ()
+              (parameterize ([read-accept-lang #f])
+                (t)))))
+        (define/augment (capability-value key)
+          (cond
+            [(eq? key 'drscheme:autocomplete-words)
+             (get-all-manual-keywords)]
+            [else (inner
+                   (drracket:language:get-capability-default key)
+                   capability-value key)]))
+        (super-new)))
+
+    (define (make-simple module id position numbers mred-launcher? one-line-summary extra-mixin)
+      (cond
+        [(with-handlers ([exn:fail? (λ (x) #f)])
+           (module-declared? module #t))
+         (define %
+           (extra-mixin
+            ((extras-mixin mred-launcher? one-line-summary)
+             ((drracket:language:get-default-mixin)
+              (drracket:language:module-based-language->language-mixin
+               (drracket:language:simple-module-based-language->module-based-language-mixin
+                drracket:language:simple-module-based-language%))))))
+         (new %
+              (module module)
+              (language-id id)
+              (language-position position)
+              (language-numbers numbers))]
+        [else #f]))
     
     (define (not-a-language-extra-mixin %)
       (class* % (not-a-language-language<%>)

@@ -197,6 +197,7 @@
    get-all-scheme-manual-keywords
    get-all-manual-keywords
    add-built-in-languages
+   add-no-language-chosen-language-if-there-are-choices
    not-a-language-language<%>
    language-allows-executable-creation?))
 
