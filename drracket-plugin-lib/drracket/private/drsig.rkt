@@ -128,7 +128,8 @@
 
    error-message%
 
-   disable-debugging-et-al))
+   disable-debugging-et-al
+   get-preferred-lang-line))
 
 (define-signature drracket:module-language-tools-cm^
   (frame-mixin

@@ -909,9 +909,7 @@
               (and (not really-modified?)
                    (not (get-filename))
                    (is-a? lang drracket:module-language:module-language<%>)
-                   (send lang get-auto-text
-                         (drracket:language-configuration:language-settings-settings
-                          next-settings))))
+                   (drracket:module-language:get-preferred-lang-line)))
             (when auto-text
               (set! ignore-edits? #t)
               (begin-edit-sequence #f #f)

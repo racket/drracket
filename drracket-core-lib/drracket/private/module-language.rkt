@@ -137,7 +137,7 @@
   
   ;; collection-paths : (listof (union 'default string))
   ;; command-line-args : (vectorof string)
-  ;; auto-text : string
+  ;; auto-text : #f -- this is now ignored
   (define-struct (module-language-settings lmn:drracket:language:simple-settings)
     (collection-paths command-line-args auto-text compilation-on? full-trace? submodules-to-run
                       enforce-module-constants))
@@ -154,7 +154,6 @@
   (define default-full-trace? #t)
   (define default-submodules-to-run (list '(test) '(main)))
   (define default-enforce-module-constants #t)
-  (define (get-default-auto-text) (preferences:get 'drracket:module-language:auto-text))
 
   (define (disable-debugging-et-al language-settings)
     (define lang
@@ -170,6 +169,12 @@
       [else language-settings]))
   
   (define drracket-determined-width (make-parameter 'infinity))
+
+  ;; choose the same language (as written in the preferences),
+  ;; if there is one, otherwise choose the most recent lang line
+  (define (get-preferred-lang-line)
+    (or (preferences:get 'drracket:module-language:auto-text)
+        (preferences:get 'drracket:most-recent-lang-line)))
   
   ;; module-mixin : (implements drracket:language:language<%>)
   ;;             -> (implements drracket:language:language<%>)
@@ -189,7 +194,7 @@
                      ;; get-ns can fail in all kinds of strange ways;
                      ;; just give up if it does, since an error here
                      ;; means drracket won't start up.
-                     (get-ns (get-auto-text settings))))
+                     (get-ns (get-preferred-lang-line))))
         (when ns (current-namespace ns)))
       
       (define/private (get-ns str)
@@ -260,7 +265,7 @@
            
            '(default)
            #()
-           (get-default-auto-text)
+           #f ;; auto-text is ignored now
            default-compilation-on?
            default-full-trace?
            default-submodules-to-run
@@ -307,7 +312,7 @@
                     (let ([collection-paths (list-ref marshalled 1)]
                           [command-line-args (list-ref marshalled 2)]
                           [auto-text (if (<= marshalled-len 3)
-                                         (get-default-auto-text)
+                                         #f ;; auto-text is ignored now
                                          (list-ref marshalled 3))]
                           [compilation-on? (if (<= marshalled-len 4)
                                                default-compilation-on?
@@ -346,7 +351,7 @@
                                     (vector->list (drracket:language:simple-settings->vector super))
                                     (list collection-paths
                                           command-line-args
-                                          auto-text
+                                          #f ;; auto-text field in the language settings is ignored now
                                           
                                           ;; current versions of drracket do not allow this 
                                           ;; combination in the first place (compilation is only
@@ -374,10 +379,6 @@
       
       (define/override (get-one-line-summary)
         (string-constant module-language-one-line-summary))
-      
-      (define/public (get-auto-text settings)
-        (or (module-language-settings-auto-text settings)
-            (preferences:get 'drracket:most-recent-lang-line)))
       
       ;; utility for the front-end method: return a function that will return
       ;; each of the given syntax values on each call, executing thunks when
@@ -942,7 +943,7 @@
     
     (install-collection-paths '(default))
     (update-buttons)
-    (install-auto-text (get-default-auto-text))
+    (install-auto-text (preferences:get 'drracket:module-language:auto-text))
     (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
 
     (case-lambda
@@ -953,7 +954,7 @@
                  (vector->list (drracket:language:simple-settings->vector simple-settings))
                  (list (get-collection-paths)
                        (get-command-line-args)
-                       (get-auto-text)
+                       #f ;; auto-text in the settings is ignored.
                        (case (send left-debugging-radio-box get-selection)
                          [(0 1) compilation-on?]
                          [(#f) #f])
@@ -964,7 +965,6 @@
        (simple-case-lambda settings)
        (install-collection-paths (module-language-settings-collection-paths settings))
        (install-command-line-args (module-language-settings-command-line-args settings))
-       (install-auto-text (module-language-settings-auto-text settings))
        (set! compilation-on? (module-language-settings-compilation-on? settings))
        (send compilation-on-check-box set-value (module-language-settings-compilation-on? settings))
        (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
