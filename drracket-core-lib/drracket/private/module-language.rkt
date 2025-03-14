@@ -23,7 +23,7 @@
          mrlib/name-message
          "tooltip.rkt"
          drracket/private/drsig
-         "rep.rkt"
+         "stack-checkpoint.rkt"
          "eval-helpers-and-pref-init.rkt"
          "local-member-names.rkt"
          (prefix-in lmn: "local-member-names.rkt")
