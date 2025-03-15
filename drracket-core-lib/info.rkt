@@ -12,7 +12,7 @@
                "drracket-tool-lib"
                "drracket-tool-text-lib"
                ["errortrace-lib" #:version "1.5"]
-               ["gui-lib" #:version "1.74"]
+               ["gui-lib" #:version "1.76"]
                "gui-pkg-manager-lib"
                ["icons" #:version "1.2"]
                "images-lib"
@@ -30,7 +30,7 @@
                ["racket-index" #:version "1.2"]
                "sandbox-lib"
                ["scribble-lib" #:version "1.11"]
-               ["string-constants-lib" #:version "1.47"]
+               ["string-constants-lib" #:version "1.48"]
                ["syntax-color-lib" #:version "1.4"]
                "simple-tree-text-markup-lib"
                "typed-racket-lib"

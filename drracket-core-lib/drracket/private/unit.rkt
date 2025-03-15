@@ -5199,6 +5199,11 @@
                  [parent button-panel]
                  [callback (λ (x) (execute-callback))]
                  [bitmap execute-bitmap]
+                 [right-click-menu
+                  (and (drracket:language-configuration:only-module-language?)
+                       (list (string-constant execute-button-configure-label)
+                             (λ () (preferences:show-tab-panel
+                                    (list (string-constant execute-button-label))))))]
                  [label (string-constant execute-button-label)]))
       (register-toolbar-button execute-button #:number 100)
       
