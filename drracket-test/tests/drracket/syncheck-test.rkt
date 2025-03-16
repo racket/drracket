@@ -1851,12 +1851,11 @@
                    (preferences:get 'drracket:syncheck:show-arrows?)))
          (compare-output (cond
                            [(dir-test? test)
-                            (map (lambda (x)
-                                   (list (if (eq? (car x) 'relative-path)
-                                             (path->require-string relative)
-                                             (car x))
-                                         (cadr x)))
-                                 expected)]
+                            (for/list ([x (in-list expected)])
+                              (list (if (eq? (car x) 'relative-path)
+                                        (path->require-string relative)
+                                        (car x))
+                                    (cadr x)))]
                            [else expected])
                          got
                          arrows
