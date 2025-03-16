@@ -1770,29 +1770,28 @@
                (copy-port in-port out-port)))))
        (fire-up-drracket-and-run-tests
         (λ ()
-          (let ([drs (wait-for-drracket-frame)])
-            ;(set-language-level! (list "Pretty Big"))
-            (begin
-              (set-language-level! (list "Pretty Big") #f)
-              (test:set-radio-box-item! "No debugging or profiling")
-              (let ([f (test:get-active-top-level-window)])
-                (test:button-push "OK")
-                (wait-for-new-frame f)))
-            (do-execute drs)
-            (let* ([defs (queue-callback/res (λ () (send drs get-definitions-text)))]
-                   [filename (make-temporary-file "syncheck-test~a" #f temp-dir)])
-              (queue-callback/res (λ () (send defs save-file filename)))
-              (preferences:set 'framework:coloring-active #f)
-              (close-the-error-window-test drs)
-              (for-each (run-one-test temp-dir) tests)
-              (preferences:set 'framework:coloring-active #t)
-              (queue-callback/res
-               (λ () 
-                 (send defs save-file) ;; clear out autosave
-                 (send defs set-filename #f)))
-              (delete-file filename)
-             
-              (printf "Ran ~a tests.\n" total-tests-run))))))
+          (define drs (wait-for-drracket-frame))
+          ;(set-language-level! (list "Pretty Big"))
+          (begin
+            (set-language-level! (list "Pretty Big") #f)
+            (test:set-radio-box-item! "No debugging or profiling")
+            (let ([f (test:get-active-top-level-window)])
+              (test:button-push "OK")
+              (wait-for-new-frame f)))
+          (do-execute drs)
+          (define defs (queue-callback/res (λ () (send drs get-definitions-text))))
+          (define filename (make-temporary-file "syncheck-test~a" #f temp-dir))
+          (queue-callback/res (λ () (send defs save-file filename)))
+          (preferences:set 'framework:coloring-active #f)
+          (close-the-error-window-test drs)
+          (for-each (run-one-test temp-dir) tests)
+          (preferences:set 'framework:coloring-active #t)
+          (queue-callback/res (λ ()
+                                (send defs save-file) ;; clear out autosave
+                                (send defs set-filename #f)))
+          (delete-file filename)
+          
+          (printf "Ran ~a tests.\n" total-tests-run))))
      (λ () (delete-directory/files temp-dir))))
   
   (define (close-the-error-window-test drs)
@@ -1810,177 +1809,163 @@
   
   (define ((run-one-test save-dir) test)
     (set! total-tests-run (+ total-tests-run 1))
-    (let* ([drs (wait-for-drracket-frame)]
-           [defs (queue-callback/res (λ () (send drs get-definitions-text)))])
-      (clear-definitions drs)
-      (cond
-        [(test? test)
-         (let ([pre-input (test-input test)]
-               [expected (test-expected test)]
-               [arrows (test-arrows test)]
-               [tooltips (test-tooltips test)]
-               [relative "list.rkt"]
-               [setup (test-setup test)]
-               [teardown (test-teardown test)]
-               [extra-files (test-extra-files test)]
-               [extra-info? (test-extra-info? test)])
-           (define extra-file-paths
-             (for/list ([(name contents) (in-hash extra-files)])
-               (define path (build-path save-dir name))
-               (display-to-file contents path #:mode 'text)
-               path))
-
-           (define setup-result (setup))
-           (define input (if (procedure? pre-input)
-                             (pre-input setup-result)
-                             pre-input))
-           (cond
-             [(dir-test? test)
-              (insert-in-definitions drs (format input (path->require-string relative)))]
-             [else (insert-in-definitions drs input)])
-           (click-check-syntax-and-check-errors drs test extra-info?)
-           
-           ;; need to check for syntax error here
-           (let ([got (get-annotated-output drs)]
-                 [got-arrows (queue-callback/res (λ () (send defs syncheck:get-bindings-table)))])
-             (when extra-info?
-               (printf "got-arrows\n")
-               (pretty-print got-arrows)
-               (newline)
-               
-               (printf "'drracket:syncheck:show-arrows? ~s\n"
-                       (preferences:get 'drracket:syncheck:show-arrows?)))
-             (compare-output (cond
-                               [(dir-test? test)
-                                (map (lambda (x)
-                                       (list (if (eq? (car x) 'relative-path)
-                                                 (path->require-string relative)
-                                                 (car x))
-                                             (cadr x)))
-                                     expected)]
-                               [else
-                                expected])
-                             got
-                             arrows 
-                             got-arrows
-                             input
+    (define drs (wait-for-drracket-frame))
+    (define defs (queue-callback/res (λ () (send drs get-definitions-text))))
+    (clear-definitions drs)
+    (cond
+      [(test? test)
+       (let ([pre-input (test-input test)]
+             [expected (test-expected test)]
+             [arrows (test-arrows test)]
+             [tooltips (test-tooltips test)]
+             [relative "list.rkt"]
+             [setup (test-setup test)]
+             [teardown (test-teardown test)]
+             [extra-files (test-extra-files test)]
+             [extra-info? (test-extra-info? test)])
+         (define extra-file-paths
+           (for/list ([(name contents) (in-hash extra-files)])
+             (define path (build-path save-dir name))
+             (display-to-file contents path #:mode 'text)
+             path))
+    
+         (define setup-result (setup))
+         (define input
+           (if (procedure? pre-input)
+               (pre-input setup-result)
+               pre-input))
+         (cond
+           [(dir-test? test)
+            (insert-in-definitions drs (format input (path->require-string relative)))]
+           [else (insert-in-definitions drs input)])
+         (click-check-syntax-and-check-errors drs test extra-info?)
+    
+         ;; need to check for syntax error here
+         (let ([got (get-annotated-output drs)]
+               [got-arrows (queue-callback/res (λ () (send defs syncheck:get-bindings-table)))])
+           (when extra-info?
+             (printf "got-arrows\n")
+             (pretty-print got-arrows)
+             (newline)
+    
+             (printf "'drracket:syncheck:show-arrows? ~s\n"
+                     (preferences:get 'drracket:syncheck:show-arrows?)))
+           (compare-output (cond
+                             [(dir-test? test)
+                              (map (lambda (x)
+                                     (list (if (eq? (car x) 'relative-path)
+                                               (path->require-string relative)
+                                               (car x))
+                                           (cadr x)))
+                                   expected)]
+                             [else expected])
+                           got
+                           arrows
+                           got-arrows
+                           input
+                           (test-line test)))
+         (when tooltips
+           (compare-tooltips (queue-callback/res (λ () (send defs syncheck:get-bindings-table #t)))
+                             tooltips
                              (test-line test)))
-           (when tooltips
-             (compare-tooltips (queue-callback/res (λ () (send defs syncheck:get-bindings-table #t)))
-                               tooltips
-                               (test-line test)))
-           
-           (teardown setup-result)
-           (for-each delete-directory/files extra-file-paths))]
-        [(rename-test? test)
-         (insert-in-definitions drs (rename-test-input test))
-         (click-check-syntax-and-check-errors drs test #f)
-         (define menu-item
-           (queue-callback/res
-            (λ ()
-              (define defs (send drs get-definitions-text))
-              (define menu (make-object popup-menu%))
-              (send defs syncheck:build-popup-menu menu (rename-test-pos test) defs)
-              (define item-name (format "Rename ~a" (rename-test-old-name test)))
-              (define menu-item
-                (for/or ([x (in-list (send menu get-items))])
-                  (and (is-a? x labelled-menu-item<%>)
-                       (equal? (send x get-label) item-name)
-                       x)))
-              (cond
-                [menu-item
-                 menu-item]
-                [else
-                 (eprintf "syncheck-test.rkt: rename test ~s didn't find menu item named ~s in ~s\n"
-                          test
-                          item-name
-                          (map (λ (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
-                               (send menu get-items)))
-                 #f]))))
-         (when (and menu-item (rename-test-new-name test) (rename-test-output test))
-           (queue-callback (λ () (send menu-item command (make-object control-event% 'menu))))
-           (wait-for-new-frame drs)
-           (for ([x (in-string (rename-test-new-name test))])
-             (test:keystroke x))
-           (test:button-push "OK")
-           (define result
-             (queue-callback/res (λ () 
-                                   (define defs (send drs get-definitions-text))
-                                   (send defs get-text 0 (send defs last-position)))))
-           (unless (equal? result (rename-test-output test))
-             (eprintf "syncheck-test.rkt FAILED\n   test ~s\n  got ~s\n" 
-                      test
-                      result)))]
-        [(prefix-test? test)
-         (insert-in-definitions drs (prefix-test-input test))
-         (click-check-syntax-and-check-errors drs test #f)
-         (define menu-item
-           (queue-callback/res
-            (λ ()
-              (define defs (send drs get-definitions-text))
-              (define menu (make-object popup-menu%))
-              (send defs syncheck:build-popup-menu menu (prefix-test-pos test) defs)
-              (define item-name "Add Require Prefix")
-              (define menu-item
-                (for/or ([x (in-list (send menu get-items))])
-                  (and (is-a? x labelled-menu-item<%>)
-                       (equal? (send x get-label) item-name)
-                       x)))
-              (cond
-                [menu-item
-                 menu-item]
-                [else
-                 (eprintf "syncheck-test.rkt: prefix test ~s didn't find menu item named ~s in ~s\n"
-                          test
-                          item-name
-                          (map (λ (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
-                               (send menu get-items)))
-                 #f]))))
-         (when menu-item
-           (queue-callback (λ () (send menu-item command (make-object control-event% 'menu))))
-           (wait-for-new-frame drs)
-           (for ([x (in-string (prefix-test-prefix test))])
-             (test:keystroke x))
-           (test:button-push "OK")
-           (define result
-             (queue-callback/res (λ () 
-                                   (define defs (send drs get-definitions-text))
-                                   (send defs get-text 0 (send defs last-position)))))
-           (unless (equal? result (prefix-test-output test))
-             (eprintf "syncheck-test.rkt FAILED\n   test ~s\n  got ~s\n" 
-                      test
-                      result)))]
-        [(err-test? test)
-         (let/ec done
-           (insert-in-definitions drs (err-test-input test))
-           (define err (click-check-syntax-and-check-errors drs test #f #:err-ok? #t))
-           (unless err
-             (eprintf "syncheck-test.rkt FAILED\n   test ~s\n   didn't get an error\n"
-                      test)
-             (done))
-           (define expected (err-test-expected test))
-           (define message-good?
-             (cond
-               [(string? expected)
-                (equal? expected err)]
-               [else
-                (regexp-match? expected err)]))
-           (unless message-good?
-             (eprintf "syncheck-test.rkt FAILED error doesn't match\n   test ~s\n   ~s\n"
-                      test
-                      err)
-             (done))
-           (define srclocs (queue-callback/res (λ () (send (send drs get-interactions-text) get-error-ranges))))
-           (define actual
-             (for/set ([srcloc (in-list srclocs)])
-               (list (srcloc-position srcloc)
-                     (srcloc-span srcloc))))
-           (unless (equal? actual (err-test-locations test))
-             (eprintf "syncheck-test.rkt FAILED srclocs don't match\n   test ~s\n   actual ~s\n   got    ~s\n"
-                      test
-                      actual
-                      (err-test-locations test)))
-           (void))])))
+    
+         (teardown setup-result)
+         (for-each delete-directory/files extra-file-paths))]
+      [(rename-test? test)
+       (insert-in-definitions drs (rename-test-input test))
+       (click-check-syntax-and-check-errors drs test #f)
+       (define menu-item
+         (queue-callback/res
+          (λ ()
+            (define defs (send drs get-definitions-text))
+            (define menu (make-object popup-menu%))
+            (send defs syncheck:build-popup-menu menu (rename-test-pos test) defs)
+            (define item-name (format "Rename ~a" (rename-test-old-name test)))
+            (define menu-item
+              (for/or ([x (in-list (send menu get-items))])
+                (and (is-a? x labelled-menu-item<%>) (equal? (send x get-label) item-name) x)))
+            (cond
+              [menu-item menu-item]
+              [else
+               (eprintf "syncheck-test.rkt: rename test ~s didn't find menu item named ~s in ~s\n"
+                        test
+                        item-name
+                        (map (λ (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
+                             (send menu get-items)))
+               #f]))))
+       (when (and menu-item (rename-test-new-name test) (rename-test-output test))
+         (queue-callback (λ () (send menu-item command (make-object control-event% 'menu))))
+         (wait-for-new-frame drs)
+         (for ([x (in-string (rename-test-new-name test))])
+           (test:keystroke x))
+         (test:button-push "OK")
+         (define result
+           (queue-callback/res (λ ()
+                                 (define defs (send drs get-definitions-text))
+                                 (send defs get-text 0 (send defs last-position)))))
+         (unless (equal? result (rename-test-output test))
+           (eprintf "syncheck-test.rkt FAILED\n   test ~s\n  got ~s\n" test result)))]
+      [(prefix-test? test)
+       (insert-in-definitions drs (prefix-test-input test))
+       (click-check-syntax-and-check-errors drs test #f)
+       (define menu-item
+         (queue-callback/res
+          (λ ()
+            (define defs (send drs get-definitions-text))
+            (define menu (make-object popup-menu%))
+            (send defs syncheck:build-popup-menu menu (prefix-test-pos test) defs)
+            (define item-name "Add Require Prefix")
+            (define menu-item
+              (for/or ([x (in-list (send menu get-items))])
+                (and (is-a? x labelled-menu-item<%>) (equal? (send x get-label) item-name) x)))
+            (cond
+              [menu-item menu-item]
+              [else
+               (eprintf "syncheck-test.rkt: prefix test ~s didn't find menu item named ~s in ~s\n"
+                        test
+                        item-name
+                        (map (λ (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
+                             (send menu get-items)))
+               #f]))))
+       (when menu-item
+         (queue-callback (λ () (send menu-item command (make-object control-event% 'menu))))
+         (wait-for-new-frame drs)
+         (for ([x (in-string (prefix-test-prefix test))])
+           (test:keystroke x))
+         (test:button-push "OK")
+         (define result
+           (queue-callback/res (λ ()
+                                 (define defs (send drs get-definitions-text))
+                                 (send defs get-text 0 (send defs last-position)))))
+         (unless (equal? result (prefix-test-output test))
+           (eprintf "syncheck-test.rkt FAILED\n   test ~s\n  got ~s\n" test result)))]
+      [(err-test? test)
+       (let/ec done
+         (insert-in-definitions drs (err-test-input test))
+         (define err (click-check-syntax-and-check-errors drs test #f #:err-ok? #t))
+         (unless err
+           (eprintf "syncheck-test.rkt FAILED\n   test ~s\n   didn't get an error\n" test)
+           (done))
+         (define expected (err-test-expected test))
+         (define message-good?
+           (cond
+             [(string? expected) (equal? expected err)]
+             [else (regexp-match? expected err)]))
+         (unless message-good?
+           (eprintf "syncheck-test.rkt FAILED error doesn't match\n   test ~s\n   ~s\n" test err)
+           (done))
+         (define srclocs
+           (queue-callback/res (λ () (send (send drs get-interactions-text) get-error-ranges))))
+         (define actual
+           (for/set ([srcloc (in-list srclocs)])
+             (list (srcloc-position srcloc) (srcloc-span srcloc))))
+         (unless (equal? actual (err-test-locations test))
+           (eprintf
+            "syncheck-test.rkt FAILED srclocs don't match\n   test ~s\n   actual ~s\n   got    ~s\n"
+            test
+            actual
+            (err-test-locations test)))
+         (void))]))
   
   (define (path->require-string relative)
     (define (p->string p)
@@ -1998,25 +1983,25 @@
       (lexically-bound-variable lexically-bound)))
   
   (define (collapse-and-rename expected)
-    (let ([renamed
-           (map (lambda (ent)
-                  (let* ([str (car ent)]
-                         [id (cadr ent)]
-                         [matches (assoc id remappings)])
-                    (if matches
-                        (list str (cadr matches))
-                        ent)))
-                expected)])
-      (let loop ([ids renamed])
-        (cond
-          [(null? ids) null]
-          [(null? (cdr ids)) ids]
-          [else (let ([fst (car ids)]
-                      [snd (cadr ids)])
-                  (if (eq? (cadr fst) (cadr snd))
-                      (loop (cons (list (string-append (car fst) (car snd)) (cadr fst))
-                                  (cddr ids)))
-                      (cons fst (loop (cdr ids)))))]))))
+    (define renamed
+      (map (lambda (ent)
+             (let* ([str (car ent)]
+                    [id (cadr ent)]
+                    [matches (assoc id remappings)])
+               (if matches
+                   (list str (cadr matches))
+                   ent)))
+           expected))
+    (let loop ([ids renamed])
+      (cond
+        [(null? ids) null]
+        [(null? (cdr ids)) ids]
+        [else
+         (let ([fst (car ids)]
+               [snd (cadr ids)])
+           (if (eq? (cadr fst) (cadr snd))
+               (loop (cons (list (string-append (car fst) (car snd)) (cadr fst)) (cddr ids)))
+               (cons fst (loop (cdr ids)))))])))
     
   ;; compare-arrows : expression
   ;;                  (or/c #f (listof (cons (list number-or-proc number-or-proc)
