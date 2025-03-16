@@ -20,7 +20,7 @@
     (collect-garbage)
     (define new-cmu (current-memory-use))
     (cond
-      [(or (< n 0) (< (abs (- cmu new-cmu)) (* 0.01 cmu))) new-cmu]
+      [(or (negative? n) (< (abs (- cmu new-cmu)) (* 0.01 cmu))) new-cmu]
       [else (loop new-cmu (- n 1))])))
     
 (void (putenv "PLTDRPLACEPRINT" "yes"))
