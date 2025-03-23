@@ -384,24 +384,24 @@
                   (if (cons? stat) "Change return value..." "Skip expression...")
                   menu
                   (lambda (item evt)
-                    (let ([tmp (get-text-from-user "Return value" #f)])
-                      (when tmp
-                        (let/ec k
-                          (send (get-tab) set-break-status
-                                (cons 'exit-break
-                                      (call-with-values
-                                       (lambda ()
-                                         (with-handlers ([exn:fail? (lambda (exn)
-                                                                      (message-box
-                                                                       "Debugger Error"
+                    (define tmp (get-text-from-user "Return value" #f))
+                    (when tmp
+                      (let/ec k
+                        (send (get-tab) set-break-status
+                              (cons 'exit-break
+                                    (call-with-values
+                                     (lambda ()
+                                       (with-handlers ([exn:fail?
+                                                        (lambda (exn)
+                                                          (message-box "Debugger Error"
                                                                        (format "An error occurred: ~a"
                                                                                (exn-message exn))
                                                                        #f
                                                                        '(ok))
-                                                                      (k))])
-                                           (read (open-input-string tmp))))
-                                       list)))
-                          (invalidate-bitmap-cache)))))))]
+                                                          (k))])
+                                         (read (open-input-string tmp))))
+                                     list)))
+                        (invalidate-bitmap-cache))))))]
               [else
                (make-object menu-item%
                             "Continue to this point"
@@ -521,47 +521,47 @@
             (define frame-num (send (get-tab) get-frame-num))
             (define break-status (send (get-tab) get-break-status))
             (when (and (eq? frame-defs this) start end)
-              (let*-values ([(xl yl xr yr) (find-char-box this start)]
-                            [(ym) (average yl yr)]
-                            [(xa ya xb yb) (find-char-box this end)]
-                            [(diameter) (- xb xa)]
-                            [(yoff) (/ (- yb ya diameter) 2)]
-                            [(ym2) (average ya yb)])
-                (let ([op (send dc get-pen)]
-                      [ob (send dc get-brush)])
-                  (cond
-                    [(and (zero? frame-num) (eq? break-status 'error))
-                     (send dc set-pen pc-err-pen)
-                     (send dc set-brush pc-err-brush)]
-                    [(and (zero? frame-num) (eq? break-status 'break))
-                     (send dc set-pen pc-brk-pen)
-                     (send dc set-brush pc-brk-brush)]
-                    [(zero? frame-num)
-                     (send dc set-pen pc-pen)
-                     (send dc set-brush pc-brush)]
-                    [else
-                     (send dc set-pen pc-up-stack-pen)
-                     (send dc set-brush pc-up-stack-brush)])
-                  (unless (and (zero? frame-num) (cons? break-status))
-                    ;; mark the beginning of the expression with a triangle
-                    (send dc draw-polygon
-                          (list (make-object point% xl yl)
-                                (make-object point% xl yr)
-                                (make-object point% xr ym))
-                          dx
-                          dy))
-                  (if (and (zero? frame-num) (cons? break-status))
-                      ;; top frame, end: mark the end of the expression with a triangle
-                      (send dc draw-polygon
-                            (list (make-object point% xa ya)
-                                  (make-object point% xa yb)
-                                  (make-object point% xb ym2))
-                            dx
-                            dy)
-                      ;; otherwise: make the end of the expression with a circle
-                      (send dc draw-ellipse (+ xa dx) (+ ya dy yoff) diameter diameter))
-                  (send dc set-pen op)
-                  (send dc set-brush ob))))))
+              (define-values (xl yl xr yr) (find-char-box this start))
+              (define ym (average yl yr))
+              (define-values (xa ya xb yb) (find-char-box this end))
+              (define diameter (- xb xa))
+              (define yoff (/ (- yb ya diameter) 2))
+              (define ym2 (average ya yb))
+              (define op (send dc get-pen))
+              (define ob (send dc get-brush))
+              (cond
+                [(and (zero? frame-num) (eq? break-status 'error))
+                 (send dc set-pen pc-err-pen)
+                 (send dc set-brush pc-err-brush)]
+                [(and (zero? frame-num) (eq? break-status 'break))
+                 (send dc set-pen pc-brk-pen)
+                 (send dc set-brush pc-brk-brush)]
+                [(zero? frame-num)
+                 (send dc set-pen pc-pen)
+                 (send dc set-brush pc-brush)]
+                [else
+                 (send dc set-pen pc-up-stack-pen)
+                 (send dc set-brush pc-up-stack-brush)])
+              (unless (and (zero? frame-num) (cons? break-status))
+                ;; mark the beginning of the expression with a triangle
+                (send dc draw-polygon
+                      (list (make-object point% xl yl)
+                            (make-object point% xl yr)
+                            (make-object point% xr ym))
+                      dx
+                      dy))
+              (if (and (zero? frame-num) (cons? break-status))
+                  ;; top frame, end: mark the end of the expression with a triangle
+                  (send dc draw-polygon
+                        (list (make-object point% xa ya)
+                              (make-object point% xa yb)
+                              (make-object point% xb ym2))
+                        dx
+                        dy)
+                  ;; otherwise: make the end of the expression with a circle
+                  (send dc draw-ellipse (+ xa dx) (+ ya dy yoff) diameter diameter))
+              (send dc set-pen op)
+              (send dc set-brush ob))))
         
         (define/augment (after-set-next-settings s)
           (let ([tlw (get-top-level-window)])
@@ -799,8 +799,8 @@
                                           bp)))))))
                      ; break-before
                      (lambda (top-mark ccm)
-                       (let* ([debug-marks (continuation-mark-set->list ccm debug-key)])
-                         (send (get-tab) suspend oeh (cons top-mark debug-marks) 'entry-break)))
+                       (define debug-marks (continuation-mark-set->list ccm debug-key))
+                       (send (get-tab) suspend oeh (cons top-mark debug-marks) 'entry-break))
                      ; break-after
                      (case-lambda
                        [(top-mark ccm val)
@@ -810,12 +810,12 @@
                                      (cons top-mark debug-marks)
                                      (list 'exit-break val))))]
                        [(top-mark ccm . vals)
-                        (let* ([debug-marks (continuation-mark-set->list ccm debug-key)])
-                          (apply values
-                                 (send (get-tab) suspend
-                                       oeh
-                                       (cons top-mark debug-marks)
-                                       (cons 'exit-break vals))))])))
+                        (define debug-marks (continuation-mark-set->list ccm debug-key))
+                        (apply values
+                               (send (get-tab) suspend
+                                     oeh
+                                     (cons top-mark debug-marks)
+                                     (cons 'exit-break vals)))])))
                    (uncaught-exception-handler
                     (lambda (exn)
                       (if (and (exn:break? exn) (send (get-tab) suspend-on-break?))
