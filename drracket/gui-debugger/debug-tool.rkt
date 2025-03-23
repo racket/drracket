@@ -262,14 +262,14 @@
             (define-values (x y) (send editor dc-location-to-editor-location event-x event-y))
             (cond
               [(is-a? editor text%)
-               (let ([pos (send editor find-position x y #f on-it?)])
-                 (cond
-                   [(not (unbox on-it?)) (values #f #f)]
-                   [else
-                    (let ([snip (send editor find-snip pos 'after-or-none)])
-                      (if (and snip (is-a? snip editor-snip%))
-                          (loop (send snip get-editor))
-                          (values pos editor)))]))]
+               (define pos (send editor find-position x y #f on-it?))
+               (cond
+                 [(not (unbox on-it?)) (values #f #f)]
+                 [else
+                  (let ([snip (send editor find-snip pos 'after-or-none)])
+                    (if (and snip (is-a? snip editor-snip%))
+                        (loop (send snip get-editor))
+                        (values pos editor)))])]
               [(is-a? editor pasteboard%)
                (define snip (send editor find-snip x y))
                (if (and snip (is-a? snip editor-snip%))
