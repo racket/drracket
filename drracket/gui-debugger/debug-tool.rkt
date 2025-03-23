@@ -1210,7 +1210,7 @@
           (message-box
            "Debugger"
            (format "This file is involved in a debugging session.  To run/debug this file, finish the session for ~a and close or re-run it."
-                   (send (send (send tab get-primary) get-defs) get-filename/untitled-name))
+                   (send+ tab (get-primary) (get-defs) (get-filename/untitled-name)))
            this '(ok)))
         
         (define expr-positions empty)
