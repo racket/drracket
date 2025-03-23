@@ -449,7 +449,7 @@
                      ;; mouse on breakable pos and hasn't moved significantly
                      [(eq? pos mouse-over-pos)]
                      ;; mouse on new breakable pos
-                     [(not (eq? (hash-ref breakpoints pos (lambda () 'invalid)) 'invalid))
+                     [(not (eq? (hash-ref breakpoints pos 'invalid) 'invalid))
                       (set! mouse-over-pos pos)
                       (invalidate-bitmap-cache)]
                      ;; moved off breakable pos
