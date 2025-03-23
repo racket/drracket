@@ -112,7 +112,7 @@
     ;; (<form> <arg1> ... <argn>) => (<form> ...)
     (define (trim-expr-str str [len 10])
       (define strlen (string-length str))
-      (define starts-with-paren (and (> strlen 0) (char=? (string-ref str 0) #\()))
+      (define starts-with-paren (and (positive? strlen) (char=? (string-ref str 0) #\()))
       (define len2 (+ len 4))
       (define trunc-pos
         (safe-min (index-of #\space str) (index-of #\newline str) (and (> strlen len2) len) strlen))
