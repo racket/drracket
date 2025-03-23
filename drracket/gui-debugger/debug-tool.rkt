@@ -1550,8 +1550,7 @@
         (define/public (get-status-message) status-message)
         
         (define mouse-over-message
-          (instantiate message% ()
-            [label " "] [parent debug-panel] [stretchable-width #t]))
+          (new message% [label " "] [parent debug-panel] [stretchable-width #t]))
         
         (define/augment (on-tab-change old new)
           (check-current-language-for-debugger)
