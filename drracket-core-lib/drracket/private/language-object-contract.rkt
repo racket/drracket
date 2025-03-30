@@ -23,12 +23,12 @@
                                        (let loop ([s #'arg])
                                          (cond
                                            [(syntax? s) 
-                                            (let ([loc (vector (syntax-source s)
-                                                               (syntax-line s)
-                                                               (syntax-column s)
-                                                               (syntax-position s)
-                                                               (syntax-span s))])
-                                              (make-sloc (loop (syntax-e s)) loc))]
+                                            (vector (syntax-source s)
+                                                    (syntax-line s)
+                                                    (syntax-column s)
+                                                    (syntax-position s)
+                                                    (syntax-span s))
+                                            (make-sloc (loop (syntax-e s)) loc)]
                                            [(pair? s) (cons (loop (car s)) (loop (cdr s)))]
                                            [else s]))])
                           #'ans)]))])
