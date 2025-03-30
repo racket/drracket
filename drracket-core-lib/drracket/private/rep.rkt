@@ -805,9 +805,9 @@ TODO
         (let loop ([txt-inner txt-inner])
           (cond
             [(eq? txt-inner txt-outer) #t]
-            [else (let ([admin (send txt-inner get-admin)])
-                    (and (is-a? admin editor-snip-editor-admin<%>)
-                         (loop (send (send (send admin get-snip) get-admin) get-editor))))])))
+            [else (define admin (send txt-inner get-admin))
+                  (and (is-a? admin editor-snip-editor-admin<%>)
+                       (loop (send (send (send admin get-snip) get-admin) get-editor)))])))
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;
