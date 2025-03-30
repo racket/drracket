@@ -424,10 +424,9 @@ TODO
     (define before (send text last-position))
     (send text insert s before before #f)
     (define after (send text last-position))
-    (for ([delta (in-list deltas)])
-      (when (or (is-a? delta style-delta%)
-                (is-a? delta style<%>))
-        (send text change-style delta before after)))
+    (for ([delta (in-list deltas)]
+          #:when (or (is-a? delta style-delta%) (is-a? delta style<%>)))
+      (send text change-style delta before after))
     (values before after))
   
   (define log-max-size 1000)
