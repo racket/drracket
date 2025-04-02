@@ -99,32 +99,30 @@
     (define output-start-paragraph 2)
     
     (when ints
-      (let ([after-execute-output
-             (queue-callback/res
-              (λ ()
-                (send interactions-text
-                      get-text
-                      (send interactions-text paragraph-start-position 2)
-                      (send interactions-text paragraph-end-position 2))))])
-        (unless (or (test-all? test) (string=? "> " after-execute-output))
-          (eprintf (string-append
-                    "FAILED (line ~a): ~a\n"
-                    "        ~a\n"
-                    "        expected no output after execution, got: ~s\n")
-                   (test-line test)
-                   (test-definitions test)
-                   (or (test-interactions test) 'no-interactions)
-                   after-execute-output)
-          (k (void)))
-        (insert-in-interactions drs ints)
-        ;; set to be the paragraph right after the insertion.
-        (set! output-start-paragraph
-              (queue-callback/res
-               (λ () (+ (send interactions-text position-paragraph 
-                              (send interactions-text last-position))
-                        1))))
-        (test:keystroke #\return '(alt))
-        (wait-for-computation drs)))
+      (define after-execute-output
+        (queue-callback/res (λ ()
+                              (send interactions-text
+                                    get-text
+                                    (send interactions-text paragraph-start-position 2)
+                                    (send interactions-text paragraph-end-position 2)))))
+      (unless (or (test-all? test) (string=? "> " after-execute-output))
+        (eprintf (string-append "FAILED (line ~a): ~a\n"
+                                "        ~a\n"
+                                "        expected no output after execution, got: ~s\n")
+                 (test-line test)
+                 (test-definitions test)
+                 (or (test-interactions test) 'no-interactions)
+                 after-execute-output)
+        (k (void)))
+      (insert-in-interactions drs ints)
+      ;; set to be the paragraph right after the insertion.
+      (set! output-start-paragraph
+            (queue-callback/res
+             (λ ()
+               (+ (send interactions-text position-paragraph (send interactions-text last-position))
+                  1))))
+      (test:keystroke #\return '(alt))
+      (wait-for-computation drs))
     
     (define text
       (queue-callback/res
@@ -148,13 +146,10 @@
          (let loop ([snip (send interactions-text find-first-snip)])
            (cond
              [(not snip) '()]
-             [else
-              (cond
-                [(method-in-interface? 'get-stacks (object-interface snip))
-                 (define-values (s1 s2) (send snip get-stacks))
-                 (list* s1 s2 (loop (send snip next)))]
-                [else
-                 (loop (send snip next))])])))))
+             [(method-in-interface? 'get-stacks (object-interface snip))
+              (define-values (s1 s2) (send snip get-stacks))
+              (list* s1 s2 (loop (send snip next)))]
+             [else (loop (send snip next))])))))
     (define output-passed?
       (let ([r (test-result test)])
         ((cond [(string? r) string=?]
@@ -170,23 +165,23 @@
                text)
       (unless (null? stacks)
         (eprintf "stacks from error message:\n")
-        (for ([stack (in-list stacks)])
-          (when stack
-            (eprintf "\n----\n")
-            (unless (empty-viewable-stack? stack)
-              (define stack-iterator (copy-viewable-stack stack))
-              (let loop ()
-                (define-values (list-of-srcloc-count has-next?)
-                  (viewable-stack-get-next-items! stack-iterator))
-                (for ([srcloc-count (in-list list-of-srcloc-count)])
-                  (define frame (srcloc->string (car srcloc-count)))
-                  (define count (+ 1 (cdr srcloc-count)))
-                  (if (> count 1)
-                      (eprintf "  ~a [repeated ~a times]\n" frame count)
-                      (eprintf "  ~a\n" frame)))
-                (when has-next?
-                  (loop))))
-            (eprintf "----\n")))))
+        (for ([stack (in-list stacks)]
+              #:when stack)
+          (eprintf "\n----\n")
+          (unless (empty-viewable-stack? stack)
+            (define stack-iterator (copy-viewable-stack stack))
+            (let loop ()
+              (define-values (list-of-srcloc-count has-next?)
+                (viewable-stack-get-next-items! stack-iterator))
+              (for ([srcloc-count (in-list list-of-srcloc-count)])
+                (define frame (srcloc->string (car srcloc-count)))
+                (define count (+ 1 (cdr srcloc-count)))
+                (if (> count 1)
+                    (eprintf "  ~a [repeated ~a times]\n" frame count)
+                    (eprintf "  ~a\n" frame)))
+              (when has-next?
+                (loop))))
+          (eprintf "----\n"))))
     (define the-assert (test-extra-assert test))
     (define-values (kws-req kws-acc) (procedure-keywords the-assert))
     (define-values (kws kw-vals)
@@ -225,9 +220,9 @@
   (for-each single-test (reverse tests))
   (clear-definitions drs)
   (queue-callback/res (λ () (send (send drs get-definitions-text) set-modified #f)))
-  (for ([file temp-files]) 
-    (when (file-exists? file)
-      (delete-file file))))
+  (for ([file temp-files]
+        #:when (file-exists? file))
+    (delete-file file)))
 
 (define (run-use-compiled-file-paths-tests)
   (define (setup-dialog/run proc)
