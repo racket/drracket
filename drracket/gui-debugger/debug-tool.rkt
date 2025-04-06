@@ -1038,34 +1038,35 @@
                 (send (get-frame) register-stack-frames frames already-stopped?)
                 (send (get-frame) register-vars (list-ref frames (get-frame-num))))
               (send status-message set-label
-                    (if (and (cons? status) top-of-stack?)
-                        (let ([expr (mark-source (first frames))])
-                          (cond
-                            ; should succeed unless the user closes a secondary tab during debugging
-                            [(filename->defs (syntax-source expr))
-                             => (lambda (defs)
-                                  (clean-status
-                                   (string-append
-                                    (if (syntax-position expr)
-                                        (trim-expr-str
-                                         (send defs get-text
-                                               (sub1 (syntax-position expr))
-                                               (+ -1 (syntax-position expr) (syntax-span expr))))
-                                        "??")
-                                    " => "
-                                    (if (= 2 (length status))
-                                        (or (render (cadr status)) "??")
-                                        (string-append
-                                         "(values"
-                                         (let loop ([vals (rest status)])
-                                           (cond
-                                             [(cons? vals) (string-append " "
-                                                                          (or (render (first vals))
-                                                                              "??")
-                                                                          (loop (rest vals)))]
-                                             [else ")"])))))))]
-                            [""]))
-                        ""))
+                    (cond
+                      [(and (cons? status) top-of-stack?)
+                       (define expr (mark-source (first frames)))
+                       (cond
+                         ; should succeed unless the user closes a secondary tab during debugging
+                         [(filename->defs (syntax-source expr))
+                          =>
+                          (lambda (defs)
+                            (clean-status
+                             (string-append
+                              (if (syntax-position expr)
+                                  (trim-expr-str
+                                   (send defs get-text
+                                         (sub1 (syntax-position expr))
+                                         (+ -1 (syntax-position expr) (syntax-span expr))))
+                                  "??")
+                              " => "
+                              (if (= 2 (length status))
+                                  (or (render (cadr status)) "??")
+                                  (string-append "(values"
+                                                 (let loop ([vals (rest status)])
+                                                   (cond
+                                                     [(cons? vals)
+                                                      (string-append " "
+                                                                     (or (render (first vals)) "??")
+                                                                     (loop (rest vals)))]
+                                                     [else ")"])))))))]
+                         [""])]
+                      [else ""]))
               (cond [(get-current-frame-endpoints)
                      => (lambda (start/end)
                           (cond [(and (first start/end) (defs-containing-current-frame))
