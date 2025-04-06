@@ -155,9 +155,7 @@
      (lambda (parent)
        (define callbacks null)
        (define pref-panel
-         (instantiate vertical-panel% ()
-           [parent parent]
-           [alignment '(left center)]))
+         (new vertical-panel% [parent parent] [alignment '(left center)]))
        
        ;; -------------------- external browser for Unix --------------------
        (when (unix-browser?)
@@ -168,30 +166,28 @@
             (lambda (name browser) (try-put-preferences (list 'external-browser) (list browser)))))
        
          (letrec
-             ([v-panel (instantiate group-box-panel% ()
-                         [parent pref-panel]
-                         [alignment '(right center)]
-                         [stretchable-height #f]
-                         [label (string-constant external-browser-choice-title)])]
-              [h-panel (instantiate horizontal-panel% ()
-                         [parent v-panel]
-                         [alignment '(center bottom)])]
+             ([v-panel (new group-box-panel%
+                            [parent pref-panel]
+                            [alignment '(right center)]
+                            [stretchable-height #f]
+                            [label (string-constant external-browser-choice-title)])]
+              [h-panel (new horizontal-panel% [parent v-panel] [alignment '(center bottom)])]
               [none-index (length raw:unix-browser-list)]
               [custom-index (add1 none-index)]
-              [r (instantiate radio-box% ()
-                   [label #f]
-                   [choices
-                    (append unix-browser-names
-                            (list (string-constant no-browser)
-                                  (string-constant browser-command-line-label)))]
-                   [parent h-panel]
-                   [callback
-                    (lambda (radio event)
-                      (let ([n (send radio get-selection)])
-                        (set-browser! (cond
-                                        [(= n none-index) #f]
-                                        [(= n custom-index) (get-custom)]
-                                        [else (list-ref raw:unix-browser-list n)]))))])]
+              [r (new radio-box%
+                      [label #f]
+                      [choices
+                       (append unix-browser-names
+                               (list (string-constant no-browser)
+                                     (string-constant browser-command-line-label)))]
+                      [parent h-panel]
+                      [callback
+                       (lambda (radio event)
+                         (let ([n (send radio get-selection)])
+                           (set-browser! (cond
+                                           [(= n none-index) #f]
+                                           [(= n custom-index) (get-custom)]
+                                           [else (list-ref raw:unix-browser-list n)]))))])]
               [select-custom (lambda (_ __)
                                (send r set-selection custom-index)
                                (set-browser! (get-custom)))]
@@ -199,20 +195,17 @@
               [template-panel (instantiate horizontal-panel% (h-panel)
                                 [spacing 0]
                                 [stretchable-height #f])]
-              [pre (instantiate text-field% ()
-                     [label #f]
-                     [parent template-panel]
-                     [callback select-custom]
-                     [horiz-margin 0])]
-              [mess (instantiate message% ()
-                      [label "<URL>"]
-                      [parent template-panel]
-                      [horiz-margin 0])]
-              [post (instantiate text-field% ()
-                      [label #f]
-                      [parent template-panel]
-                      [callback select-custom]
-                      [horiz-margin 0])]
+              [pre (new text-field%
+                        [label #f]
+                        [parent template-panel]
+                        [callback select-custom]
+                        [horiz-margin 0])]
+              [mess (new message% [label "<URL>"] [parent template-panel] [horiz-margin 0])]
+              [post (new text-field%
+                         [label #f]
+                         [parent template-panel]
+                         [callback select-custom]
+                         [horiz-margin 0])]
               [note1 (instantiate message% ((string-constant browser-cmdline-expl-line-1) v-panel))]
               [note2 (instantiate message% ((string-constant browser-cmdline-expl-line-2) v-panel))]
               [refresh-controls (lambda (pref)
