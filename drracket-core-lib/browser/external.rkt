@@ -206,8 +206,8 @@
                          [parent template-panel]
                          [callback select-custom]
                          [horiz-margin 0])]
-              [note1 (instantiate message% ((string-constant browser-cmdline-expl-line-1) v-panel))]
-              [note2 (instantiate message% ((string-constant browser-cmdline-expl-line-2) v-panel))]
+              [note1 (make-object message% (string-constant browser-cmdline-expl-line-1) v-panel)]
+              [note2 (make-object message% (string-constant browser-cmdline-expl-line-2) v-panel)]
               [refresh-controls (lambda (pref)
                                   (if (pair? pref)
                                       (begin
