@@ -764,69 +764,69 @@
               (run-in-evaluation-thread
                (lambda ()
                  ;(print-struct #t)
-                 (let ([self (current-thread)]
-                       [oeh (uncaught-exception-handler)]
-                       [err-hndlr (error-display-handler)])
-                   (set! debugged-thread self)
-                   (error-display-handler
-                    (lambda (msg exn)
-                      (err-hndlr msg exn)
-                      (when (and (eq? self (current-thread)) (exn:fail? exn))
-                        (send (get-tab) suspend
-                              oeh
-                              (continuation-mark-set->list (exn-continuation-marks exn) debug-key)
-                              'error)))) ; this breaks the buttons because it looks like we can resume
-                   (current-eval
-                    (make-debug-eval-handler
-                     (current-eval)
-                     ; break? -- curried to avoid looking up defs from source each time
-                     (lambda (src)
-                       (let* ([defs (filename->defs src)]
-                              [src-tab (if defs
-                                           (send defs get-tab)
-                                           (get-tab))]
-                              [breakpoints (if src
-                                               (send src-tab get-breakpoints)
-                                               breakpoints)]
-                              [single-step? (send tab get-single-step-box)]
-                              [closed? (send src-tab get-closed-box)])
-                         (lambda (pos)
-                           (and (not (unbox closed?))
-                                (or (unbox single-step?)
-                                    (let ([bp (hash-ref breakpoints pos #f)])
-                                      (if (procedure? bp)
-                                          (bp)
-                                          bp)))))))
-                     ; break-before
-                     (lambda (top-mark ccm)
-                       (define debug-marks (continuation-mark-set->list ccm debug-key))
-                       (send (get-tab) suspend oeh (cons top-mark debug-marks) 'entry-break))
-                     ; break-after
-                     (case-lambda
-                       [(top-mark ccm val)
-                        (let* ([debug-marks (continuation-mark-set->list ccm debug-key)])
-                          (car (send (get-tab) suspend
-                                     oeh
-                                     (cons top-mark debug-marks)
-                                     (list 'exit-break val))))]
-                       [(top-mark ccm . vals)
-                        (define debug-marks (continuation-mark-set->list ccm debug-key))
-                        (apply values
-                               (send (get-tab) suspend
-                                     oeh
-                                     (cons top-mark debug-marks)
-                                     (cons 'exit-break vals)))])))
-                   (uncaught-exception-handler
-                    (lambda (exn)
-                      (if (and (exn:break? exn) (send (get-tab) suspend-on-break?))
-                          (let ([marks (exn-continuation-marks exn)]
-                                [cont (exn:break-continuation exn)])
-                            (send (get-tab) suspend
-                                  oeh
-                                  (continuation-mark-set->list marks debug-key)
-                                  'break)
-                            (cont))
-                          (oeh exn))))))))))))
+                 (define self (current-thread))
+                 (define oeh (uncaught-exception-handler))
+                 (define err-hndlr (error-display-handler))
+                 (set! debugged-thread self)
+                 (error-display-handler
+                  (lambda (msg exn)
+                    (err-hndlr msg exn)
+                    (when (and (eq? self (current-thread)) (exn:fail? exn))
+                      (send (get-tab) suspend
+                            oeh
+                            (continuation-mark-set->list (exn-continuation-marks exn) debug-key)
+                            'error)))) ; this breaks the buttons because it looks like we can resume
+                 (current-eval
+                  (make-debug-eval-handler
+                   (current-eval)
+                   ; break? -- curried to avoid looking up defs from source each time
+                   (lambda (src)
+                     (let* ([defs (filename->defs src)]
+                            [src-tab (if defs
+                                         (send defs get-tab)
+                                         (get-tab))]
+                            [breakpoints (if src
+                                             (send src-tab get-breakpoints)
+                                             breakpoints)]
+                            [single-step? (send tab get-single-step-box)]
+                            [closed? (send src-tab get-closed-box)])
+                       (lambda (pos)
+                         (and (not (unbox closed?))
+                              (or (unbox single-step?)
+                                  (let ([bp (hash-ref breakpoints pos #f)])
+                                    (if (procedure? bp)
+                                        (bp)
+                                        bp)))))))
+                   ; break-before
+                   (lambda (top-mark ccm)
+                     (define debug-marks (continuation-mark-set->list ccm debug-key))
+                     (send (get-tab) suspend oeh (cons top-mark debug-marks) 'entry-break))
+                   ; break-after
+                   (case-lambda
+                     [(top-mark ccm val)
+                      (let* ([debug-marks (continuation-mark-set->list ccm debug-key)])
+                        (car (send (get-tab) suspend
+                                   oeh
+                                   (cons top-mark debug-marks)
+                                   (list 'exit-break val))))]
+                     [(top-mark ccm . vals)
+                      (define debug-marks (continuation-mark-set->list ccm debug-key))
+                      (apply values
+                             (send (get-tab) suspend
+                                   oeh
+                                   (cons top-mark debug-marks)
+                                   (cons 'exit-break vals)))])))
+                 (uncaught-exception-handler
+                  (lambda (exn)
+                    (if (and (exn:break? exn) (send (get-tab) suspend-on-break?))
+                        (let ([marks (exn-continuation-marks exn)]
+                              [cont (exn:break-continuation exn)])
+                          (send (get-tab) suspend
+                                oeh
+                                (continuation-mark-set->list marks debug-key)
+                                'break)
+                          (cont))
+                        (oeh exn)))))))))))
     
     (define (debug-tab-mixin super%)
       (class super%
@@ -1198,13 +1198,12 @@
             [else (already-debugging tab)]))
         
         (define/override (execute-callback)
-          (let ([tab (get-current-tab)])
-            (cond
-              [(eq? tab (send tab get-primary))
-               (send (get-current-tab) prepare-execution debug?)
-               (super execute-callback)]
-              [else
-               (already-debugging tab)])))
+          (define tab (get-current-tab))
+          (cond
+            [(eq? tab (send tab get-primary))
+             (send (get-current-tab) prepare-execution debug?)
+             (super execute-callback)]
+            [else (already-debugging tab)]))
         
         (define/private (already-debugging tab)
           (message-box
