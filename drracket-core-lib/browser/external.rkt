@@ -209,20 +209,21 @@
               [note1 (make-object message% (string-constant browser-cmdline-expl-line-1) v-panel)]
               [note2 (make-object message% (string-constant browser-cmdline-expl-line-2) v-panel)]
               [refresh-controls (lambda (pref)
-                                  (if (pair? pref)
-                                      (begin
-                                        (send r set-selection custom-index)
-                                        (send pre set-value (car pref))
-                                        (send post set-value (cdr pref)))
-                                      (let init ([x raw:unix-browser-list]
-                                                 [n 0])
-                                        (cond
-                                          [(null? x) (send r set-selection n)]
-                                          [else
-                                           (if (eq? pref (car x))
-                                               (send r set-selection n)
-                                               (init (cdr x)
-                                                     (add1 n)))]))))])
+                                  (cond
+                                    [(pair? pref)
+                                     (send r set-selection custom-index)
+                                     (send pre set-value (car pref))
+                                     (send post set-value (cdr pref))]
+                                    [else
+                                     (let init ([x raw:unix-browser-list]
+                                                [n 0])
+                                       (cond
+                                         [(null? x) (send r set-selection n)]
+                                         [else
+                                          (if (eq? pref (car x))
+                                              (send r set-selection n)
+                                              (init (cdr x)
+                                                    (add1 n)))]))]))])
        
            (unless ask-later?
              (send r enable none-index #f))
