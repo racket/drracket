@@ -5,6 +5,14 @@
   . split out the drracket-core package to provide a version of
     drracket with a smaller set of dependencies
 
+  . when none of the packages that supply languages via the
+    "Language|Choose Language..." menu item are installed, do not show
+    the language menu. Also, in that situation, move the configuration
+    of the language (that would be in the "show details" part of the
+    language dialog) into a new pane in the preferences dialog.
+
+  . fix a bug in the handling of stacktraces with nonexistent files
+
 ------------------------------
        Version 8.16
 ------------------------------
