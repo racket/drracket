@@ -171,7 +171,7 @@
                          (and tracking? (send event button-up?)))
                      (if (and (> (send event get-x) x)
                               (> (send event get-y) y))
-                         (when (not hit?)
+                         (unless hit?
                            (set! hit? #t)
                            (refresh))
                          (when hit?
