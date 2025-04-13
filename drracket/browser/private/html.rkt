@@ -41,13 +41,17 @@
 
 ;; load-status : boolean string (union #f url) -> void
 (define (load-status push? what url)
-  (let ([s (format "Loading ~a ~a..." 
-                   what 
-                   (if url
-                       (trim 150 (url->string url))
-                       "unknown url"))])
-    (status-stack (cons s (if push? (status-stack) null)))
-    (status "~a" s)))
+  (define s
+    (format "Loading ~a ~a..."
+            what
+            (if url
+                (trim 150 (url->string url))
+                "unknown url")))
+  (status-stack (cons s
+                      (if push?
+                          (status-stack)
+                          null)))
+  (status "~a" s))
 
 (define (pop-status)
   (status-stack (cdr (status-stack)))
