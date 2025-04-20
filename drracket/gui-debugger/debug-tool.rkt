@@ -1220,19 +1220,19 @@
           (send variables-text begin-edit-sequence)
           (send variables-text lock #f)
           (send variables-text delete 0 (send variables-text last-position))
-          (for-each
-           (lambda (name/value)
-             (let ([name (format "~a" (syntax-e (first name/value)))]
-                   [value (format " => ~s\n" (truncate-value (second name/value) 88 4))])
-               (send variables-text insert name)
-               (send variables-text change-style bold-sd
-                     (- (send variables-text last-position) (string-length name))
-                     (send variables-text last-position))
-               (send variables-text insert value)
-               (send variables-text change-style normal-sd
-                     (- (send variables-text last-position) (string-length value))
-                     (send variables-text last-position))))
-           (third (expose-mark frame)))
+          (for ([name/value (in-list (third (expose-mark frame)))])
+            (define name (format "~a" (syntax-e (first name/value))))
+            (define value (format " => ~s\n" (truncate-value (second name/value) 88 4)))
+            (send variables-text insert name)
+            (send variables-text change-style
+                  bold-sd
+                  (- (send variables-text last-position) (string-length name))
+                  (send variables-text last-position))
+            (send variables-text insert value)
+            (send variables-text change-style
+                  normal-sd
+                  (- (send variables-text last-position) (string-length value))
+                  (send variables-text last-position)))
           (send variables-text lock #t)
           (send variables-text end-edit-sequence))
         
