@@ -1385,11 +1385,11 @@
           (set! debug-parent-panel
                 (make-object vertical-pane% debug-grandparent-panel))
           ;; horizontal panel with debug buttons; not vertically stretchable
-          (set! debug-panel (instantiate horizontal-panel% ()
-                              (parent debug-parent-panel)
-                              (stretchable-height #f)
-                              (alignment '(center center))
-                              (style '(border))))
+          (set! debug-panel (new horizontal-panel%
+                                 (parent debug-parent-panel)
+                                 (stretchable-height #f)
+                                 (alignment '(center center))
+                                 (style '(border))))
           ;; add a close button to the debug panel
           (new close-icon%
                [parent debug-panel]
@@ -1417,10 +1417,7 @@
         (super-new)
         
         (define status-message
-          (instantiate message% ()
-            [label " "]
-            [parent debug-panel]
-            [stretchable-width #t]))
+          (new message% [label " "] [parent debug-panel] [stretchable-width #t]))
         
         (define debug-button
           (new switchable-button%
