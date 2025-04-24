@@ -1532,11 +1532,11 @@ the settings above should match r5rs
 
 
 (define (prepare-for-test-expression)
-  (let ([drs (wait-for-drracket-frame)])
-    (clear-definitions drs)
-    (set-language #t)
-    (sleep 1) ;; this shouldn't be neccessary....
-    (do-execute drs)))
+  (define drs (wait-for-drracket-frame))
+  (clear-definitions drs)
+  (set-language #t)
+  (sleep 1) ;; this shouldn't be neccessary....
+  (do-execute drs))
 
 ;; test-setting : (-> void) string string string -> void
 ;; opens the language dialog, runs `set-setting'
@@ -1552,34 +1552,37 @@ the settings above should match r5rs
   (let ([f (test:get-active-top-level-window)])
     (fw:test:button-push "OK")
     (wait-for-new-frame f))
-  (let* ([drs (test:get-active-top-level-window)]
-         [interactions (send drs get-interactions-text)])
-    (clear-definitions drs)
-    (insert-in-definitions drs expression)
-    (do-execute drs)
-    (when interactions-expr
-      (insert-in-interactions drs interactions-expr)
-      (alt-return-in-interactions drs)
-      (wait-for-computation drs))
-    (let* ([got (fetch-output/should-be-tested drs)])
-      (unless (if (regexp? result)
-                  (regexp-match? result got)
-                  (string=? result got))
-        (eprintf "FAILED: ~s ~s ~s test\n expected: ~s\n      got: ~s\n"
-                 (language) setting-name expression result got)))))
+  (define drs (test:get-active-top-level-window))
+  (send drs get-interactions-text)
+  (clear-definitions drs)
+  (insert-in-definitions drs expression)
+  (do-execute drs)
+  (when interactions-expr
+    (insert-in-interactions drs interactions-expr)
+    (alt-return-in-interactions drs)
+    (wait-for-computation drs))
+  (define got (fetch-output/should-be-tested drs))
+  (unless (if (regexp? result)
+              (regexp-match? result got)
+              (string=? result got))
+    (eprintf "FAILED: ~s ~s ~s test\n expected: ~s\n      got: ~s\n"
+             (language)
+             setting-name
+             expression
+             result
+             got)))
 
 (define (test-hash-bang)
-  (let* ([expression "#!/bin/sh\n1"]
-         [result "1"]
-         [drs (test:get-active-top-level-window)]
-         [interactions (queue-callback (λ () (send drs get-interactions-text)))])
-    (clear-definitions drs)
-    (insert-in-definitions drs expression)
-    (do-execute drs)
-    (let* ([got (fetch-output/should-be-tested drs)])
-      (unless (string=? "1" got)
-        (eprintf "FAILED: ~s ~a test\n expected: ~s\n     got: ~s\n"
-                 (language) expression result got)))))
+  (define expression "#!/bin/sh\n1")
+  (define result "1")
+  (define drs (test:get-active-top-level-window))
+  (queue-callback (λ () (send drs get-interactions-text)))
+  (clear-definitions drs)
+  (insert-in-definitions drs expression)
+  (do-execute drs)
+  (define got (fetch-output/should-be-tested drs))
+  (unless (string=? "1" got)
+    (eprintf "FAILED: ~s ~a test\n expected: ~s\n     got: ~s\n" (language) expression result got)))
 
 (define (fetch-output/should-be-tested . args)
   (regexp-replace (regexp
@@ -1683,13 +1686,13 @@ the settings above should match r5rs
     (when (and has-sharing? show-sharing)
       (fw:test:set-check-box!
        "Show sharing in values"
-       (if (eq? show-sharing 'on) #t #f)))
+       (eq? show-sharing 'on)))
     (fw:test:set-check-box!
      "Insert newlines in printed values"
      pretty?)
-    (let ([f (test:get-active-top-level-window)])
-      (fw:test:button-push "OK")
-      (wait-for-new-frame f)))
+    (define f (test:get-active-top-level-window))
+    (fw:test:button-push "OK")
+    (wait-for-new-frame f))
   (define (shorten str)
     (if ((string-length str) . <= . 45)
         str
@@ -1774,15 +1777,14 @@ the settings above should match r5rs
       (unless (member #\newline (string->list got))
         (eprintf "long output should have contained newlines, got ~s\n" got)))
     
-    (let ()
-      (clear-definitions drr)
-      (insert-in-definitions drr (defs-prefix))
-      (insert-in-definitions drr "(print-value-columns 1000)")
-      (insert-in-definitions drr "(build-list 100 values)")
-      (do-execute drr)
-      (define got (fetch-output/should-be-tested drr))
-      (when (member #\newline (string->list got))
-        (eprintf "long output should not have contained newlines, got ~s\n" got)))))
+    (clear-definitions drr)
+    (insert-in-definitions drr (defs-prefix))
+    (insert-in-definitions drr "(print-value-columns 1000)")
+    (insert-in-definitions drr "(build-list 100 values)")
+    (do-execute drr)
+    (define got (fetch-output/should-be-tested drr))
+    (when (member #\newline (string->list got))
+      (eprintf "long output should not have contained newlines, got ~s\n" got))))
 
 (define (find-output-radio-box label)
   (define frame (test:get-active-top-level-window))
@@ -1818,26 +1820,24 @@ the settings above should match r5rs
    "WARNING: Interactions window is out of sync with the definitions window\\."))
 
 (define (test-error-after-definition)
-  (let* ([drs (wait-for-drracket-frame)]
-         [interactions-text (queue-callback/res (λ () (send drs get-interactions-text)))])
-    (clear-definitions drs)
-    (insert-in-definitions drs (defs-prefix))
-    (insert-in-definitions drs "(define y 0) (define (f x) (/ x y)) (f 2)")
-    (do-execute drs)
-    (let ([last-para (queue-callback/res (λ () (send interactions-text last-paragraph)))])
-      (type-in-interactions drs "y\n")
-      (wait-for-computation drs)
-      (let ([got
-             (fetch-output/should-be-tested
-              drs
-              (queue-callback/res
-               (λ () (send interactions-text paragraph-start-position (+ last-para 1))))
-              (queue-callback/res
-               (λ ()
-                 (send interactions-text paragraph-end-position
-                       (- (send interactions-text last-paragraph) 1)))))])
-        (unless (equal? got "0")
-          (eprintf "FAILED: test-error-after-definition failed, expected 0, got ~s\n" got))))))
+  (define drs (wait-for-drracket-frame))
+  (define interactions-text (queue-callback/res (λ () (send drs get-interactions-text))))
+  (clear-definitions drs)
+  (insert-in-definitions drs (defs-prefix))
+  (insert-in-definitions drs "(define y 0) (define (f x) (/ x y)) (f 2)")
+  (do-execute drs)
+  (define last-para (queue-callback/res (λ () (send interactions-text last-paragraph))))
+  (type-in-interactions drs "y\n")
+  (wait-for-computation drs)
+  (define got
+    (fetch-output/should-be-tested
+     drs
+     (queue-callback/res (λ () (send interactions-text paragraph-start-position (+ last-para 1))))
+     (queue-callback/res (λ ()
+                           (send interactions-text paragraph-end-position
+                                 (- (send interactions-text last-paragraph) 1))))))
+  (unless (equal? got "0")
+    (eprintf "FAILED: test-error-after-definition failed, expected 0, got ~s\n" got)))
 
 
 ;; test-expression : (union string 'xml 'image (listof (union string 'xml 'image)))
@@ -1915,26 +1915,20 @@ the settings above should match r5rs
                (send interactions-text last-position))
          (send interactions-text paste))))
     
-    (let ([last-para (queue-callback/res (λ () (send interactions-text last-paragraph)))])
-      (alt-return-in-interactions drs)
-      (wait-for-computation drs)
-      (let ([got
-             (fetch-output
-              drs
-              (queue-callback/res
-               (λ ()
-                 (send interactions-text paragraph-start-position (+ last-para 1))))
-              (queue-callback/res
-               (λ ()
-                 (send interactions-text paragraph-end-position
-                       (- (send interactions-text last-paragraph) 1)))))])
-        (when (regexp-match re:out-of-sync got)
-          (error 'text-expression "got out of sync message"))
-        (unless (check-expectation repl-expected got)
-          (eprintf (make-err-msg repl-expected)
-                   'interactions
-                   (language)
-                   expression repl-expected got))))))
+    (define last-para (queue-callback/res (λ () (send interactions-text last-paragraph))))
+    (alt-return-in-interactions drs)
+    (wait-for-computation drs)
+    (define got
+      (fetch-output
+       drs
+       (queue-callback/res (λ () (send interactions-text paragraph-start-position (+ last-para 1))))
+       (queue-callback/res (λ ()
+                             (send interactions-text paragraph-end-position
+                                   (- (send interactions-text last-paragraph) 1))))))
+    (when (regexp-match re:out-of-sync got)
+      (error 'text-expression "got out of sync message"))
+    (unless (check-expectation repl-expected got)
+      (eprintf (make-err-msg repl-expected) 'interactions (language) expression repl-expected got))))
 
 (define (test-undefined-var id #:icon+in? [icon+in? #f])
   (test-expression
