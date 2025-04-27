@@ -183,4 +183,4 @@
              (super help-menu:after-about m))
            (super-new))))
       (thread check-for-updates))
-    (when (> patchlevel 0) (version:add-spec 'p patchlevel))))
+    (when (positive? patchlevel) (version:add-spec 'p patchlevel))))
