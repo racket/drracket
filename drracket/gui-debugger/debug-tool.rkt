@@ -1584,7 +1584,7 @@
         
         ; hide debug button if it's not supported for the initial language:
         (check-current-language-for-debugger)))
-    (drscheme:language:register-capability 'gui-debugger:debug-button (flat-contract boolean?) #t)
+    (drscheme:language:register-capability 'gui-debugger:debug-button boolean? #t)
     (drscheme:get/extend:extend-definitions-text debug-definitions-text-mixin)
     (drscheme:get/extend:extend-interactions-text debug-interactions-text-mixin)
     (drscheme:get/extend:extend-unit-frame debug-unit-frame-mixin)
