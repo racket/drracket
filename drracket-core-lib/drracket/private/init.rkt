@@ -104,18 +104,17 @@
      ;; little bit from errors that are raised in the dynamic 
      ;; extent of an edit-sequence.
      (when (eq? (current-thread) (eventspace-handler-thread system-eventspace))
-       (for ([f (in-list (get-top-level-windows))])
-         (when (is-a? f drracket:unit:frame<%>)
-           (let loop ([o f])
-             (cond
-               [(is-a? o editor-canvas%)
-                (define t (send o get-editor))
-                (when (or (is-a? t drracket:unit:definitions-text<%>)
-                          (is-a? t drracket:rep:text<%>))
-                  (let loop ()
-                    (when (send t in-edit-sequence?)
-                      (send t end-edit-sequence)
-                      (loop))))]
-               [(is-a? o area-container<%>)
-                (for ([c (in-list (send o get-children))])
-                  (loop c))])))))))
+       (for ([f (in-list (get-top-level-windows))]
+             #:when (is-a? f drracket:unit:frame<%>))
+         (let loop ([o f])
+           (cond
+             [(is-a? o editor-canvas%)
+              (define t (send o get-editor))
+              (when (or (is-a? t drracket:unit:definitions-text<%>) (is-a? t drracket:rep:text<%>))
+                (let loop ()
+                  (when (send t in-edit-sequence?)
+                    (send t end-edit-sequence)
+                    (loop))))]
+             [(is-a? o area-container<%>)
+              (for ([c (in-list (send o get-children))])
+                (loop c))]))))))
