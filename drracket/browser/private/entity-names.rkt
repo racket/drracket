@@ -256,6 +256,6 @@
           (euro . 8364)))
 
 (define (entity-name->integer s)
-  (hash-ref table s (lambda () #f)))
+  (hash-ref table s #f))
 
 
