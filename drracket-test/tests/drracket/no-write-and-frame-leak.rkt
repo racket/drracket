@@ -145,10 +145,7 @@ This test checks:
                                 string<=?
                                 #:key symbol->string)
                           (list (send item get-shortcut))))
-        (hash-set! shortcuts 
-                   k
-                   (cons (send item get-label)
-                         (hash-ref shortcuts k '()))))))
+        (hash-update! shortcuts k (λ (v) (cons (send item get-label) v)) '()))))
   
   (define (get-lab item)
     (cond
