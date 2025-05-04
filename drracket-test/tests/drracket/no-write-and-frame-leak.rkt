@@ -165,10 +165,9 @@ This test checks:
          '()])))
   
   (define (check-shortcuts)
-    (for ([(k v) (in-hash shortcuts)])
-      (unless (= 1 (length v))
-        (eprintf "found multiple menu items with the shortcut ~s: ~s\n"
-                 k v))))
+    (for ([(k v) (in-hash shortcuts)]
+          #:unless (= 1 (length v)))
+      (eprintf "found multiple menu items with the shortcut ~s: ~s\n" k v)))
   
   (process-container (send frame get-menu-bar))
   (check-shortcuts))
