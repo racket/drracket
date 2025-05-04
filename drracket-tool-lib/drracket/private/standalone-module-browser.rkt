@@ -1027,13 +1027,14 @@
           ;; major-dim is the dimension that new levels extend along
           ;; minor-dim is the dimension that snips inside a level extend along
           
-          (hash-for-each
-           level-ht
-           (λ (n v)
-             (set! max-minor (max max-minor (apply + (map (if vertical?
-                                                              (λ (x) (get-snip-width x))
-                                                              (λ (x) (get-snip-height x)))
-                                                          v))))))
+          (for ([(n v) (in-hash level-ht)])
+            (set! max-minor
+                  (max max-minor
+                       (apply +
+                              (map (if vertical?
+                                       (λ (x) (get-snip-width x))
+                                       (λ (x) (get-snip-height x)))
+                                   v)))))
           
           (define levels (sort (hash-map level-ht list) <= #:key car))
           (let loop ([levels levels]
