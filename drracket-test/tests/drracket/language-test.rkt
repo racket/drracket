@@ -1686,7 +1686,7 @@ the settings above should match r5rs
     (when (and has-sharing? show-sharing)
       (fw:test:set-check-box!
        "Show sharing in values"
-       (if (eq? show-sharing 'on) #t #f)))
+       (eq? show-sharing 'on)))
     (fw:test:set-check-box!
      "Insert newlines in printed values"
      pretty?)
