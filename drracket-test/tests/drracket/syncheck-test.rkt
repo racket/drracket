@@ -1770,29 +1770,28 @@
                (copy-port in-port out-port)))))
        (fire-up-drracket-and-run-tests
         (λ ()
-          (let ([drs (wait-for-drracket-frame)])
-            ;(set-language-level! (list "Pretty Big"))
-            (begin
-              (set-language-level! (list "Pretty Big") #f)
-              (test:set-radio-box-item! "No debugging or profiling")
-              (let ([f (test:get-active-top-level-window)])
-                (test:button-push "OK")
-                (wait-for-new-frame f)))
-            (do-execute drs)
-            (let* ([defs (queue-callback/res (λ () (send drs get-definitions-text)))]
-                   [filename (make-temporary-file "syncheck-test~a" #f temp-dir)])
-              (queue-callback/res (λ () (send defs save-file filename)))
-              (preferences:set 'framework:coloring-active #f)
-              (close-the-error-window-test drs)
-              (for-each (run-one-test temp-dir) tests)
-              (preferences:set 'framework:coloring-active #t)
-              (queue-callback/res
-               (λ () 
-                 (send defs save-file) ;; clear out autosave
-                 (send defs set-filename #f)))
-              (delete-file filename)
-             
-              (printf "Ran ~a tests.\n" total-tests-run))))))
+          (define drs (wait-for-drracket-frame))
+          ;(set-language-level! (list "Pretty Big"))
+          (begin
+            (set-language-level! (list "Pretty Big") #f)
+            (test:set-radio-box-item! "No debugging or profiling")
+            (let ([f (test:get-active-top-level-window)])
+              (test:button-push "OK")
+              (wait-for-new-frame f)))
+          (do-execute drs)
+          (define defs (queue-callback/res (λ () (send drs get-definitions-text))))
+          (define filename (make-temporary-file "syncheck-test~a" #f temp-dir))
+          (queue-callback/res (λ () (send defs save-file filename)))
+          (preferences:set 'framework:coloring-active #f)
+          (close-the-error-window-test drs)
+          (for-each (run-one-test temp-dir) tests)
+          (preferences:set 'framework:coloring-active #t)
+          (queue-callback/res (λ ()
+                                (send defs save-file) ;; clear out autosave
+                                (send defs set-filename #f)))
+          (delete-file filename)
+          
+          (printf "Ran ~a tests.\n" total-tests-run))))
      (λ () (delete-directory/files temp-dir))))
   
   (define (close-the-error-window-test drs)
@@ -1998,25 +1997,25 @@
       (lexically-bound-variable lexically-bound)))
   
   (define (collapse-and-rename expected)
-    (let ([renamed
-           (map (lambda (ent)
-                  (let* ([str (car ent)]
-                         [id (cadr ent)]
-                         [matches (assoc id remappings)])
-                    (if matches
-                        (list str (cadr matches))
-                        ent)))
-                expected)])
-      (let loop ([ids renamed])
-        (cond
-          [(null? ids) null]
-          [(null? (cdr ids)) ids]
-          [else (let ([fst (car ids)]
-                      [snd (cadr ids)])
-                  (if (eq? (cadr fst) (cadr snd))
-                      (loop (cons (list (string-append (car fst) (car snd)) (cadr fst))
-                                  (cddr ids)))
-                      (cons fst (loop (cdr ids)))))]))))
+    (define renamed
+      (map (lambda (ent)
+             (let* ([str (car ent)]
+                    [id (cadr ent)]
+                    [matches (assoc id remappings)])
+               (if matches
+                   (list str (cadr matches))
+                   ent)))
+           expected))
+    (let loop ([ids renamed])
+      (cond
+        [(null? ids) null]
+        [(null? (cdr ids)) ids]
+        [else
+         (let ([fst (car ids)]
+               [snd (cadr ids)])
+           (if (eq? (cadr fst) (cadr snd))
+               (loop (cons (list (string-append (car fst) (car snd)) (cadr fst)) (cddr ids)))
+               (cons fst (loop (cdr ids)))))])))
     
   ;; compare-arrows : expression
   ;;                  (or/c #f (listof (cons (list number-or-proc number-or-proc)
@@ -2049,23 +2048,23 @@
       ;; binding-in-ht? : hash-table (list number number) (listof (list number number)) -> boolean
       (define (test-binding expected? ht) ;; dont-care
         (lambda (pr)
-          (let ([frm (car pr)]
-                [to (cdr pr)])
-            (hash-ref
-             already-checked
-             frm
-             (lambda ()
-               (hash-set! already-checked frm #t)
-               (define ht-ent (hash-ref ht frm 'nothing-there))
-               (unless (equal? ht-ent to)
-                 (eprintf (if expected?
-                              "FAILED arrow test line ~a ~s from ~s\n  expected ~s\n    actual ~s\n"
-                              "FAILED arrow test line ~a ~s from ~s\n    actual ~s\n  expected ~s\n")
-                          line
-                          test-exp
-                          frm
-                          ht-ent
-                          to)))))))
+          (define frm (car pr))
+          (define to (cdr pr))
+          (hash-ref
+           already-checked
+           frm
+           (lambda ()
+             (hash-set! already-checked frm #t)
+             (define ht-ent (hash-ref ht frm 'nothing-there))
+             (unless (equal? ht-ent to)
+               (eprintf (if expected?
+                            "FAILED arrow test line ~a ~s from ~s\n  expected ~s\n    actual ~s\n"
+                            "FAILED arrow test line ~a ~s from ~s\n    actual ~s\n  expected ~s\n")
+                        line
+                        test-exp
+                        frm
+                        ht-ent
+                        to))))))
         
       (for-each (test-binding #t expected-ht) (hash-map actual-ht cons))
       (for-each (test-binding #f actual-ht) (hash-map expected-ht cons))))
