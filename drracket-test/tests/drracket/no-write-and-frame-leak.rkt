@@ -63,8 +63,10 @@ This test checks:
     (sync (system-idle-evt))
     
     (define drs-tabb (make-weak-box (send drs-frame1 get-current-tab)))
-    (define tab-nsb (make-weak-box (send (send (send drs-frame1 get-current-tab) get-ints)
-                                         get-user-namespace)))
+    (define tab-nsb (make-weak-box (send+ drs-frame1
+                                          (get-current-tab)
+                                          (get-ints)
+                                          (get-user-namespace))))
     
     (test:menu-select "File" (if (eq? (system-type) 'unix) "Close" "Close Tab"))
     (sync (system-idle-evt))
@@ -74,12 +76,16 @@ This test checks:
     
     (define drs-frame2b (make-weak-box (wait-for-new-frame drs-frame1)))
     (define frame2-nsb (make-weak-box 
-                        (send (send (send (weak-box-value drs-frame2b) get-current-tab) get-ints) 
-                              get-user-namespace)))
+                        (send+ (weak-box-value drs-frame2b)
+                               (get-current-tab)
+                               (get-ints)
+                               (get-user-namespace))))
     
     (queue-callback/res
-     (λ () (send (send (send (weak-box-value drs-frame2b) get-current-tab) get-defs) load-file
-                 (collection-file-path "rep.rkt" "drracket" "private"))))
+     (λ () (send+ (weak-box-value drs-frame2b)
+                  (get-current-tab)
+                  (get-defs)
+                  (load-file (collection-file-path "rep.rkt" "drracket" "private")))))
     (sleep 2)
     (extra-waiting (weak-box-value drs-frame2b))
     (sync (system-idle-evt))
@@ -139,10 +145,7 @@ This test checks:
                                 string<=?
                                 #:key symbol->string)
                           (list (send item get-shortcut))))
-        (hash-set! shortcuts 
-                   k
-                   (cons (send item get-label)
-                         (hash-ref shortcuts k '()))))))
+        (hash-update! shortcuts k (λ (v) (cons (send item get-label) v)) '()))))
   
   (define (get-lab item)
     (cond
@@ -162,10 +165,9 @@ This test checks:
          '()])))
   
   (define (check-shortcuts)
-    (for ([(k v) (in-hash shortcuts)])
-      (unless (= 1 (length v))
-        (eprintf "found multiple menu items with the shortcut ~s: ~s\n"
-                 k v))))
+    (for ([(k v) (in-hash shortcuts)]
+          #:unless (= 1 (length v)))
+      (eprintf "found multiple menu items with the shortcut ~s: ~s\n" k v)))
   
   (process-container (send frame get-menu-bar))
   (check-shortcuts))
