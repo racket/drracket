@@ -38,8 +38,8 @@
      (format "~a:~a~a"
              (cond
                [(path? (srcloc-source src))
-                (let-values ([(base name dir?) (split-path (srcloc-source src))])
-                  name)]
+                (define-values (base name dir?) (split-path (srcloc-source src)))
+                name]
                [else (srcloc-source src)])
              (if (srcloc-line src)
                  (format "~a:~a" (srcloc-line src) (srcloc-column src))
@@ -151,22 +151,22 @@
         (cond
           [(null? prs) (void)]
           [else
-           (let* ([pr (car prs)]
-                  [fn (car pr)]
-                  [count (length (cdr pr))])
-             (cond
-               [(zero? count) (loop (cdr prs) first? i)]
-               [else
-                (unless first?
-                  (insert "\n"))
-                (let ([before (last-position)])
-                  (hash-set! line-to-source i pr)
-                  (insert (format-percentage (/ count denom-count)))
-                  (insert (format " ~a" (format-fn-name fn)))
-                  (let ([after (last-position)])
-                    (when (equal? (car pr) clicked-srcloc-pr)
-                      (set! clear-old-pr (highlight-range before after "NavajoWhite")))))
-                (loop (cdr prs) #f (+ i 1))]))]))
+           (define pr (car prs))
+           (define fn (car pr))
+           (define count (length (cdr pr)))
+           (cond
+             [(zero? count) (loop (cdr prs) first? i)]
+             [else
+              (unless first?
+                (insert "\n"))
+              (let ([before (last-position)])
+                (hash-set! line-to-source i pr)
+                (insert (format-percentage (/ count denom-count)))
+                (insert (format " ~a" (format-fn-name fn)))
+                (let ([after (last-position)])
+                  (when (equal? (car pr) clicked-srcloc-pr)
+                    (set! clear-old-pr (highlight-range before after "NavajoWhite")))))
+              (loop (cdr prs) #f (+ i 1))])]))
       (lock #t)
       (end-edit-sequence)
       (update-info-editor clicked-srcloc-pr)
