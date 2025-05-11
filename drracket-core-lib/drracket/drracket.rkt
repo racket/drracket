@@ -88,13 +88,12 @@
       (for/list ([x (in-list (find-relevant-directories (list id)))])
         (define proc (get-info/full x))
         (if proc
-            (map (λ (dirs)
-                   (apply build-path
-                          x
-                          (if (list? dirs)
-                              dirs
-                              (list dirs))))
-                 (proc id (λ () '())))
+            (for/list ([dirs (in-list (proc id (λ () '())))])
+              (apply build-path
+                     x
+                     (if (list? dirs)
+                         dirs
+                         (list dirs))))
             '()))))
    
    (define make-compilation-manager-load/use-compiled-handler
