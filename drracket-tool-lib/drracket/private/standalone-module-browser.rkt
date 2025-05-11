@@ -1272,7 +1272,8 @@
                     [(null? ms) (substring short-name 0 (min 2 (string-length short-name)))]
                     [else
                      (apply string-append
-                            (cons (substring short-name 0 1) (map (λ (x) (substring x 1 2)) ms)))])])]
+                            (substring short-name 0 1)
+                            (map (λ (x) (substring x 1 2)) ms))])])]
               [(long) word]
               [(very-long) (string-append word ": " (format "~s" require-phases))]))
            last-name]))

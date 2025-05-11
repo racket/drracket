@@ -16,13 +16,11 @@
               (sleep pause-time)
               (define new-traces
                 (map (λ (t) (continuation-mark-set->context (continuation-marks t))) (get-threads)))
-              (for-each (λ (trace)
-                          (for-each (λ (line)
-                                      (hash-set! traces-table
-                                                 line
-                                                 (cons trace (hash-ref traces-table line '()))))
-                                    trace))
-                        new-traces)
+              (for ([trace (in-list new-traces)])
+                (for-each
+                 (λ (line)
+                   (hash-set! traces-table line (cons trace (hash-ref traces-table line '()))))
+                 trace))
               (cond
                 [(zero? i)
                  (update-gui traces-table)
@@ -38,8 +36,8 @@
      (format "~a:~a~a"
              (cond
                [(path? (srcloc-source src))
-                (let-values ([(base name dir?) (split-path (srcloc-source src))])
-                  name)]
+                (define-values (base name dir?) (split-path (srcloc-source src)))
+                name]
                [else (srcloc-source src)])
              (if (srcloc-line src)
                  (format "~a:~a" (srcloc-line src) (srcloc-column src))
@@ -108,14 +106,14 @@
         [(send event button-up? 'left)
          (define admin (get-admin))
          (when admin
-           (let ([dc (send admin get-dc)])
-             (let-values ([(x y) (dc-location-to-editor-location (send event get-x)
-                                                                 (send event get-y))])
-               (let* ([loc (find-position x y)]
-                      [para (position-paragraph loc)])
-                 (set! clicked-srcloc-pr
-                       (and (<= 0 para (last-paragraph)) (car (list-ref gui-display-data para))))
-                 (update-gui-display)))))]
+           (send admin get-dc)
+           (define-values (x y)
+             (dc-location-to-editor-location (send event get-x) (send event get-y)))
+           (define loc (find-position x y))
+           (define para (position-paragraph loc))
+           (set! clicked-srcloc-pr
+                 (and (<= 0 para (last-paragraph)) (car (list-ref gui-display-data para))))
+           (update-gui-display))]
         [else (void)]))
 
     (define/public (set-gui-display-data/refresh traces-table)
@@ -138,12 +136,11 @@
       (set! clear-old-pr void)
       (define denom-ht (make-hasheq))
       (define filtered-gui-display-data
-        (map (λ (pr)
-               (let ([id (car pr)]
-                     [stacks (filter-stacks (cdr pr))])
-                 (for-each (λ (stack) (hash-set! denom-ht stack #t)) stacks)
-                 (cons id stacks)))
-             gui-display-data))
+        (for/list ([pr (in-list gui-display-data)])
+          (define id (car pr))
+          (define stacks (filter-stacks (cdr pr)))
+          (for-each (λ (stack) (hash-set! denom-ht stack #t)) stacks)
+          (cons id stacks)))
       (define denom-count (hash-count denom-ht))
       (let loop ([prs filtered-gui-display-data]
                  [first? #t]
@@ -151,22 +148,22 @@
         (cond
           [(null? prs) (void)]
           [else
-           (let* ([pr (car prs)]
-                  [fn (car pr)]
-                  [count (length (cdr pr))])
-             (cond
-               [(zero? count) (loop (cdr prs) first? i)]
-               [else
-                (unless first?
-                  (insert "\n"))
-                (let ([before (last-position)])
-                  (hash-set! line-to-source i pr)
-                  (insert (format-percentage (/ count denom-count)))
-                  (insert (format " ~a" (format-fn-name fn)))
-                  (let ([after (last-position)])
-                    (when (equal? (car pr) clicked-srcloc-pr)
-                      (set! clear-old-pr (highlight-range before after "NavajoWhite")))))
-                (loop (cdr prs) #f (+ i 1))]))]))
+           (define pr (car prs))
+           (define fn (car pr))
+           (define count (length (cdr pr)))
+           (cond
+             [(zero? count) (loop (cdr prs) first? i)]
+             [else
+              (unless first?
+                (insert "\n"))
+              (let ([before (last-position)])
+                (hash-set! line-to-source i pr)
+                (insert (format-percentage (/ count denom-count)))
+                (insert (format " ~a" (format-fn-name fn)))
+                (let ([after (last-position)])
+                  (when (equal? (car pr) clicked-srcloc-pr)
+                    (set! clear-old-pr (highlight-range before after "NavajoWhite")))))
+              (loop (cdr prs) #f (+ i 1))])]))
       (lock #t)
       (end-edit-sequence)
       (update-info-editor clicked-srcloc-pr)
@@ -373,11 +370,10 @@
           (define/public (get-threads-to-profile)
             (define thds '())
             (let loop ([cust (get-user-custodian)])
-              (for-each (λ (obj)
-                          (cond
-                            [(custodian? obj) (loop obj)]
-                            [(thread? obj) (set! thds (cons obj thds))]))
-                        (custodian-managed-list cust system-custodian)))
+              (for ([obj (in-list (custodian-managed-list cust system-custodian))])
+                (cond
+                  [(custodian? obj) (loop obj)]
+                  [(thread? obj) (set! thds (cons obj thds))])))
             thds)
 
           ;; FIX
