@@ -16,13 +16,11 @@
               (sleep pause-time)
               (define new-traces
                 (map (λ (t) (continuation-mark-set->context (continuation-marks t))) (get-threads)))
-              (for-each (λ (trace)
-                          (for-each (λ (line)
-                                      (hash-set! traces-table
-                                                 line
-                                                 (cons trace (hash-ref traces-table line '()))))
-                                    trace))
-                        new-traces)
+              (for ([trace (in-list new-traces)])
+                (for-each
+                 (λ (line)
+                   (hash-set! traces-table line (cons trace (hash-ref traces-table line '()))))
+                 trace))
               (cond
                 [(zero? i)
                  (update-gui traces-table)
@@ -372,11 +370,10 @@
           (define/public (get-threads-to-profile)
             (define thds '())
             (let loop ([cust (get-user-custodian)])
-              (for-each (λ (obj)
-                          (cond
-                            [(custodian? obj) (loop obj)]
-                            [(thread? obj) (set! thds (cons obj thds))]))
-                        (custodian-managed-list cust system-custodian)))
+              (for ([obj (in-list (custodian-managed-list cust system-custodian))])
+                (cond
+                  [(custodian? obj) (loop obj)]
+                  [(thread? obj) (set! thds (cons obj thds))])))
             thds)
 
           ;; FIX
