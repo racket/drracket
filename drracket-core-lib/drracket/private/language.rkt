@@ -233,25 +233,23 @@
            ;; are put into the preferences dialog (which doesn't have an explicit
            ;; close action that the user takes)
            #:something-changed [something-changed void])
-    (letrec ([parent (instantiate vertical-panel% ()
-                       (parent _parent)
-                       (alignment '(center center)))]
+    (letrec ([parent (new vertical-panel% (parent _parent) (alignment '(center center)))]
              
              [input-panel (and (eq? *case-sensitive '?)
-                               (instantiate group-box-panel% ()
-                                 (label (string-constant input-syntax))
+                               (new group-box-panel%
+                                    (label (string-constant input-syntax))
+                                    (parent parent)
+                                    (alignment '(left center))))]
+             
+             [dynamic-panel (new group-box-panel%
+                                 (label (string-constant dynamic-properties))
                                  (parent parent)
-                                 (alignment '(left center))))]
+                                 (alignment '(left center)))]
              
-             [dynamic-panel (instantiate group-box-panel% ()
-                              (label (string-constant dynamic-properties))
-                              (parent parent)
-                              (alignment '(left center)))]
-             
-             [output-panel (instantiate group-box-panel% ()
-                             (label (string-constant output-syntax))
-                             (parent parent)
-                             (alignment '(left center)))]
+             [output-panel (new group-box-panel%
+                                (label (string-constant output-syntax))
+                                (parent parent)
+                                (alignment '(left center)))]
              
              [case-sensitive (and input-panel
                                   (make-object check-box%
@@ -825,44 +823,41 @@
                                                     #f))]
                                      [min-width 400]
                                      [callback void]))
-    (define filename-browse-button (instantiate button% ()
-                                     (label (string-constant browse...))
-                                     (parent filename-panel)
-                                     (callback
-                                      (λ (x y) (browse-callback)))))
-    (define type/base-panel (instantiate vertical-panel% ()
-                              (parent dlg)
-                              (stretchable-width #f)))
+    (define filename-browse-button (new button%
+                                        (label (string-constant browse...))
+                                        (parent filename-panel)
+                                        (callback (λ (x y) (browse-callback)))))
+    (define type/base-panel (new vertical-panel% (parent dlg) (stretchable-width #f)))
     (define type-panel (make-object horizontal-panel% type/base-panel))
     (define type-rb (and (boolean? show-type)
-                         (instantiate radio-box% ()
-                           (label (string-constant executable-type))
-                           (choices (list (string-constant launcher-explanatory-label)
-                                          (string-constant stand-alone-explanatory-label)
-                                          (string-constant distribution-explanatory-label)))
-                           (parent type-panel)
-                           (callback (lambda (rb e)
-                                       (when embed-checkbox
-                                         (send embed-checkbox enable
-                                               (not (equal? 0 (send rb get-selection)))))
-                                       (preferences:set 'drracket:create-executable-gui-type
-                                                        (case (send rb get-selection)
-                                                          [(0) 'launcher]
-                                                          [(1) 'stand-alone]
-                                                          [(2) 'distribution]))
-                                       (reset-filename-suffix))))))
+                         (new radio-box%
+                              (label (string-constant executable-type))
+                              (choices (list (string-constant launcher-explanatory-label)
+                                             (string-constant stand-alone-explanatory-label)
+                                             (string-constant distribution-explanatory-label)))
+                              (parent type-panel)
+                              (callback (lambda (rb e)
+                                          (when embed-checkbox
+                                            (send embed-checkbox enable
+                                                  (not (equal? 0 (send rb get-selection)))))
+                                          (preferences:set 'drracket:create-executable-gui-type
+                                                           (case (send rb get-selection)
+                                                             [(0) 'launcher]
+                                                             [(1) 'stand-alone]
+                                                             [(2) 'distribution]))
+                                          (reset-filename-suffix))))))
     (define base-panel (make-object horizontal-panel% type/base-panel))
     (define base-rb (and (boolean? show-base)
-                         (instantiate radio-box% ()
-                           (label (string-constant executable-base))
-                           (choices (list "Racket" "GRacket"))
-                           (parent base-panel)
-                           (callback (lambda (rb e)
-                                       (preferences:set 'drracket:create-executable-gui-base
-                                                        (case (send rb get-selection)
-                                                          [(0) 'racket]
-                                                          [(1) 'gracket]))
-                                       (reset-filename-suffix))))))
+                         (new radio-box%
+                              (label (string-constant executable-base))
+                              (choices (list "Racket" "GRacket"))
+                              (parent base-panel)
+                              (callback (lambda (rb e)
+                                          (preferences:set 'drracket:create-executable-gui-base
+                                                           (case (send rb get-selection)
+                                                             [(0) 'racket]
+                                                             [(1) 'gracket]))
+                                          (reset-filename-suffix))))))
     
     (define aux-panel (new group-box-panel%
                            [label ""]
