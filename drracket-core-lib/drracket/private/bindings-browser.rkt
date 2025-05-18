@@ -53,23 +53,22 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
       
       (begin (parameterize ([current-output-port output-port]
                             [pretty-print-columns 30])
-               (for-each
-                (λ (binding-pair)
-                  (let* ([stx (car binding-pair)]
-                         [value (cadr binding-pair)])
-                    ; this totally destroys the 'output-port' abstraction.  I don't know
-                    ; how to enrich the notion of an output-port to get 'bold'ing to 
-                    ; work otherwise...
-                    (let* ([before (send output-text last-position)])
-                      (pretty-print (syntax->datum stx))
-                      (let* ([post-newline (send output-text last-position)])
-                        (send output-text delete post-newline) ; delete the trailing \n. yuck!
-                        (send output-text insert " ")
-                        (send output-text change-style 
-                              (make-object style-delta% 'change-bold)
-                              before (- post-newline 1)))
-                      (pretty-print value))))
-                bindings))
+               (for ([binding-pair (in-list bindings)])
+                 (define stx (car binding-pair))
+                 (define value (cadr binding-pair))
+                 ; this totally destroys the 'output-port' abstraction.  I don't know
+                 ; how to enrich the notion of an output-port to get 'bold'ing to
+                 ; work otherwise...
+                 (define before (send output-text last-position))
+                 (pretty-print (syntax->datum stx))
+                 (let* ([post-newline (send output-text last-position)])
+                   (send output-text delete post-newline) ; delete the trailing \n. yuck!
+                   (send output-text insert " ")
+                   (send output-text change-style
+                         (make-object style-delta% 'change-bold)
+                         before
+                         (- post-newline 1)))
+                 (pretty-print value)))
              (send output-text delete (send output-text last-position))  ; delete final trailing \n
              (make-modern output-text))
     
