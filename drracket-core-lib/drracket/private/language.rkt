@@ -428,8 +428,8 @@
       (send rdc set-smoothing 'aligned)
       (send rdc set-clipping-rect 0 0 aw ah)
       (draw-pict pict rdc
-                 (+ (if (< w 0) aw 0) l-pad)
-                 (+ (if (< h 0) ah 0) t-pad))
+                 (+ (if (negative? w) aw 0) l-pad)
+                 (+ (if (negative? h) ah 0) t-pad))
       (define recorded-datum (send rdc get-recorded-datum))
       (new pict-snip:pict-snip% [w aw] [h ah] [d d] [a a] [recorded-datum recorded-datum]))
 
