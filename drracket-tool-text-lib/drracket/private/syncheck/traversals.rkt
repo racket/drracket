@@ -48,76 +48,81 @@
           (λ (sexp [ignored void])
             (parameterize ([current-directory (or user-directory (current-directory))]
                            [current-load-relative-directory user-directory])
-              (let ([is-module? (syntax-case sexp (module)
-                                  [(module . rest) #t]
-                                  [_ #f])])
-                (cond
-                  [is-module?
-                   (let ([phase-to-binders (make-hash)]
-                         [phase-to-varrefs (make-hash)]
-                         [phase-to-varsets (make-hash)]
-                         [phase-to-tops (make-hash)]
-                         [phase-to-requires (make-hash)]
-                         [binding-inits (make-hash)]
-                         [templrefs (make-id-set 0)]
-                         [module-lang-requires (make-hash)]
-                         [requires (make-hash)]
-                         [require-for-syntaxes (make-hash)]
-                         [require-for-templates (make-hash)]
-                         [require-for-labels (make-hash)]
-                         [sub-identifier-binding-directives (make-hash)])
-                     (annotate-basic sexp
-                                     user-namespace user-directory
-                                     phase-to-binders
-                                     phase-to-varrefs
-                                     phase-to-varsets
-                                     phase-to-tops
-                                     binding-inits
-                                     templrefs
-                                     module-lang-requires
-                                     phase-to-requires
-                                     sub-identifier-binding-directives)
-                     (annotate-variables user-namespace
-                                         user-directory
-                                         phase-to-binders
-                                         phase-to-varrefs
-                                         phase-to-varsets
-                                         phase-to-tops
-                                         templrefs
-                                         module-lang-requires
-                                         phase-to-requires
-                                         sub-identifier-binding-directives)
-                     (annotate-contracts sexp
-                                         (hash-ref phase-to-binders 0 (λ () (make-id-set 0)))
-                                         (hash-ref binding-inits 0 (λ () (make-id-set 0)))
-                                         binder+mods-binder)
-                     (when print-extra-info?
-                       (print-extra-info (list (list 'phase-to-binders phase-to-binders)
-                                               (list 'phase-to-varrefs phase-to-varrefs)
-                                               (list 'phase-to-varsets phase-to-varsets)
-                                               (list 'phase-to-tops phase-to-tops)
-                                               (list 'phase-to-requires phase-to-requires)
-                                               (list 'binding-inits binding-inits)
-                                               (list 'templrefs templrefs)
-                                               (list 'module-lang-requires module-lang-requires)
-                                               (list 'requires requires)
-                                               (list 'require-for-syntaxes require-for-syntaxes)
-                                               (list 'require-for-templates require-for-templates)
-                                               (list 'require-for-labels require-for-labels)
-                                               (list 'sub-identifier-binding-directives
-                                                     sub-identifier-binding-directives)))))]
-                  [else
+              (define is-module?
+                (syntax-case sexp (module)
+                  [(module . rest
+                     )
+                   #t]
+                  [_ #f]))
+              (cond
+                [is-module?
+                 (let ([phase-to-binders (make-hash)]
+                       [phase-to-varrefs (make-hash)]
+                       [phase-to-varsets (make-hash)]
+                       [phase-to-tops (make-hash)]
+                       [phase-to-requires (make-hash)]
+                       [binding-inits (make-hash)]
+                       [templrefs (make-id-set 0)]
+                       [module-lang-requires (make-hash)]
+                       [requires (make-hash)]
+                       [require-for-syntaxes (make-hash)]
+                       [require-for-templates (make-hash)]
+                       [require-for-labels (make-hash)]
+                       [sub-identifier-binding-directives (make-hash)])
                    (annotate-basic sexp
-                                   user-namespace user-directory
-                                   tl-phase-to-binders
-                                   tl-phase-to-varrefs
-                                   tl-phase-to-varsets
-                                   tl-phase-to-tops
-                                   tl-binding-inits
-                                   tl-templrefs
-                                   tl-module-lang-requires
-                                   tl-phase-to-requires
-                                   tl-sub-identifier-binding-directives)]))))]
+                                   user-namespace
+                                   user-directory
+                                   phase-to-binders
+                                   phase-to-varrefs
+                                   phase-to-varsets
+                                   phase-to-tops
+                                   binding-inits
+                                   templrefs
+                                   module-lang-requires
+                                   phase-to-requires
+                                   sub-identifier-binding-directives)
+                   (annotate-variables user-namespace
+                                       user-directory
+                                       phase-to-binders
+                                       phase-to-varrefs
+                                       phase-to-varsets
+                                       phase-to-tops
+                                       templrefs
+                                       module-lang-requires
+                                       phase-to-requires
+                                       sub-identifier-binding-directives)
+                   (annotate-contracts sexp
+                                       (hash-ref phase-to-binders 0 (λ () (make-id-set 0)))
+                                       (hash-ref binding-inits 0 (λ () (make-id-set 0)))
+                                       binder+mods-binder)
+                   (when print-extra-info?
+                     (print-extra-info (list (list 'phase-to-binders phase-to-binders)
+                                             (list 'phase-to-varrefs phase-to-varrefs)
+                                             (list 'phase-to-varsets phase-to-varsets)
+                                             (list 'phase-to-tops phase-to-tops)
+                                             (list 'phase-to-requires phase-to-requires)
+                                             (list 'binding-inits binding-inits)
+                                             (list 'templrefs templrefs)
+                                             (list 'module-lang-requires module-lang-requires)
+                                             (list 'requires requires)
+                                             (list 'require-for-syntaxes require-for-syntaxes)
+                                             (list 'require-for-templates require-for-templates)
+                                             (list 'require-for-labels require-for-labels)
+                                             (list 'sub-identifier-binding-directives
+                                                   sub-identifier-binding-directives)))))]
+                [else
+                 (annotate-basic sexp
+                                 user-namespace
+                                 user-directory
+                                 tl-phase-to-binders
+                                 tl-phase-to-varrefs
+                                 tl-phase-to-varsets
+                                 tl-phase-to-tops
+                                 tl-binding-inits
+                                 tl-templrefs
+                                 tl-module-lang-requires
+                                 tl-phase-to-requires
+                                 tl-sub-identifier-binding-directives)])))]
          [expansion-completed
           (λ ()
             (parameterize ([current-directory (or user-directory (current-directory))]
@@ -707,32 +712,41 @@
 ;; add-disappeared-bindings : syntax id-set integer -> void
 (define (add-disappeared-bindings stx binders sub-identifier-binding-directives disappeared-uses
                                   level level-of-enclosing-module mods)
-  (let ([prop (syntax-property stx 'disappeared-binding)])
-    (when prop
-      (let loop ([prop prop])
-        (cond
-          [(pair? prop)
-           (loop (car prop))
-           (loop (cdr prop))]
-          [(identifier? prop)
-           (add-origins prop disappeared-uses level-of-enclosing-module)
-           (add-binders prop binders #f #f level level-of-enclosing-module
-                        sub-identifier-binding-directives mods)])))))
+  (define prop (syntax-property stx 'disappeared-binding))
+  (when prop
+    (let loop ([prop prop])
+      (cond
+        [(pair? prop)
+         (loop (car prop))
+         (loop (cdr prop))]
+        [(identifier? prop)
+         (add-origins prop disappeared-uses level-of-enclosing-module)
+         (add-binders prop
+                      binders
+                      #f
+                      #f
+                      level
+                      level-of-enclosing-module
+                      sub-identifier-binding-directives
+                      mods)]))))
 
 ;; add-disappeared-uses : syntax id-set integer -> void
 (define (add-disappeared-uses stx id-set sub-identifier-binding-directives
                               level level-of-enclosing-module mods)
-  (let ([prop (syntax-property stx 'disappeared-use)])
-    (when prop
-      (let loop ([prop prop])
-        (cond
-          [(pair? prop)
-           (loop (car prop))
-           (loop (cdr prop))]
-          [(identifier? prop)
-           (add-sub-range-binders prop sub-identifier-binding-directives
-                                  level level-of-enclosing-module mods)
-           (add-id id-set prop level-of-enclosing-module)])))))
+  (define prop (syntax-property stx 'disappeared-use))
+  (when prop
+    (let loop ([prop prop])
+      (cond
+        [(pair? prop)
+         (loop (car prop))
+         (loop (cdr prop))]
+        [(identifier? prop)
+         (add-sub-range-binders prop
+                                sub-identifier-binding-directives
+                                level
+                                level-of-enclosing-module
+                                mods)
+         (add-id id-set prop level-of-enclosing-module)]))))
 
 ;; annotate-variables : namespace directory string id-set[four of them]
 ;;                      (listof syntax) (listof syntax)
@@ -899,8 +913,8 @@
   (color-range source start end unused-require-style-name))
 
 (define (self-module? mpi)
-  (let-values ([(a b) (module-path-index-split mpi)])
-    (and (not a) (not b))))
+  (define-values (a b) (module-path-index-split mpi))
+  (and (not a) (not b)))
 
 ;; connect-identifier : syntax
 ;;                      (or/c #f (listof symbol)) -- name of enclosing sub-modules
@@ -1091,20 +1105,28 @@
 ;; color/connect-top : namespace directory id-set syntax connections[see defn for ctc] -> void
 (define (color/connect-top user-namespace user-directory binders var connections
                            module-lang-requires)
-  (let ([top-bound?
-         (or (get-ids binders var)
-             (parameterize ([current-namespace user-namespace])
-               (let/ec k
-                 (namespace-variable-value (syntax-e var) #t (λ () (k #f)))
-                 #t)))])
-    (cond
-      [top-bound?
-       (color var lexically-bound-variable-style-name)]
-      [else
-       (add-mouse-over var (format "~s is a free variable" (syntax-e var)))
-       (color var free-variable-style-name)])
-    (connect-identifier var #f binders #f #f 0 user-namespace user-directory #t connections
-                        module-lang-requires)))
+  (define top-bound?
+    (or (get-ids binders var)
+        (parameterize ([current-namespace user-namespace])
+          (let/ec k
+            (namespace-variable-value (syntax-e var) #t (λ () (k #f)))
+            #t))))
+  (cond
+    [top-bound? (color var lexically-bound-variable-style-name)]
+    [else
+     (add-mouse-over var (format "~s is a free variable" (syntax-e var)))
+     (color var free-variable-style-name)])
+  (connect-identifier var
+                      #f
+                      binders
+                      #f
+                      #f
+                      0
+                      user-namespace
+                      user-directory
+                      #t
+                      connections
+                      module-lang-requires))
 
 ;; annotate-counts : connections[see defn] -> void
 ;; this function doesn't try to show the number of uses at
@@ -1268,22 +1290,19 @@
 ;; popup menu in this area allows the programmer to jump
 ;; to the definition of the id.
 (define (add-jump-to-definition stx id filename submods phase-level+space)
-  (let ([source (find-source-editor stx)]
-        [defs-text (current-annotations)])
-    (when (and source
-               defs-text
-               (syntax-position stx)
-               (syntax-span stx))
-      (let* ([pos-left (- (syntax-position stx) 1)]
-             [pos-right (+ pos-left (syntax-span stx))])
-        (send defs-text syncheck:add-jump-to-definition/phase-level+space
-              source
-              pos-left
-              pos-right
-              id
-              filename
-              submods
-              phase-level+space)))))
+  (define source (find-source-editor stx))
+  (define defs-text (current-annotations))
+  (when (and source defs-text (syntax-position stx) (syntax-span stx))
+    (let* ([pos-left (- (syntax-position stx) 1)]
+           [pos-right (+ pos-left (syntax-span stx))])
+      (send defs-text syncheck:add-jump-to-definition/phase-level+space
+            source
+            pos-left
+            pos-right
+            id
+            filename
+            submods
+            phase-level+space))))
 
 ;; annotate-require-open : namespace string -> (stx -> void)
 ;; relies on current-module-name-resolver, which in turn depends on
