@@ -218,7 +218,7 @@
   (let loop ([val (syntax-property stx prop)])
     (cond
       [(symbol? val)
-       (hash-set! map val (cons stx (hash-ref map val '())))]
+       (hash-update! map val (λ (v) (cons stx v)) '())]
       [(pair? val)
        (loop (car val))
        (loop (cdr val))])))
@@ -261,11 +261,7 @@
   (make-a-coloring-plan stx unk-obligation-style-name coloring-plans))
 
 (define (make-a-coloring-plan stx plan coloring-plans)
-  (hash-set! coloring-plans
-             stx
-             (cons 
-              plan
-              (hash-ref coloring-plans stx '()))))
+  (hash-update! coloring-plans stx (λ (v) (cons plan v)) '()))
 
 (module+ test
   (let ()
