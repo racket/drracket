@@ -30,8 +30,7 @@
                     (define vec (sync evt))
                     (define str (vector-ref vec 1))
                     (when (regexp-match #rx"^cm: *compil(ing|ed)" str)
-                      (display str)
-                      (newline))
+                      (displayln str))
                     (loop))))))
 
 (cond
