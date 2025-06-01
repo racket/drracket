@@ -804,11 +804,11 @@
                    ; break-after
                    (case-lambda
                      [(top-mark ccm val)
-                      (let* ([debug-marks (continuation-mark-set->list ccm debug-key)])
-                        (car (send (get-tab) suspend
-                                   oeh
-                                   (cons top-mark debug-marks)
-                                   (list 'exit-break val))))]
+                      (define debug-marks (continuation-mark-set->list ccm debug-key))
+                      (car (send (get-tab) suspend
+                                 oeh
+                                 (cons top-mark debug-marks)
+                                 (list 'exit-break val)))]
                      [(top-mark ccm . vals)
                       (define debug-marks (continuation-mark-set->list ccm debug-key))
                       (apply values
@@ -1237,37 +1237,37 @@
           (send variables-text end-edit-sequence))
         
         (define/public (register-stack-frames frames already-stopped?)
-          (let* ([trimmed-exprs
-                  (map (lambda (frame)
-                         (let ([expr (mark-source frame)])
-                           (cond
-                             ; should succeed unless the user closes a secondary tab during debugging
-                             [(and expr (filename->defs (syntax-source expr)))
-                              => (lambda (defs)
-                                   (trim-expr-str
-                                    (if (syntax-position expr)
-                                        (send defs get-text
-                                              (sub1 (syntax-position expr))
-                                              (+ -1 (syntax-position expr) (syntax-span expr)))
-                                        "??")
-                                    15))]
-                             ["??"])))
-                       frames)]
-                 [trimmed-lengths (map add1 (map string-length trimmed-exprs))]
-                 [positions (foldl + 0 trimmed-lengths)])
-            (send stack-frames begin-edit-sequence)
-            (send stack-frames lock #f)
-            (unless already-stopped?
-              (send stack-frames delete 0 (send stack-frames last-position))
-              (for-each (lambda (trimmed-expr)
-                          (send stack-frames insert (format "~a\n" trimmed-expr)))
-                        trimmed-exprs))
-            (send stack-frames change-style normal-sd 0 (send stack-frames last-position))
-            (send stack-frames change-style bold-sd
-                  (send stack-frames paragraph-start-position (send (get-current-tab) get-frame-num))
-                  (send stack-frames paragraph-end-position (send (get-current-tab) get-frame-num)))
-            (send stack-frames lock #t)
-            (send stack-frames end-edit-sequence)))
+          (define trimmed-exprs
+            (map (lambda (frame)
+                   (let ([expr (mark-source frame)])
+                     (cond
+                       ; should succeed unless the user closes a secondary tab during debugging
+                       [(and expr (filename->defs (syntax-source expr)))
+                        =>
+                        (lambda (defs)
+                          (trim-expr-str (if (syntax-position expr)
+                                             (send defs get-text
+                                                   (sub1 (syntax-position expr))
+                                                   (+ -1 (syntax-position expr) (syntax-span expr)))
+                                             "??")
+                                         15))]
+                       ["??"])))
+                 frames))
+          (define trimmed-lengths (map add1 (map string-length trimmed-exprs)))
+          (foldl + 0 trimmed-lengths)
+          (send stack-frames begin-edit-sequence)
+          (send stack-frames lock #f)
+          (unless already-stopped?
+            (send stack-frames delete 0 (send stack-frames last-position))
+            (for-each (lambda (trimmed-expr) (send stack-frames insert (format "~a\n" trimmed-expr)))
+                      trimmed-exprs))
+          (send stack-frames change-style normal-sd 0 (send stack-frames last-position))
+          (send stack-frames change-style
+                bold-sd
+                (send stack-frames paragraph-start-position (send (get-current-tab) get-frame-num))
+                (send stack-frames paragraph-end-position (send (get-current-tab) get-frame-num)))
+          (send stack-frames lock #t)
+          (send stack-frames end-edit-sequence))
         
         (define/public (clear-stack-frames/vars)
           (send stack-frames begin-edit-sequence)
@@ -1561,19 +1561,24 @@
           (inner (void) on-tab-change old new))
         
         (define/public (check-current-language-for-debugger)
-          (let* ([settings (send (get-definitions-text) get-next-settings)]
-                 [lang (drscheme:language-configuration:language-settings-language settings)]
-                 [visible? (and (send lang capability-value 'gui-debugger:debug-button)
-                                (not (is-a? lang drscheme:module-language:module-language<%>)) ;; the opt-out button handles this language
-                                (not (debugger-does-not-work-for?
-                                      (extract-language-level settings))))])
-            (define debug-parent (send debug-button get-parent))
-            (define debug-button-currently-visible? (member debug-button (send debug-parent get-children)))
-            (if visible?
-                (unless debug-button-currently-visible?
-                  (send debug-parent add-child debug-button))
-                (when debug-button-currently-visible?
-                  (send debug-parent delete-child debug-button)))))
+          (define settings (send (get-definitions-text) get-next-settings))
+          (define lang (drscheme:language-configuration:language-settings-language settings))
+          (define visible?
+            (and
+             (send lang capability-value 'gui-debugger:debug-button)
+             (not
+              (is-a?
+               lang
+               drscheme:module-language:module-language<%>)) ;; the opt-out button handles this language
+             (not (debugger-does-not-work-for? (extract-language-level settings)))))
+          (define debug-parent (send debug-button get-parent))
+          (define debug-button-currently-visible?
+            (member debug-button (send debug-parent get-children)))
+          (if visible?
+              (unless debug-button-currently-visible?
+                (send debug-parent add-child debug-button))
+              (when debug-button-currently-visible?
+                (send debug-parent delete-child debug-button))))
         
         (send (get-button-panel) change-children
               (lambda (children)

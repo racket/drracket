@@ -48,76 +48,81 @@
           (λ (sexp [ignored void])
             (parameterize ([current-directory (or user-directory (current-directory))]
                            [current-load-relative-directory user-directory])
-              (let ([is-module? (syntax-case sexp (module)
-                                  [(module . rest) #t]
-                                  [_ #f])])
-                (cond
-                  [is-module?
-                   (let ([phase-to-binders (make-hash)]
-                         [phase-to-varrefs (make-hash)]
-                         [phase-to-varsets (make-hash)]
-                         [phase-to-tops (make-hash)]
-                         [phase-to-requires (make-hash)]
-                         [binding-inits (make-hash)]
-                         [templrefs (make-id-set 0)]
-                         [module-lang-requires (make-hash)]
-                         [requires (make-hash)]
-                         [require-for-syntaxes (make-hash)]
-                         [require-for-templates (make-hash)]
-                         [require-for-labels (make-hash)]
-                         [sub-identifier-binding-directives (make-hash)])
-                     (annotate-basic sexp
-                                     user-namespace user-directory
-                                     phase-to-binders
-                                     phase-to-varrefs
-                                     phase-to-varsets
-                                     phase-to-tops
-                                     binding-inits
-                                     templrefs
-                                     module-lang-requires
-                                     phase-to-requires
-                                     sub-identifier-binding-directives)
-                     (annotate-variables user-namespace
-                                         user-directory
-                                         phase-to-binders
-                                         phase-to-varrefs
-                                         phase-to-varsets
-                                         phase-to-tops
-                                         templrefs
-                                         module-lang-requires
-                                         phase-to-requires
-                                         sub-identifier-binding-directives)
-                     (annotate-contracts sexp
-                                         (hash-ref phase-to-binders 0 (λ () (make-id-set 0)))
-                                         (hash-ref binding-inits 0 (λ () (make-id-set 0)))
-                                         binder+mods-binder)
-                     (when print-extra-info?
-                       (print-extra-info (list (list 'phase-to-binders phase-to-binders)
-                                               (list 'phase-to-varrefs phase-to-varrefs)
-                                               (list 'phase-to-varsets phase-to-varsets)
-                                               (list 'phase-to-tops phase-to-tops)
-                                               (list 'phase-to-requires phase-to-requires)
-                                               (list 'binding-inits binding-inits)
-                                               (list 'templrefs templrefs)
-                                               (list 'module-lang-requires module-lang-requires)
-                                               (list 'requires requires)
-                                               (list 'require-for-syntaxes require-for-syntaxes)
-                                               (list 'require-for-templates require-for-templates)
-                                               (list 'require-for-labels require-for-labels)
-                                               (list 'sub-identifier-binding-directives
-                                                     sub-identifier-binding-directives)))))]
-                  [else
+              (define is-module?
+                (syntax-case sexp (module)
+                  [(module . rest
+                     )
+                   #t]
+                  [_ #f]))
+              (cond
+                [is-module?
+                 (let ([phase-to-binders (make-hash)]
+                       [phase-to-varrefs (make-hash)]
+                       [phase-to-varsets (make-hash)]
+                       [phase-to-tops (make-hash)]
+                       [phase-to-requires (make-hash)]
+                       [binding-inits (make-hash)]
+                       [templrefs (make-id-set 0)]
+                       [module-lang-requires (make-hash)]
+                       [requires (make-hash)]
+                       [require-for-syntaxes (make-hash)]
+                       [require-for-templates (make-hash)]
+                       [require-for-labels (make-hash)]
+                       [sub-identifier-binding-directives (make-hash)])
                    (annotate-basic sexp
-                                   user-namespace user-directory
-                                   tl-phase-to-binders
-                                   tl-phase-to-varrefs
-                                   tl-phase-to-varsets
-                                   tl-phase-to-tops
-                                   tl-binding-inits
-                                   tl-templrefs
-                                   tl-module-lang-requires
-                                   tl-phase-to-requires
-                                   tl-sub-identifier-binding-directives)]))))]
+                                   user-namespace
+                                   user-directory
+                                   phase-to-binders
+                                   phase-to-varrefs
+                                   phase-to-varsets
+                                   phase-to-tops
+                                   binding-inits
+                                   templrefs
+                                   module-lang-requires
+                                   phase-to-requires
+                                   sub-identifier-binding-directives)
+                   (annotate-variables user-namespace
+                                       user-directory
+                                       phase-to-binders
+                                       phase-to-varrefs
+                                       phase-to-varsets
+                                       phase-to-tops
+                                       templrefs
+                                       module-lang-requires
+                                       phase-to-requires
+                                       sub-identifier-binding-directives)
+                   (annotate-contracts sexp
+                                       (hash-ref phase-to-binders 0 (λ () (make-id-set 0)))
+                                       (hash-ref binding-inits 0 (λ () (make-id-set 0)))
+                                       binder+mods-binder)
+                   (when print-extra-info?
+                     (print-extra-info (list (list 'phase-to-binders phase-to-binders)
+                                             (list 'phase-to-varrefs phase-to-varrefs)
+                                             (list 'phase-to-varsets phase-to-varsets)
+                                             (list 'phase-to-tops phase-to-tops)
+                                             (list 'phase-to-requires phase-to-requires)
+                                             (list 'binding-inits binding-inits)
+                                             (list 'templrefs templrefs)
+                                             (list 'module-lang-requires module-lang-requires)
+                                             (list 'requires requires)
+                                             (list 'require-for-syntaxes require-for-syntaxes)
+                                             (list 'require-for-templates require-for-templates)
+                                             (list 'require-for-labels require-for-labels)
+                                             (list 'sub-identifier-binding-directives
+                                                   sub-identifier-binding-directives)))))]
+                [else
+                 (annotate-basic sexp
+                                 user-namespace
+                                 user-directory
+                                 tl-phase-to-binders
+                                 tl-phase-to-varrefs
+                                 tl-phase-to-varsets
+                                 tl-phase-to-tops
+                                 tl-binding-inits
+                                 tl-templrefs
+                                 tl-module-lang-requires
+                                 tl-phase-to-requires
+                                 tl-sub-identifier-binding-directives)])))]
          [expansion-completed
           (λ ()
             (parameterize ([current-directory (or user-directory (current-directory))]
