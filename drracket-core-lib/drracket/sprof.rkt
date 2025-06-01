@@ -138,12 +138,11 @@
       (set! clear-old-pr void)
       (define denom-ht (make-hasheq))
       (define filtered-gui-display-data
-        (map (λ (pr)
-               (let ([id (car pr)]
-                     [stacks (filter-stacks (cdr pr))])
-                 (for-each (λ (stack) (hash-set! denom-ht stack #t)) stacks)
-                 (cons id stacks)))
-             gui-display-data))
+        (for/list ([pr (in-list gui-display-data)])
+          (define id (car pr))
+          (define stacks (filter-stacks (cdr pr)))
+          (for-each (λ (stack) (hash-set! denom-ht stack #t)) stacks)
+          (cons id stacks)))
       (define denom-count (hash-count denom-ht))
       (let loop ([prs filtered-gui-display-data]
                  [first? #t]
