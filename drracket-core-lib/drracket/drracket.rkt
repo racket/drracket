@@ -36,22 +36,20 @@
 (cond
   [debugging?
    (flprintf "PLTDRDEBUG: loading CM to load/create errortrace zos\n")
-   (let-values ([(zo-compile
-                  make-compilation-manager-load/use-compiled-handler)
-                 (parameterize ([current-namespace (make-base-empty-namespace)]
-                                [use-compiled-file-paths '()])
-                   (values
-                    (dynamic-require 'errortrace/zo-compile 'zo-compile)
-                    (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler)))])
-     (flprintf "PLTDRDEBUG: installing CM to load/create errortrace zos\n")
-     (current-compile zo-compile)
-     (use-compiled-file-paths (list (build-path compiled-dir "errortrace")))
-     (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
-     (error-display-handler (dynamic-require 'errortrace/errortrace-lib
-                                             'errortrace-error-display-handler))
-     (when cm-trace?
-       (flprintf "PLTDRDEBUG: enabling CM tracing\n")
-       (run-trace-thread)))]
+   (define-values (zo-compile make-compilation-manager-load/use-compiled-handler)
+     (parameterize ([current-namespace (make-base-empty-namespace)]
+                    [use-compiled-file-paths '()])
+       (values (dynamic-require 'errortrace/zo-compile 'zo-compile)
+               (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler))))
+   (flprintf "PLTDRDEBUG: installing CM to load/create errortrace zos\n")
+   (current-compile zo-compile)
+   (use-compiled-file-paths (list (build-path compiled-dir "errortrace")))
+   (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
+   (error-display-handler (dynamic-require 'errortrace/errortrace-lib
+                                           'errortrace-error-display-handler))
+   (when cm-trace?
+     (flprintf "PLTDRDEBUG: enabling CM tracing\n")
+     (run-trace-thread))]
   [install-cm?
    (flprintf "PLTDRCM: loading compilation manager\n")
    (define make-compilation-manager-load/use-compiled-handler
