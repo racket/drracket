@@ -191,18 +191,16 @@
             (begin-edit-sequence)
             (define breakpoints (send (get-tab) get-breakpoints))
             (define shifts empty)
-            (hash-for-each
-             breakpoints
-             (lambda (pos status)
-               (cond
-                 ; deletion after breakpoint: no effect
-                 [(<= pos start)]
-                 ; deletion of breakpoint: remove from table
-                 [(and (< start pos) (<= pos (+ start len))) (hash-remove! breakpoints pos)]
-                 ; deletion before breakpoint: shift breakpoint
-                 [(> pos (+ start len))
-                  (hash-remove! breakpoints pos)
-                  (set! shifts (cons (cons (- pos len) status) shifts))])))
+            (for ([(pos status) (in-hash breakpoints)])
+              (cond
+                ; deletion after breakpoint: no effect
+                [(<= pos start)]
+                ; deletion of breakpoint: remove from table
+                [(and (< start pos) (<= pos (+ start len))) (hash-remove! breakpoints pos)]
+                ; deletion before breakpoint: shift breakpoint
+                [(> pos (+ start len))
+                 (hash-remove! breakpoints pos)
+                 (set! shifts (cons (cons (- pos len) status) shifts))]))
             (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p))) shifts))
           (inner (void) on-delete start len))
         
@@ -219,13 +217,12 @@
             (begin-edit-sequence)
             (define breakpoints (send (get-tab) get-breakpoints))
             (define shifts empty)
-            (hash-for-each breakpoints
-                           (lambda (pos status)
-                             (when (< start pos)
-                               ;; text inserted before this breakpoint, so shift
-                               ;; the breakpoint forward by <len> positions
-                               (hash-remove! breakpoints pos)
-                               (set! shifts (cons (cons (+ pos len) status) shifts)))))
+            (for ([(pos status) (in-hash breakpoints)])
+              (when (< start pos)
+                ;; text inserted before this breakpoint, so shift
+                ;; the breakpoint forward by <len> positions
+                (hash-remove! breakpoints pos)
+                (set! shifts (cons (cons (+ pos len) status) shifts))))
             ;; update the breakpoint locations
             (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p))) shifts)))
         
@@ -489,28 +486,26 @@
           (when (and (send (get-tab) debug?) (not before))
             ;; render breakpoints
             (let ([breakpoints (send (get-tab) get-breakpoints)])
-              (hash-for-each
-               breakpoints
-               (lambda (pos enabled?)
-                 (when (and (>= pos 0) (or enabled? (and mouse-over-pos (= mouse-over-pos pos))))
-                   (define-values (xl yl xr yr) (find-char-box this pos))
-                   (define diameter (- xr xl))
-                   (define yoff (/ (- yr yl diameter) 2))
-                   (define op (send dc get-pen))
-                   (define ob (send dc get-brush))
-                   (case enabled?
-                     [(#t)
-                      (send dc set-pen bp-pen)
-                      (send dc set-brush bp-brush)]
-                     [(#f)
-                      (send dc set-pen bp-mo-pen)
-                      (send dc set-brush bp-mo-brush)]
-                     [else
-                      (send dc set-pen bp-tmp-pen)
-                      (send dc set-brush bp-tmp-brush)])
-                   (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
-                   (send dc set-pen op)
-                   (send dc set-brush ob)))))
+              (for ([(pos enabled?) (in-hash breakpoints)])
+                (when (and (>= pos 0) (or enabled? (and mouse-over-pos (= mouse-over-pos pos))))
+                  (define-values (xl yl xr yr) (find-char-box this pos))
+                  (define diameter (- xr xl))
+                  (define yoff (/ (- yr yl diameter) 2))
+                  (define op (send dc get-pen))
+                  (define ob (send dc get-brush))
+                  (case enabled?
+                    [(#t)
+                     (send dc set-pen bp-pen)
+                     (send dc set-brush bp-brush)]
+                    [(#f)
+                     (send dc set-pen bp-mo-pen)
+                     (send dc set-brush bp-mo-brush)]
+                    [else
+                     (send dc set-pen bp-tmp-pen)
+                     (send dc set-brush bp-tmp-brush)])
+                  (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
+                  (send dc set-pen op)
+                  (send dc set-brush ob))))
             ;; mark the boundaries of the current stack frame
             ;; unless we're at the end of the expression and looking at the top frame,
             ;; in which case just mark the current location
@@ -804,11 +799,11 @@
                    ; break-after
                    (case-lambda
                      [(top-mark ccm val)
-                      (let* ([debug-marks (continuation-mark-set->list ccm debug-key)])
-                        (car (send (get-tab) suspend
-                                   oeh
-                                   (cons top-mark debug-marks)
-                                   (list 'exit-break val))))]
+                      (define debug-marks (continuation-mark-set->list ccm debug-key))
+                      (car (send (get-tab) suspend
+                                 oeh
+                                 (cons top-mark debug-marks)
+                                 (list 'exit-break val)))]
                      [(top-mark ccm . vals)
                       (define debug-marks (continuation-mark-set->list ccm debug-key))
                       (apply values
@@ -818,15 +813,16 @@
                                    (cons 'exit-break vals)))])))
                  (uncaught-exception-handler
                   (lambda (exn)
-                    (if (and (exn:break? exn) (send (get-tab) suspend-on-break?))
-                        (let ([marks (exn-continuation-marks exn)]
-                              [cont (exn:break-continuation exn)])
-                          (send (get-tab) suspend
-                                oeh
-                                (continuation-mark-set->list marks debug-key)
-                                'break)
-                          (cont))
-                        (oeh exn)))))))))))
+                    (cond
+                      [(and (exn:break? exn) (send (get-tab) suspend-on-break?))
+                       (define marks (exn-continuation-marks exn))
+                       (define cont (exn:break-continuation exn))
+                       (send (get-tab) suspend
+                             oeh
+                             (continuation-mark-set->list marks debug-key)
+                             'break)
+                       (cont)]
+                      [else (oeh exn)]))))))))))
     
     (define (debug-tab-mixin super%)
       (class super%
@@ -1237,37 +1233,35 @@
           (send variables-text end-edit-sequence))
         
         (define/public (register-stack-frames frames already-stopped?)
-          (let* ([trimmed-exprs
-                  (map (lambda (frame)
-                         (let ([expr (mark-source frame)])
-                           (cond
-                             ; should succeed unless the user closes a secondary tab during debugging
-                             [(and expr (filename->defs (syntax-source expr)))
-                              => (lambda (defs)
-                                   (trim-expr-str
-                                    (if (syntax-position expr)
-                                        (send defs get-text
-                                              (sub1 (syntax-position expr))
-                                              (+ -1 (syntax-position expr) (syntax-span expr)))
-                                        "??")
-                                    15))]
-                             ["??"])))
-                       frames)]
-                 [trimmed-lengths (map add1 (map string-length trimmed-exprs))]
-                 [positions (foldl + 0 trimmed-lengths)])
-            (send stack-frames begin-edit-sequence)
-            (send stack-frames lock #f)
-            (unless already-stopped?
-              (send stack-frames delete 0 (send stack-frames last-position))
-              (for-each (lambda (trimmed-expr)
-                          (send stack-frames insert (format "~a\n" trimmed-expr)))
-                        trimmed-exprs))
-            (send stack-frames change-style normal-sd 0 (send stack-frames last-position))
-            (send stack-frames change-style bold-sd
-                  (send stack-frames paragraph-start-position (send (get-current-tab) get-frame-num))
-                  (send stack-frames paragraph-end-position (send (get-current-tab) get-frame-num)))
-            (send stack-frames lock #t)
-            (send stack-frames end-edit-sequence)))
+          (define trimmed-exprs
+            (map (lambda (frame)
+                   (let ([expr (mark-source frame)])
+                     (cond
+                       ; should succeed unless the user closes a secondary tab during debugging
+                       [(and expr (filename->defs (syntax-source expr)))
+                        =>
+                        (lambda (defs)
+                          (trim-expr-str (if (syntax-position expr)
+                                             (send defs get-text
+                                                   (sub1 (syntax-position expr))
+                                                   (+ -1 (syntax-position expr) (syntax-span expr)))
+                                             "??")
+                                         15))]
+                       ["??"])))
+                 frames))
+          (send stack-frames begin-edit-sequence)
+          (send stack-frames lock #f)
+          (unless already-stopped?
+            (send stack-frames delete 0 (send stack-frames last-position))
+            (for-each (lambda (trimmed-expr) (send stack-frames insert (format "~a\n" trimmed-expr)))
+                      trimmed-exprs))
+          (send stack-frames change-style normal-sd 0 (send stack-frames last-position))
+          (send stack-frames change-style
+                bold-sd
+                (send stack-frames paragraph-start-position (send (get-current-tab) get-frame-num))
+                (send stack-frames paragraph-end-position (send (get-current-tab) get-frame-num)))
+          (send stack-frames lock #t)
+          (send stack-frames end-edit-sequence))
         
         (define/public (clear-stack-frames/vars)
           (send stack-frames begin-edit-sequence)
@@ -1551,29 +1545,35 @@
         
         (define/augment (on-tab-change old new)
           (check-current-language-for-debugger)
-          (if (send new debug?)
-              (let ([status (send new get-break-status)])
-                (if status
-                    (send new suspend-gui (send new get-stack-frames) status #f #t)
-                    (send new resume-gui))
-                (show-debug))
-              (hide-debug))
+          (cond
+            [(send new debug?)
+             (define status (send new get-break-status))
+             (if status
+                 (send new suspend-gui (send new get-stack-frames) status #f #t)
+                 (send new resume-gui))
+             (show-debug)]
+            [else (hide-debug)])
           (inner (void) on-tab-change old new))
         
         (define/public (check-current-language-for-debugger)
-          (let* ([settings (send (get-definitions-text) get-next-settings)]
-                 [lang (drscheme:language-configuration:language-settings-language settings)]
-                 [visible? (and (send lang capability-value 'gui-debugger:debug-button)
-                                (not (is-a? lang drscheme:module-language:module-language<%>)) ;; the opt-out button handles this language
-                                (not (debugger-does-not-work-for?
-                                      (extract-language-level settings))))])
-            (define debug-parent (send debug-button get-parent))
-            (define debug-button-currently-visible? (member debug-button (send debug-parent get-children)))
-            (if visible?
-                (unless debug-button-currently-visible?
-                  (send debug-parent add-child debug-button))
-                (when debug-button-currently-visible?
-                  (send debug-parent delete-child debug-button)))))
+          (define settings (send (get-definitions-text) get-next-settings))
+          (define lang (drscheme:language-configuration:language-settings-language settings))
+          (define visible?
+            (and
+             (send lang capability-value 'gui-debugger:debug-button)
+             (not
+              (is-a?
+               lang
+               drscheme:module-language:module-language<%>)) ;; the opt-out button handles this language
+             (not (debugger-does-not-work-for? (extract-language-level settings)))))
+          (define debug-parent (send debug-button get-parent))
+          (define debug-button-currently-visible?
+            (member debug-button (send debug-parent get-children)))
+          (if visible?
+              (unless debug-button-currently-visible?
+                (send debug-parent add-child debug-button))
+              (when debug-button-currently-visible?
+                (send debug-parent delete-child debug-button))))
         
         (send (get-button-panel) change-children
               (lambda (children)
@@ -1582,7 +1582,7 @@
         
         ; hide debug button if it's not supported for the initial language:
         (check-current-language-for-debugger)))
-    (drscheme:language:register-capability 'gui-debugger:debug-button (flat-contract boolean?) #t)
+    (drscheme:language:register-capability 'gui-debugger:debug-button boolean? #t)
     (drscheme:get/extend:extend-definitions-text debug-definitions-text-mixin)
     (drscheme:get/extend:extend-interactions-text debug-interactions-text-mixin)
     (drscheme:get/extend:extend-unit-frame debug-unit-frame-mixin)
