@@ -813,15 +813,16 @@
                                    (cons 'exit-break vals)))])))
                  (uncaught-exception-handler
                   (lambda (exn)
-                    (if (and (exn:break? exn) (send (get-tab) suspend-on-break?))
-                        (let ([marks (exn-continuation-marks exn)]
-                              [cont (exn:break-continuation exn)])
-                          (send (get-tab) suspend
-                                oeh
-                                (continuation-mark-set->list marks debug-key)
-                                'break)
-                          (cont))
-                        (oeh exn)))))))))))
+                    (cond
+                      [(and (exn:break? exn) (send (get-tab) suspend-on-break?))
+                       (define marks (exn-continuation-marks exn))
+                       (define cont (exn:break-continuation exn))
+                       (send (get-tab) suspend
+                             oeh
+                             (continuation-mark-set->list marks debug-key)
+                             'break)
+                       (cont)]
+                      [else (oeh exn)]))))))))))
     
     (define (debug-tab-mixin super%)
       (class super%
@@ -1546,13 +1547,14 @@
         
         (define/augment (on-tab-change old new)
           (check-current-language-for-debugger)
-          (if (send new debug?)
-              (let ([status (send new get-break-status)])
-                (if status
-                    (send new suspend-gui (send new get-stack-frames) status #f #t)
-                    (send new resume-gui))
-                (show-debug))
-              (hide-debug))
+          (cond
+            [(send new debug?)
+             (define status (send new get-break-status))
+             (if status
+                 (send new suspend-gui (send new get-stack-frames) status #f #t)
+                 (send new resume-gui))
+             (show-debug)]
+            [else (hide-debug)])
           (inner (void) on-tab-change old new))
         
         (define/public (check-current-language-for-debugger)
