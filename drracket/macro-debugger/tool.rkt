@@ -12,6 +12,7 @@
          macro-debugger/view/prefs
          images/compile-time
          (for-syntax racket/base images/icons/tool)
+         string-constants
          ;; FIXME:
          drracket/private/syncheck/local-member-names
          drracket/private/eval-helpers-and-pref-init)
@@ -84,7 +85,7 @@
     (super-new)))
 
 
-(define macro-stepper-button-label "Macro Stepper")
+(define macro-stepper-button-label (string-constant macro-stepper))
 
 (define macro-debugger-bitmap (compiled-bitmap (macro-stepper-icon)))
 (define small-macro-debugger-bitmap (compiled-bitmap (small-macro-stepper-icon)))
@@ -151,7 +152,7 @@
           (let ([lang-menu (get-language-menu)])
             (new separator-menu-item% (parent lang-menu))
             (new menu-item%
-                 (label "Macro Stepper")
+                 (label (string-constant macro-stepper))
                  (parent lang-menu)
                  (callback (lambda _ (run-macro-stepper))))))
 
@@ -356,13 +357,10 @@
           (define (handle-macro-limit c)
             (define option
               (message-box/custom
-               "Macro stepper"
-               (string-append "Macro expansion has taken a suspiciously large number of steps.\n"
-                              "\n"
-                              "Click Stop to stop macro expansion and see the steps taken "
-                              "so far, or click Continue to let it run a bit longer.")
-               "Continue"
-               "Stop"
+               (string-constant macro-stepper)
+               (string-constant macro-stepper-warning-message)
+               (string-constant macro-stepper-continue)
+               (string-constant macro-stepper-stop)
                #f
                (get-top-level-window)))
             (case option

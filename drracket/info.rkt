@@ -23,7 +23,7 @@
                ["racket-doc" #:version "1.1"]
                "scheme-lib"
                ["snip-lib" #:version "1.2"]
-               ["string-constants-lib" #:version "1.47"]
+               ["string-constants-lib" #:version "1.51"]
                "tex-table"))
 
 (define build-deps '("gui-doc"
