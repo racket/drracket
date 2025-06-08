@@ -629,7 +629,9 @@
     ;; Throw an error as usual if we don't have the drracket rep, then we just
     ;; raise the exception as normal.  (It can happen in some rare cases like
     ;; having a single empty scheme box in the definitions.)
-    (unless rep (if exn (raise exn) (error "\nInteractions disabled")))
+    (unless rep (when exn
+                  (raise exn))
+                (error "\nInteractions disabled"))
     (when exn ((error-display-handler) (exn-message exn) exn))
     ;; these are needed, otherwise the warning can appear before the output
     (flush-output (current-output-port))
