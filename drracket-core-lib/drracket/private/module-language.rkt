@@ -259,17 +259,20 @@
       ;; in other languages (here 'none is the default annotations,
       ;; there you get errortrace annotations).
       (define/override (default-settings)
-        (let ([super-defaults (super default-settings)])
-          (make-module-language-settings
-           #t 'print 'mixed-fraction-e #f #t 'debug;; simple settings defaults 
-           
-           '(default)
-           #()
-           #f ;; auto-text is ignored now
-           default-compilation-on?
-           default-full-trace?
-           default-submodules-to-run
-           default-enforce-module-constants)))
+        (super default-settings)
+        (make-module-language-settings #t
+                                       'print
+                                       'mixed-fraction-e
+                                       #f
+                                       #t
+                                       'debug ;; simple settings defaults
+                                       '(default)
+                                       #()
+                                       #f ;; auto-text is ignored now
+                                       default-compilation-on?
+                                       default-full-trace?
+                                       default-submodules-to-run
+                                       default-enforce-module-constants))
       
       ;; default-settings? : -> boolean
       (define/override (default-settings? settings)
@@ -294,15 +297,15 @@
                      default-enforce-module-constants)))
       
       (define/override (marshall-settings settings)
-        (let ([super-marshalled (super marshall-settings settings)])
-          (list super-marshalled
-                (module-language-settings-collection-paths settings)
-                (module-language-settings-command-line-args settings)
-                (module-language-settings-auto-text settings)
-                (module-language-settings-compilation-on? settings)
-                (module-language-settings-full-trace? settings)
-                (module-language-settings-submodules-to-run settings)
-                (module-language-settings-enforce-module-constants settings))))
+        (define super-marshalled (super marshall-settings settings))
+        (list super-marshalled
+              (module-language-settings-collection-paths settings)
+              (module-language-settings-command-line-args settings)
+              (module-language-settings-auto-text settings)
+              (module-language-settings-compilation-on? settings)
+              (module-language-settings-full-trace? settings)
+              (module-language-settings-submodules-to-run settings)
+              (module-language-settings-enforce-module-constants settings)))
       
       (define/override (unmarshall-settings marshalled)
         (and (list? marshalled)
@@ -369,13 +372,12 @@
       (define/override (on-execute settings run-in-user-thread)
         (super on-execute settings run-in-user-thread)
         
-        (let ([currently-open-files (get-currently-open-files)])
-          (run-in-user-thread
-           (λ ()
-             (set-module-language-parameters 
-              (module-language-settings->prefab-module-settings settings)
-              module-language-parallel-lock-client
-              currently-open-files)))))
+        (define currently-open-files (get-currently-open-files))
+        (run-in-user-thread (λ ()
+                              (set-module-language-parameters
+                               (module-language-settings->prefab-module-settings settings)
+                               module-language-parallel-lock-client
+                               currently-open-files))))
       
       (define/override (get-one-line-summary)
         (string-constant module-language-one-line-summary))
@@ -500,15 +502,11 @@
               (queue-callback
                (λ () (set-irl-mcli-vec! the-irl info)))))
           (when info
-            (let ([get-info
-                   ((dynamic-require (vector-ref info 0)
-                                     (vector-ref info 1))
-                    (vector-ref info 2))])
-              (let ([configs (get-info 'configure-runtime '())])
-                (for ([config (in-list configs)])
-                  ((dynamic-require (vector-ref config 0)
-                                    (vector-ref config 1))
-                   (vector-ref config 2))))))
+            (define get-info
+              ((dynamic-require (vector-ref info 0) (vector-ref info 1)) (vector-ref info 2)))
+            (define configs (get-info 'configure-runtime '()))
+            (for ([config (in-list configs)])
+              ((dynamic-require (vector-ref config 0) (vector-ref config 1)) (vector-ref config 2))))
           (define cr-submod `(submod ,modspec configure-runtime))
           (when (module-declared? cr-submod)
             (dynamic-require cr-submod #f)))
@@ -548,74 +546,67 @@
       
       ;; printer settings are just ignored here.
       (define/override (create-executable setting parent program-filename)
-        (let* ([executable-specs (drracket:language:create-executable-gui
-                                  parent program-filename #t #t)])
-          (when executable-specs
-            (let ([executable-type (list-ref executable-specs 0)]
-                  [gui? (eq? 'mred (list-ref executable-specs 1))]
-                  [executable-filename (list-ref executable-specs 2)]
-                  [aux (list-ref executable-specs 3)])
-              (with-handlers ([(λ (x) #f) ;exn:fail?
-                               (λ (x)
-                                 (message-box
-                                  (string-constant drscheme)
-                                  (if (exn? x)
-                                      (format "~a" (exn-message x))
-                                      (format "uncaught exception: ~s" x))))])
-                (let ([call-create-embedding-executable
-                       (λ (exe-name)
-                         (let ([short-program-name
-                                (let-values ([(base name dir) (split-path program-filename)])
-                                  (path-replace-suffix name #""))])
-                           (create-embedding-executable
-                            exe-name
-                            #:gracket? gui?
-                            #:aux aux
-                            #:verbose? #f
-                            #:expand-namespace (make-base-namespace)
-                            #:modules (list (list #f program-filename))
-                            #:configure-via-first-module? #t
-                            #:literal-expression
-                            (parameterize ([current-namespace (make-base-empty-namespace)])
-                              (namespace-require 'racket/base)
-                              (compile
-                               `(namespace-require
-                                 '',(string->symbol (path->string short-program-name)))))
-                            #:cmdline '("-U" "--"))))])
-                  
-                  (case executable-type
-                    [(launcher)
-                     (let ([make-launcher (if gui? make-mred-launcher make-mzscheme-launcher)])
-                       (make-launcher (list "-qt-" (path->string program-filename))
-                                      executable-filename))]
-                    [(distribution)
-                     (drracket:language:create-distribution-for-executable
-                      executable-filename
-                      gui?
-                      call-create-embedding-executable)]
-                    [(stand-alone)
-                     (define c (make-custodian))
-                     (define d (new dialog% 
-                                    [parent parent] 
-                                    [label (string-constant create-executable-title)]))
-                     (new message% 
-                          [parent d]
-                          [label (string-constant creating-executable-progress-status)])
-                     (new button%
-                          [parent d]
-                          [label (string-constant abort)]
-                          [callback (lambda (_1 _2)
-                                      (custodian-shutdown-all c))])
-                     (define thd
-                       (parameterize ([current-custodian c])
-                         (thread
-                          (λ ()
-                            (call-create-embedding-executable executable-filename)))))
-                     (thread
-                      (λ ()
-                        (thread-wait thd)
-                        (queue-callback (λ () (send d show #f)))))
-                     (send d show #t)])))))))
+        (define executable-specs
+          (drracket:language:create-executable-gui parent program-filename #t #t))
+        (when executable-specs
+          (let ([executable-type (list-ref executable-specs 0)]
+                [gui? (eq? 'mred (list-ref executable-specs 1))]
+                [executable-filename (list-ref executable-specs 2)]
+                [aux (list-ref executable-specs 3)])
+            (with-handlers (;exn:fail?
+                            [(λ (x) #f) (λ (x)
+                                          (message-box (string-constant drscheme)
+                                                       (if (exn? x)
+                                                           (format "~a" (exn-message x))
+                                                           (format "uncaught exception: ~s" x))))])
+              (let ([call-create-embedding-executable
+                     (λ (exe-name)
+                       (let ([short-program-name
+                              (let-values ([(base name dir) (split-path program-filename)])
+                                (path-replace-suffix name #""))])
+                         (create-embedding-executable
+                          exe-name
+                          #:gracket? gui?
+                          #:aux aux
+                          #:verbose? #f
+                          #:expand-namespace (make-base-namespace)
+                          #:modules (list (list #f program-filename))
+                          #:configure-via-first-module? #t
+                          #:literal-expression
+                          (parameterize ([current-namespace (make-base-empty-namespace)])
+                            (namespace-require 'racket/base)
+                            (compile `(namespace-require
+                                       '',(string->symbol (path->string short-program-name)))))
+                          #:cmdline '("-U" "--"))))])
+        
+                (case executable-type
+                  [(launcher)
+                   (let ([make-launcher (if gui? make-mred-launcher make-mzscheme-launcher)])
+                     (make-launcher (list "-qt-" (path->string program-filename))
+                                    executable-filename))]
+                  [(distribution)
+                   (drracket:language:create-distribution-for-executable
+                    executable-filename
+                    gui?
+                    call-create-embedding-executable)]
+                  [(stand-alone)
+                   (define c (make-custodian))
+                   (define d
+                     (new dialog% [parent parent] [label (string-constant create-executable-title)]))
+                   (new message%
+                        [parent d]
+                        [label (string-constant creating-executable-progress-status)])
+                   (new button%
+                        [parent d]
+                        [label (string-constant abort)]
+                        [callback (lambda (_1 _2) (custodian-shutdown-all c))])
+                   (define thd
+                     (parameterize ([current-custodian c])
+                       (thread (λ () (call-create-embedding-executable executable-filename)))))
+                   (thread (λ ()
+                             (thread-wait thd)
+                             (queue-callback (λ () (send d show #f)))))
+                   (send d show #t)]))))))
       
       (super-new
        [module #f]
@@ -805,19 +796,19 @@
         (λ (x y) (move-callback +1) (something-changed))))
     
     (define (update-buttons)
-      (let ([lb-selection (send collection-paths-lb get-selection)]
-            [lb-tot (send collection-paths-lb get-number)])
-        (send remove-button enable lb-selection)
-        (send raise-button enable (and lb-selection (not (= lb-selection 0))))
-        (send lower-button enable
-              (and lb-selection (not (= lb-selection (- lb-tot 1)))))))
+      (define lb-selection (send collection-paths-lb get-selection))
+      (define lb-tot (send collection-paths-lb get-number))
+      (send remove-button enable lb-selection)
+      (send raise-button enable (and lb-selection (not (= lb-selection 0))))
+      (send lower-button enable (and lb-selection (not (= lb-selection (- lb-tot 1))))))
     
     (define (add-callback)
-      (let ([dir (get-directory (string-constant ml-cp-choose-a-collection-path)
-                                (send parent get-top-level-window))])
-        (when dir
-          (send collection-paths-lb append (path->string dir) #f)
-          (update-buttons))))
+      (define dir
+        (get-directory (string-constant ml-cp-choose-a-collection-path)
+                       (send parent get-top-level-window)))
+      (when dir
+        (send collection-paths-lb append (path->string dir) #f)
+        (update-buttons)))
     
     (define (add-default-callback)
       (cond [(has-default?)
@@ -837,12 +828,12 @@
               [else (loop (- n 1))])))
     
     (define (remove-callback)
-      (let ([to-delete (send collection-paths-lb get-selection)])
-        (send collection-paths-lb delete to-delete)
-        (unless (zero? (send collection-paths-lb get-number))
-          (send collection-paths-lb set-selection
-                (min to-delete (- (send collection-paths-lb get-number) 1))))
-        (update-buttons)))
+      (define to-delete (send collection-paths-lb get-selection))
+      (send collection-paths-lb delete to-delete)
+      (unless (zero? (send collection-paths-lb get-number))
+        (send collection-paths-lb set-selection
+              (min to-delete (- (send collection-paths-lb get-number) 1))))
+      (update-buttons))
     
     (define (move-callback d)
       (let* ([sel (send collection-paths-lb get-selection)]
