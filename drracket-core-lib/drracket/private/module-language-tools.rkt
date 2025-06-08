@@ -589,15 +589,12 @@
                 (send (send frame get-toolbar-button-panel) change-children (λ (prev) '()))
                 
                 (define directly-specified-buttons
-                  (map (λ (button-spec)
-                         (new switchable-button%
-                              [label (list-ref button-spec 0)]
-                              [bitmap (list-ref button-spec 1)]
-                              [parent (send frame get-toolbar-button-panel)]
-                              [callback
-                               (lambda (button)
-                                 ((list-ref button-spec 2) frame))]))
-                       cleaned-up-buttons))
+                  (for/list ([button-spec (in-list cleaned-up-buttons)])
+                    (new switchable-button%
+                         [label (list-ref button-spec 0)]
+                         [bitmap (list-ref button-spec 1)]
+                         [parent (send frame get-toolbar-button-panel)]
+                         [callback (lambda (button) ((list-ref button-spec 2) frame))])))
                 (define directly-specified-button-numbers 
                   (map (λ (button-spec) (list-ref button-spec 3)) 
                        cleaned-up-buttons))
@@ -841,24 +838,18 @@
 ;; saving a file in Windows
 (define (move-extension-first ext filters)
   (define rx (regexp (string-append "(?:^|;)[*][.]" ext "(?:$|;)")))
-  (map (lambda (p)
-         (define exts (cadr p))
-         (define m (regexp-match-positions rx exts))
-         (if m
-             (list (car p)
-                   (string-append (string-append "*." ext)
-                                  (if (or ((caar m) . > . 0)
-                                          ((cdar m) . < . (string-length exts)))
-                                      ";"
-                                      "")
-                                  (substring exts 0 (caar m))
-                                  (if (and ((caar m) . > . 0)
-                                           ((cdar m) . < . (string-length exts)))
-                                      ";"
-                                      "")
-                                  (substring exts (cdar m))))
-             p))
-       filters))
+  (for/list ([p (in-list filters)])
+    (define exts (cadr p))
+    (define m (regexp-match-positions rx exts))
+    (if m
+        (list (car p)
+              (string-append
+               (string-append "*." ext)
+               (if (or ((caar m) . > . 0) ((cdar m) . < . (string-length exts))) ";" "")
+               (substring exts 0 (caar m))
+               (if (and ((caar m) . > . 0) ((cdar m) . < . (string-length exts))) ";" "")
+               (substring exts (cdar m))))
+        p)))
 (module+ test
   (check-equal?
    (move-extension-first
