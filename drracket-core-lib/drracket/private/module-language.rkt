@@ -387,11 +387,16 @@
       ;; included; when done with the list, send eof.
       (define (expr-getter . exprs/thunks)
         (define (loop)
-          (if (null? exprs/thunks)
-            eof
-            (let ([x (car exprs/thunks)])
-              (set! exprs/thunks (cdr exprs/thunks))
-              (if (procedure? x) (begin (x) (loop)) x))))
+          (cond
+            [(null? exprs/thunks) eof]
+            [else
+             (define x (car exprs/thunks))
+             (set! exprs/thunks (cdr exprs/thunks))
+             (if (procedure? x)
+                 (begin
+                   (x)
+                   (loop))
+                 x)]))
         loop)
       
       (inherit get-reader)
@@ -525,13 +530,13 @@
                       ((current-read-interaction) 
                        (object-name port)
                        port)))])
-            (if (eof-object? v)
-                v
-                (let ([w (cons '#%top-interaction v)])
-                  (if (syntax? v)
-                      (namespace-syntax-introduce
-                       (datum->syntax #f w v))
-                      v))))))
+            (cond
+              [(eof-object? v) v]
+              [else
+               (define w (cons '#%top-interaction v))
+               (if (syntax? v)
+                   (namespace-syntax-introduce (datum->syntax #f w v))
+                   v)]))))
 
       (define/override (render-value/format value settings port width)
         (do-print value settings port width))
