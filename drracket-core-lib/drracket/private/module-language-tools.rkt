@@ -814,16 +814,15 @@
       (error who 
              "no more online-expansion-handlers can be registered; got ~e ~e ~e"
              mod-path id local-handler))
-    (for ([handler (in-list online-expansion-handlers)])
-      (when (and (equal? (online-expansion-handler-mod-path handler) mod-path)
-                 (equal? (online-expansion-handler-id handler) id))
-        (error who
-               (string-append
-                "already registered a handler with the same mod-path and id\n"
-                " mod-path: ~e\n"
-                " id: ~e")
-               mod-path
-               id))))
+    (for ([handler (in-list online-expansion-handlers)]
+          #:when (and (equal? (online-expansion-handler-mod-path handler) mod-path)
+                      (equal? (online-expansion-handler-id handler) id)))
+      (error who
+             (string-append "already registered a handler with the same mod-path and id\n"
+                            " mod-path: ~e\n"
+                            " id: ~e")
+             mod-path
+             id)))
   
   (define online-expansion-pref-funcs '())
   (define (get-online-expansion-pref-funcs) online-expansion-pref-funcs)
