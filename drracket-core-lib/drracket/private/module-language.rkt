@@ -854,9 +854,8 @@
         (update-buttons)))
     
     (define (get-lb-vector)
-      (list->vector (for/list ([n (in-range (send collection-paths-lb get-number))])
-                              (cons (send collection-paths-lb get-string n)
-                                    (send collection-paths-lb get-data n)))))
+      (for/vector ([n (in-range (send collection-paths-lb get-number))])
+        (cons (send collection-paths-lb get-string n) (send collection-paths-lb get-data n))))
     
     (define (set-lb-vector vec)
       (send collection-paths-lb clear)
