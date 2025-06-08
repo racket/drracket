@@ -722,8 +722,7 @@
         (define tmp-b (box #f))
         (define fn (get-filename tmp-b))
         (when (unbox tmp-b) (set! fn #f))
-        (define the-dir (get-init-dir fn))
-        the-dir)
+        (get-init-dir fn))
       
       (super-new)
 
