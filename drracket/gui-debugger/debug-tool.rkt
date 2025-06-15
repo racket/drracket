@@ -1234,21 +1234,20 @@
         
         (define/public (register-stack-frames frames already-stopped?)
           (define trimmed-exprs
-            (map (lambda (frame)
-                   (let ([expr (mark-source frame)])
-                     (cond
-                       ; should succeed unless the user closes a secondary tab during debugging
-                       [(and expr (filename->defs (syntax-source expr)))
-                        =>
-                        (lambda (defs)
-                          (trim-expr-str (if (syntax-position expr)
-                                             (send defs get-text
-                                                   (sub1 (syntax-position expr))
-                                                   (+ -1 (syntax-position expr) (syntax-span expr)))
-                                             "??")
-                                         15))]
-                       ["??"])))
-                 frames))
+            (for/list ([frame (in-list frames)])
+              (define expr (mark-source frame))
+              (cond
+                ; should succeed unless the user closes a secondary tab during debugging
+                [(and expr (filename->defs (syntax-source expr)))
+                 =>
+                 (lambda (defs)
+                   (trim-expr-str (if (syntax-position expr)
+                                      (send defs get-text
+                                            (sub1 (syntax-position expr))
+                                            (+ -1 (syntax-position expr) (syntax-span expr)))
+                                      "??")
+                                  15))]
+                ["??"])))
           (send stack-frames begin-edit-sequence)
           (send stack-frames lock #f)
           (unless already-stopped?
