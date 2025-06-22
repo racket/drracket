@@ -155,9 +155,7 @@
      (lambda (parent)
        (define callbacks null)
        (define pref-panel
-         (instantiate vertical-panel% ()
-           [parent parent]
-           [alignment '(left center)]))
+         (new vertical-panel% [parent parent] [alignment '(left center)]))
        
        ;; -------------------- external browser for Unix --------------------
        (when (unix-browser?)
