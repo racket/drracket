@@ -768,13 +768,13 @@
     (for ([(k v) (in-hash requires)])
       (hash-set! new-hash k #t)))
 
-  (for ([(level binders) (in-hash phase-to-binders)])
-    (for ([(_ binder+modss) (in-dict binders)])
-      (for ([binder+mods (in-list binder+modss)])
-        (define var (binder+mods-binder binder+mods))
-        (define varset (lookup-phase-to-mapping phase-to-varsets level))
-        (color-variable var level varset)
-        (document-variable var level))))
+  (for* ([(level binders) (in-hash phase-to-binders)]
+         [(_ binder+modss) (in-dict binders)]
+         [binder+mods (in-list binder+modss)])
+    (define var (binder+mods-binder binder+mods))
+    (define varset (lookup-phase-to-mapping phase-to-varsets level))
+    (color-variable var level varset)
+    (document-variable var level))
 
   (for ([(level+mods varrefs) (in-hash phase-to-varrefs)])
     (define level (list-ref level+mods 0))
