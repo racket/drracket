@@ -1,4 +1,5 @@
-#lang scheme/gui
+#lang racket/base
+(require racket/gui/base racket/class racket/math)
 
 (define width 16)
 (define height 16)
