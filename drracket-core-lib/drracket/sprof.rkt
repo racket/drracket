@@ -17,10 +17,8 @@
               (define new-traces
                 (map (λ (t) (continuation-mark-set->context (continuation-marks t))) (get-threads)))
               (for ([trace (in-list new-traces)])
-                (for-each
-                 (λ (line)
-                   (hash-set! traces-table line (cons trace (hash-ref traces-table line '()))))
-                 trace))
+                (for ([line (in-list trace)])
+                  (hash-update! traces-table line (λ (v) (cons trace v)) '())))
               (cond
                 [(zero? i)
                  (update-gui traces-table)
@@ -160,9 +158,9 @@
                 (hash-set! line-to-source i pr)
                 (insert (format-percentage (/ count denom-count)))
                 (insert (format " ~a" (format-fn-name fn)))
-                (let ([after (last-position)])
-                  (when (equal? (car pr) clicked-srcloc-pr)
-                    (set! clear-old-pr (highlight-range before after "NavajoWhite")))))
+                (define after (last-position))
+                (when (equal? (car pr) clicked-srcloc-pr)
+                  (set! clear-old-pr (highlight-range before after "NavajoWhite"))))
               (loop (cdr prs) #f (+ i 1))])]))
       (lock #t)
       (end-edit-sequence)

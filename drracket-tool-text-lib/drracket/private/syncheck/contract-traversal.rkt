@@ -29,24 +29,32 @@
       [_ (void)]))
   
   ;; fill in the coloring-plans table for boundary contracts
-  (for ([(start-k start-val) (in-hash boundary-start-map)])
-    (for ([start-stx (in-list start-val)])
-      (do-contract-traversal start-stx #t
-                             coloring-plans already-jumped-ids
-                             low-binders binding-inits
-                             domain-map range-map
-                             #t
-                             binder+mods-binder)))
+  (for* ([(start-k start-val) (in-hash boundary-start-map)]
+         [start-stx (in-list start-val)])
+    (do-contract-traversal start-stx
+                           #t
+                           coloring-plans
+                           already-jumped-ids
+                           low-binders
+                           binding-inits
+                           domain-map
+                           range-map
+                           #t
+                           binder+mods-binder))
   
   ;; fill in the coloring-plans table for internal contracts
-  (for ([(start-k start-val) (in-hash internal-start-map)])
-    (for ([start-stx (in-list start-val)])
-      (do-contract-traversal start-stx #f
-                             coloring-plans already-jumped-ids
-                             low-binders binding-inits
-                             domain-map range-map
-                             #f
-                             binder+mods-binder)))
+  (for* ([(start-k start-val) (in-hash internal-start-map)]
+         [start-stx (in-list start-val)])
+    (do-contract-traversal start-stx
+                           #f
+                           coloring-plans
+                           already-jumped-ids
+                           low-binders
+                           binding-inits
+                           domain-map
+                           range-map
+                           #f
+                           binder+mods-binder))
   
   ;; enact the coloring plans
   (for ([(stx colors) (in-hash coloring-plans)])
@@ -210,7 +218,7 @@
   (let loop ([val (syntax-property stx prop)])
     (cond
       [(symbol? val)
-       (hash-set! map val (cons stx (hash-ref map val '())))]
+       (hash-update! map val (λ (v) (cons stx v)) '())]
       [(pair? val)
        (loop (car val))
        (loop (cdr val))])))
@@ -221,11 +229,11 @@
 ;; approximate this by just asking 'did this identifier come from the core?' (which is known
 ;; to not bind any contracts (I hope))
 (define (known-predicate? id)
-  (let ([ib (identifier-binding id)])
-    (and (list? ib)
-         (let ([src (list-ref ib 0)])
-           (let-values ([(base rel) (module-path-index-split src)])
-             (member base '('#%kernel '#%runtime racket racket/base scheme scheme/base)))))))
+  (define ib (identifier-binding id))
+  (and (list? ib)
+       (let ([src (list-ref ib 0)])
+         (let-values ([(base rel) (module-path-index-split src)])
+           (member base '('#%kernel '#%runtime racket racket/base scheme scheme/base))))))
 
 (define (give-up stx boundary-contract? coloring-plans)
   (let loop ([stx stx])
@@ -253,11 +261,7 @@
   (make-a-coloring-plan stx unk-obligation-style-name coloring-plans))
 
 (define (make-a-coloring-plan stx plan coloring-plans)
-  (hash-set! coloring-plans
-             stx
-             (cons 
-              plan
-              (hash-ref coloring-plans stx '()))))
+  (hash-update! coloring-plans stx (λ (v) (cons plan v)) '()))
 
 (module+ test
   (let ()
