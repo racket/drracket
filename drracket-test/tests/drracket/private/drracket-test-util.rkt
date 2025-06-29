@@ -60,25 +60,25 @@
   ;; filename is a string naming a file that should be typed into the dialog
   (define (use-get/put-dialog open-dialog filename)
     (not-on-eventspace-handler-thread 'use-get/put-dialog)
-    (let ([drs (wait-for-drracket-frame)])
-      (with-handlers ([(lambda (x) #t)
-		       (lambda (x)
-			 (fw:preferences:set 'framework:file-dialogs 'std)
-			 (raise x))])
-	(fw:preferences:set 'framework:file-dialogs 'common)
-	(open-dialog)
-	(let ([dlg (wait-for-new-frame drs)])
-	  (send (find-labelled-window "Filename:" #f (fw:test:get-active-top-level-window)) focus)
-	  (fw:test:keystroke #\a (list (case (system-type)
-					 [(windows) 'control]
-					 [(macosx macos) 'meta]
-					 [(unix) 'control]
-                                         [else (error 'use-get/put-dialog "unknown platform: ~s\n"
-                                                      (system-type))])))
-	  (for-each fw:test:keystroke (string->list (path->string filename)))
-	  (fw:test:button-push "OK")
-	  (wait-for-new-frame dlg))
-	(fw:preferences:set 'framework:file-dialogs 'std))))
+    (define drs (wait-for-drracket-frame))
+    (with-handlers ([(lambda (x) #t) (lambda (x)
+                                       (fw:preferences:set 'framework:file-dialogs 'std)
+                                       (raise x))])
+      (fw:preferences:set 'framework:file-dialogs 'common)
+      (open-dialog)
+      (let ([dlg (wait-for-new-frame drs)])
+        (send (find-labelled-window "Filename:" #f (fw:test:get-active-top-level-window)) focus)
+        (fw:test:keystroke
+         #\a
+         (list (case (system-type)
+                 [(windows) 'control]
+                 [(macosx macos) 'meta]
+                 [(unix) 'control]
+                 [else (error 'use-get/put-dialog "unknown platform: ~s\n" (system-type))])))
+        (for-each fw:test:keystroke (string->list (path->string filename)))
+        (fw:test:button-push "OK")
+        (wait-for-new-frame dlg))
+      (fw:preferences:set 'framework:file-dialogs 'std)))
 
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) (current-continuation-marks))))
@@ -181,20 +181,19 @@
   
   (define (verify-drracket-frame-frontmost function-name frame)
     (on-eventspace-handler-thread 'verify-drracket-frame-frontmost)
-    (let ([tl (fw:test:get-active-top-level-window)])
-      (unless (and (eq? frame tl)
-                   (drracket-frame? tl))
-        (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl))))
+    (define tl (fw:test:get-active-top-level-window))
+    (unless (and (eq? frame tl) (drracket-frame? tl))
+      (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl)))
   
   (define (clear-definitions frame)
     (queue-callback/res (λ () (verify-drracket-frame-frontmost 'clear-definitions frame)))
     (fw:test:new-window (queue-callback/res (λ () (send frame get-definitions-canvas))))
     (let ([window (queue-callback/res (λ () (send frame get-edit-target-window)))])
-      (let-values ([(cw ch) (queue-callback/res (λ () (send window get-client-size)))]
-                   [(w h) (queue-callback/res (λ () (send window get-size)))])
-        (fw:test:mouse-click 'left
-			     (inexact->exact (floor (+ cw (/ (- w cw) 2))))
-			     (inexact->exact (floor (+ ch (/ (- h ch) 2)))))))
+      (define-values (cw ch) (queue-callback/res (λ () (send window get-client-size))))
+      (define-values (w h) (queue-callback/res (λ () (send window get-size))))
+      (fw:test:mouse-click 'left
+                           (inexact->exact (floor (+ cw (/ (- w cw) 2))))
+                           (inexact->exact (floor (+ ch (/ (- h ch) 2))))))
     (fw:test:menu-select "Edit" "Select All")
     (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 				    "Clear"
@@ -217,29 +216,29 @@
     (not-on-eventspace-handler-thread 'put-in-frame)
     (unless (and (object? frame) (is-a? frame top-level-window<%>))
       (error who "expected a frame or a dialog as the first argument, got ~e" frame))
-    (let ([str (if (string? str/sexp)
-		   str/sexp
-		   (let ([port (open-output-string)])
-		     (parameterize ([current-output-port port])
-		       (write str/sexp port))
-		     (get-output-string port)))])
-      (queue-callback/res (λ () (verify-drracket-frame-frontmost who frame)))
-      (let ([canvas (queue-callback/res (λ () (get-canvas frame)))])
-	(fw:test:new-window canvas)
-	(let ([editor (queue-callback/res (λ () (send canvas get-editor)))])
-          (cond
-            [just-insert? 
-             (let ([s (make-semaphore 0)])
-               (queue-callback
-                (λ () 
-                  (send editor set-caret-owner #f)
-                  (send editor insert str)
-                  (semaphore-post s)))
-               (unless (sync/timeout 3 s)
-                 (error who "callback didn't run for 3 seconds; trying to insert ~s" str/sexp)))]
-            [else 
-             (queue-callback/res (λ () (send editor set-caret-owner #f)))
-             (type-string str)])))))
+    (define str
+      (if (string? str/sexp)
+          str/sexp
+          (let ([port (open-output-string)])
+            (parameterize ([current-output-port port])
+              (write str/sexp port))
+            (get-output-string port))))
+    (queue-callback/res (λ () (verify-drracket-frame-frontmost who frame)))
+    (define canvas (queue-callback/res (λ () (get-canvas frame))))
+    (fw:test:new-window canvas)
+    (define editor (queue-callback/res (λ () (send canvas get-editor))))
+    (cond
+      [just-insert?
+       (let ([s (make-semaphore 0)])
+         (queue-callback (λ ()
+                           (send editor set-caret-owner #f)
+                           (send editor insert str)
+                           (semaphore-post s)))
+         (unless (sync/timeout 3 s)
+           (error who "callback didn't run for 3 seconds; trying to insert ~s" str/sexp)))]
+      [else
+       (queue-callback/res (λ () (send editor set-caret-owner #f)))
+       (type-string str)]))
   
   (define (alt-return-in-interactions frame)
     (not-on-eventspace-handler-thread 'alt-return-in-interactions)
