@@ -160,17 +160,13 @@
     (poll-until wait-for-computation-to-finish 60)
     (sync (system-idle-evt)))
 
-  (define do-execute 
-    (case-lambda
-     [(frame)
-      (do-execute frame #t)]
-     [(frame wait-for-finish?)
-      (not-on-eventspace-handler-thread 'do-execute)
-      (queue-callback/res (λ () (verify-drracket-frame-frontmost 'do-execute frame)))
-      (let ([button (queue-callback/res (λ () (send frame get-execute-button)))])
-	(fw:test:run-one (lambda () (send button command)))
-	(when wait-for-finish?
-          (wait-for-computation frame)))]))
+  (define (do-execute frame [wait-for-finish? #t])
+    (not-on-eventspace-handler-thread 'do-execute)
+    (queue-callback/res (λ () (verify-drracket-frame-frontmost 'do-execute frame)))
+    (let ([button (queue-callback/res (λ () (send frame get-execute-button)))])
+      (fw:test:run-one (lambda () (send button command)))
+      (when wait-for-finish?
+        (wait-for-computation frame))))
   
   (define (verify-drracket-frame-frontmost function-name frame)
     (on-eventspace-handler-thread 'verify-drracket-frame-frontmost)
