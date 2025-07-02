@@ -31,6 +31,7 @@ Will not work with the definitions text surrogate interposition that
         'drracket:default-extension
         'drracket:indentation
         'drracket:range-indentation
+        'drracket:range-indentation/reverse-choices
         'drracket:grouping-position
         'drracket:keystrokes
         'drracket:show-big-defs/ints-labels
@@ -243,6 +244,13 @@ Will not work with the definitions text surrogate interposition that
              (λ () #f)
              (λ () (val txt pos)))))]
     [(drracket:range-indentation)
+     (and val
+          (λ (txt start-pos end-pos)
+            (call-in-irl-context/abort
+             an-irl
+             (λ () #f)
+             (λ () (val txt start-pos end-pos)))))]
+    [(drracket:range-indentation/reverse-choices)
      (and val
           (λ (txt start-pos end-pos)
             (call-in-irl-context/abort

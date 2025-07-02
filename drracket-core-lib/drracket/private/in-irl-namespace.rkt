@@ -190,6 +190,12 @@
                exact-nonnegative-integer?
                exact-nonnegative-integer?
                (or/c #f (listof (list/c exact-nonnegative-integer? string?)))))]
+    [(drracket:range-indentation/reverse-choices)
+     (or/c #f
+           (-> read-only-text/c
+               exact-nonnegative-integer?
+               exact-nonnegative-integer?
+               (or/c #f (listof (list/c exact-nonnegative-integer? string?)))))]
     [(drracket:grouping-position)
      (or/c #f
            (-> read-only-text/c natural? natural? (or/c 'up 'down 'backward 'forward)

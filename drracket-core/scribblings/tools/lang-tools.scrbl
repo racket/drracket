@@ -153,6 +153,19 @@ only @racket['drracket:indentation] is used.
  @history[#:added "1.10"]
 }
 
+@language-info-def[drracket:range-indentation/reverse-choices]{
+
+When a language's @racket[_get-info] procedure responds to
+@racket['drracket:range-indentation/reverse-choices], it is expected
+to return a procedure like one for @racket['drracket:range-indentation],
+but if there are multiple indentation choices to cycle through, then
+cycling should go through the choices in reverse order. When this function
+returns @racket[#f], then a non-reversed indentation is tried.
+
+ @history[#:added "1.16"]
+}
+
+
 @language-info-def[drracket:paren-matches]{
 
 When a language's @racket[_get-info] procedure responds to

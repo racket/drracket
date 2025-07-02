@@ -265,6 +265,13 @@
                      (range-indent (send defs get-range-indentation-function) start end))
           (super tabify-selection start end)))
 
+      (define/override (tabify-selection/reverse-choices [start (get-start-position)]
+                                                         [end (get-end-position)])
+        (define defs (get-definitions-text))
+        (unless (and (send defs get-in-module-language?)
+                     (range-indent (send defs get-range-indentation/reverse-choices-function) start end))
+          (super tabify-selection/reverse-choices start end)))
+
       (define/override (tabify-all)
         (define defs (get-definitions-text))
         (unless (and (send defs get-in-module-language?)
@@ -503,6 +510,9 @@
         (set! range-indentation-function
               (or (call-read-language the-irl 'drracket:range-indentation #f)
                   (λ (x y z) #f)))
+        (set! range-indentation/reverse-choices-function
+              (or (call-read-language the-irl 'drracket:range-indentation/reverse-choices #f)
+                  (λ (x y z) #f)))
         (set! grouping-position
               (or (call-read-language the-irl 'drracket:grouping-position #f)
                   default-grouping-position))
@@ -559,6 +569,7 @@
         (set! default-extension "")
         (set! indentation-function (λ (x y) #f))
         (set! range-indentation-function (λ (x y z) #f))
+        (set! range-indentation/reverse-choices-function (λ (x y z) #f))
         (set! grouping-position default-grouping-position)
         (when lang-keymap
           (send (get-keymap) remove-chained-keymap lang-keymap)
@@ -674,6 +685,8 @@
       (define/public (get-indentation-function) indentation-function)
       (define range-indentation-function (λ (x y z) #f))
       (define/public (get-range-indentation-function) range-indentation-function)
+      (define range-indentation/reverse-choices-function (λ (x y z) #f))
+      (define/public (get-range-indentation/reverse-choices-function) range-indentation/reverse-choices-function)
       (define grouping-position default-grouping-position)
       (define lang-keymap #f)
       (define/public (with-language-specific-default-extensions-and-filters t)
@@ -699,6 +712,12 @@
         (unless (and in-module-language?
                      (range-indent range-indentation-function start end))
           (super tabify-selection start end)))
+
+      (define/override (tabify-selection/reverse-choices [start (get-start-position)]
+                                                         [end (get-end-position)])
+        (unless (and in-module-language?
+                     (range-indent range-indentation/reverse-choices-function start end))
+          (super tabify-selection/reverse-choices start end)))
 
       (define/override (tabify-all)
         (unless (and in-module-language?
