@@ -41,13 +41,17 @@
 
 ;; load-status : boolean string (union #f url) -> void
 (define (load-status push? what url)
-  (let ([s (format "Loading ~a ~a..." 
-                   what 
-                   (if url
-                       (trim 150 (url->string url))
-                       "unknown url"))])
-    (status-stack (cons s (if push? (status-stack) null)))
-    (status "~a" s)))
+  (define s
+    (format "Loading ~a ~a..."
+            what
+            (if url
+                (trim 150 (url->string url))
+                "unknown url")))
+  (status-stack (cons s
+                      (if push?
+                          (status-stack)
+                          null)))
+  (status "~a" s))
 
 (define (pop-status)
   (status-stack (cdr (status-stack)))
@@ -97,25 +101,20 @@
     (define/public (add-area shape coords href)
       (when (and (equal? shape "rect")
                  (= 4 (length coords)))
-        (let ([x1 (car coords)]
-              [y1 (cadr coords)]
-              [x2 (caddr coords)]
-              [y2 (cadddr coords)])
-          (set! rects (cons (make-image-map-rect
-                             href
-                             (min x1 x2)
-                             (min y1 y2)
-                             (max x1 x2)
-                             (max y1 y2))
-                            rects)))))
+        (define x1 (car coords))
+        (define y1 (cadr coords))
+        (define x2 (caddr coords))
+        (define y2 (cadddr coords))
+        (set! rects
+              (cons (make-image-map-rect href (min x1 x2) (min y1 y2) (max x1 x2) (max y1 y2)) rects))))
     
     (define/override (on-event dc x y editor-x editor-y evt)
       (when (send evt button-up?)
-        (let* ([snipx (- (send evt get-x) x)]
-               [snipy (- (send evt get-y) y)]
-               [rect (find-rect snipx snipy)])
-          (when rect
-            (send html-text post-url (image-map-rect-href rect)))))
+        (define snipx (- (send evt get-x) x))
+        (define snipy (- (send evt get-y) y))
+        (define rect (find-rect snipx snipy))
+        (when rect
+          (send html-text post-url (image-map-rect-href rect))))
       (super on-event dc x y editor-x editor-y evt))
     
     (define/override (adjust-cursor dc x y editor-x editor-y evt)
