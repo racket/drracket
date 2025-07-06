@@ -196,12 +196,9 @@
    (let loop ([n (btree-root btree)]
               [v 0]
               [a null])
-     (if (not n)
-         a
-         (let* ([pre (loop (node-left n) v a)]
-                [here (cons (f (+ v (node-pos n))
-                               (node-data n))
-                            pre)])
-           (loop (node-right n)
-                 (+ v (node-pos n))
-                 here))))))
+     (cond
+       [(not n) a]
+       [else
+        (define pre (loop (node-left n) v a))
+        (define here (cons (f (+ v (node-pos n)) (node-data n)) pre))
+        (loop (node-right n) (+ v (node-pos n)) here)]))))
