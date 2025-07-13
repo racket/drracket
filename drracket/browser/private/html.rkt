@@ -259,21 +259,17 @@
       [else (loop (add1 n))])))
 
 (define (update-image-maps image-map-snips image-maps)
-  (for-each
-   (lambda (image-map-snip)
-     (let ([image-map-key (send image-map-snip get-key)])
-       (let loop ([image-maps image-maps])
-         (cond
-          [(null? image-maps) (void)]
-          [else
-           (let* ([image-map (car image-maps)]
-                  [name (get-field image-map 'name)])
-             (if (and name 
-                      (equal? (format "#~a" name)
-                              (send image-map-snip get-key)))
-                 (find/add-areas image-map-snip image-map)
-                 (loop (cdr image-maps))))]))))
-   image-map-snips))
+  (for ([image-map-snip (in-list image-map-snips)])
+    (send image-map-snip get-key)
+    (let loop ([image-maps image-maps])
+      (cond
+        [(null? image-maps) (void)]
+        [else
+         (let* ([image-map (car image-maps)]
+                [name (get-field image-map 'name)])
+           (if (and name (equal? (format "#~a" name) (send image-map-snip get-key)))
+               (find/add-areas image-map-snip image-map)
+               (loop (cdr image-maps))))]))))
 
 (define (find/add-areas image-map-snip image-map)
   (let loop ([sexp image-map])
