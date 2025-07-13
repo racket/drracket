@@ -11,8 +11,7 @@
 
 (define bullet-size 
   (make-parameter
-   (let ([s (send (send (send (make-object text%) get-style-list) basic-style)
-                  get-size)])
+   (let ([s (send+ (make-object text%) (get-style-list) (basic-style) (get-size))])
      (max 7 (quotient s 2)))))
 
 (define (get-bullet-width)
@@ -51,16 +50,15 @@
                           [(0) (values (lambda (x y w h) (send dc draw-ellipse x y w h)) #t)]
                           [(1) (values (lambda (x y w h) (send dc draw-ellipse x y w h)) #f)]
                           [else (values (lambda (x y w h) (send dc draw-rectangle x y w h)) #f)])])
-            (let ([b (send dc get-brush)])
-              (send dc set-brush
-                    (if solid?
-                        (send the-brush-list
-                              find-or-create-brush
-                              (send (send dc get-pen) get-color)
-                              'solid)
-                        transparent-brush))
-              (draw x y bsize bsize)
-              (send dc set-brush b)))))]
+            (define b (send dc get-brush))
+            (send dc set-brush
+                  (if solid?
+                      (send the-brush-list find-or-create-brush
+                            (send (send dc get-pen) get-color)
+                            'solid)
+                      transparent-brush))
+            (draw x y bsize bsize)
+            (send dc set-brush b))))]
     [define/override copy
       (lambda ()
         (make-object bullet-snip% depth))]
@@ -69,11 +67,10 @@
         (send stream put depth))]
     [define/override get-text
       (lambda (offset num flattened?)
-        (if (< num 1)
-            ""
-            (if flattened?
-                "* "
-                "*")))]
+        (cond
+          [(< num 1) ""]
+          [flattened? "* "]
+          [else "*"]))]
     (super-new)
     (set-snipclass bullet-snip-class)
     (set-count 1)))

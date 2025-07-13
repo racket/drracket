@@ -52,19 +52,18 @@
         (unless w
           (define font (send (get-style) get-font))
           (define w+h+ds
-            (map (lambda (o)
-                   (let-values ([(tw th td ta) (send dc get-text-extent (car o) font)])
-                     (list tw th td)))
-                 options))
-          (if (null? w+h+ds)
-              (begin
-                (set! w 10)
-                (set! h 10)
-                (set! d 2))
-              (begin
-                (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+h+ds))))
-                (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cadr w+h+ds))))
-                (set! d (+ inset 1 (apply max (map caddr w+h+ds)))))))
+            (for/list ([o (in-list options)])
+              (define-values (tw th td ta) (send dc get-text-extent (car o) font))
+              (list tw th td)))
+          (cond
+            [(null? w+h+ds)
+             (set! w 10)
+             (set! h 10)
+             (set! d 2)]
+            [else
+             (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+h+ds))))
+             (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cadr w+h+ds))))
+             (set! d (+ inset 1 (apply max (map caddr w+h+ds))))]))
         (when hbox
           (set-box! hbox h))
         (when wbox
@@ -101,16 +100,15 @@
      [on-event (lambda (dc x y editorx editory event)
                  (when (send event button-down?)
                    (define popup (make-object popup-menu%))
-                   (for-each (lambda (o)
-                               (make-object menu-item%
-                                            (car o)
-                                            popup
-                                            (lambda (i e)
-                                              (set! current-option o)
-                                              (let ([a (get-admin)])
-                                                (when a
-                                                  (send a needs-update this 0 0 w h))))))
-                             options)
+                   (for ([o (in-list options)])
+                     (make-object menu-item%
+                                  (car o)
+                                  popup
+                                  (lambda (i e)
+                                    (set! current-option o)
+                                    (let ([a (get-admin)])
+                                      (when a
+                                        (send a needs-update this 0 0 w h))))))
                    (define a (get-admin))
                    (when a
                      (send a popup-menu popup this 0 0))))]
