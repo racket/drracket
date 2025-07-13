@@ -55,15 +55,15 @@
             (for/list ([o (in-list options)])
               (define-values (tw th td ta) (send dc get-text-extent (car o) font))
               (list tw th td)))
-          (if (null? w+h+ds)
-              (begin
-                (set! w 10)
-                (set! h 10)
-                (set! d 2))
-              (begin
-                (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+h+ds))))
-                (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cadr w+h+ds))))
-                (set! d (+ inset 1 (apply max (map caddr w+h+ds)))))))
+          (cond
+            [(null? w+h+ds)
+             (set! w 10)
+             (set! h 10)
+             (set! d 2)]
+            [else
+             (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+h+ds))))
+             (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cadr w+h+ds))))
+             (set! d (+ inset 1 (apply max (map caddr w+h+ds))))]))
         (when hbox
           (set-box! hbox h))
         (when wbox
