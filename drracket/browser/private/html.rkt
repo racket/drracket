@@ -204,37 +204,28 @@
 (define html-img-ok (make-parameter #t))
 
 (define (get-bitmap-from-url url)
-  (if (html-img-ok)
-      (let ([tmp-filename (make-temporary-file "rktguiimg~a")])
-        (load-status #t "image" url)
-        (call-with-output-file* tmp-filename
-                                (lambda (op)
-                                  (with-handlers ([exn:fail? 
-                                                   (lambda (x)
-                                                     (printf "exn.9 ~s\n" (and (exn? x)
-                                                                               (exn-message x)))
-                                                     (void))])
-                                    (call/input-url 
-                                     url
-                                     get-pure-port
-                                     (lambda (ip)
-                                       (copy-port ip op)))))
-                                #:exists 'truncate)
-        (pop-status)
-        (let ([bitmap (make-object bitmap% tmp-filename)])
-          (with-handlers ([exn:fail?
-                           (lambda (x)
-                             (message-box "Warning"
-                                          (format "Could not delete file ~s\n\n~a"
-                                                  tmp-filename
-                                                  (if (exn? x)
-                                                      (exn-message x)
-                                                      x))))])
-            (delete-file tmp-filename))
-          (if (send bitmap ok?)
-              bitmap
-              #f)))
-      #f))
+  (and (html-img-ok)
+       (let ([tmp-filename (make-temporary-file "rktguiimg~a")])
+         (load-status #t "image" url)
+         (call-with-output-file*
+          tmp-filename
+          (lambda (op)
+            (with-handlers ([exn:fail? (lambda (x)
+                                         (printf "exn.9 ~s\n" (and (exn? x) (exn-message x)))
+                                         (void))])
+              (call/input-url url get-pure-port (lambda (ip) (copy-port ip op)))))
+          #:exists 'truncate)
+         (pop-status)
+         (let ([bitmap (make-object bitmap% tmp-filename)])
+           (with-handlers ([exn:fail? (lambda (x)
+                                        (message-box "Warning"
+                                                     (format "Could not delete file ~s\n\n~a"
+                                                             tmp-filename
+                                                             (if (exn? x)
+                                                                 (exn-message x)
+                                                                 x))))])
+             (delete-file tmp-filename))
+           (if (send bitmap ok?) bitmap #f)))))
 
 ;; cache-bitmap : string -> (is-a?/c bitmap%)
 (define (cache-bitmap url)
