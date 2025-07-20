@@ -147,13 +147,14 @@
              [so-far root]
              [so-far-pos (and root (node-pos root))]
              [v 0])
-    (if (not n)
-        (values so-far so-far-pos)
-        (let ([npos (+ (node-pos n) v)])
-          (cond
-            [(<= pos npos) (loop (node-left n) n npos v)]
-            [(or (not so-far-pos) (> npos so-far-pos)) (loop (node-right n) n npos npos)]
-            [else (loop (node-right n) so-far so-far-pos npos)])))))
+    (cond
+      [(not n) (values so-far so-far-pos)]
+      [else
+       (define npos (+ (node-pos n) v))
+       (cond
+         [(<= pos npos) (loop (node-left n) n npos v)]
+         [(or (not so-far-pos) (> npos so-far-pos)) (loop (node-right n) n npos npos)]
+         [else (loop (node-right n) so-far so-far-pos npos)])])))
 
 (define (create-btree)
   (btree #f))
