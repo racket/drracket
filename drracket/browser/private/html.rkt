@@ -191,15 +191,14 @@
 (define re:hexcolor 
   (regexp "^#([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])$"))
 
-(define color-string->color
-  (lambda (str)
-    (let ([m (regexp-match re:hexcolor str)])
-      (if m
-          (make-object color%
-                       (string->number (cadr m) 16)
-                       (string->number (caddr m) 16)
-                       (string->number (cadddr m) 16))
-          (send the-color-database find-color str)))))
+(define (color-string->color str)
+  (let ([m (regexp-match re:hexcolor str)])
+    (if m
+        (make-object color%
+                     (string->number (cadr m) 16)
+                     (string->number (caddr m) 16)
+                     (string->number (cadddr m) 16))
+        (send the-color-database find-color str))))
 
 (define html-eval-ok (make-parameter #t))
 (define html-img-ok (make-parameter #t))
@@ -361,9 +360,8 @@
       (define v (get-rkt str))
       (and v (filter-racket v)))))
 
-(define filter-racket 
-  (lambda (v)
-    (regexp-replace* "[|]" v "\"")))
+(define (filter-racket v)
+  (regexp-replace* "[|]" v "\""))
 
 (define face-list #f)
 
