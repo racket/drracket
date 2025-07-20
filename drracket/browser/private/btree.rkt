@@ -67,80 +67,79 @@
 
 (define (insert before? n btree pos data)
   (define new (node pos data #f #f #f 'black))
-  (if (not (btree-root btree))
-      (set-btree-root! btree new)
+  (cond
+    [(not (btree-root btree)) (set-btree-root! btree new)]
   
-      (begin
+    [else
+     (set-node-color! new 'red)
   
-        (set-node-color! new 'red)
+     ; Insert into tree
+     (if before?
   
-        ; Insert into tree
-        (if before?
+         (if (not (node-left n))
+             (begin
+               (set-node-left! n new)
+               (set-node-parent! new n))
   
-            (if (not (node-left n))
-                (begin
-                  (set-node-left! n new)
-                  (set-node-parent! new n))
+             (let loop ([node (node-left n)])
+               (if (node-right node)
+                   (loop (node-right node))
+                   (begin
+                     (set-node-right! node new)
+                     (set-node-parent! new node)))))
   
-                (let loop ([node (node-left n)])
-                  (if (node-right node)
-                      (loop (node-right node))
-                      (begin
-                        (set-node-right! node new)
-                        (set-node-parent! new node)))))
+         (if (not (node-right n))
+             (begin
+               (set-node-right! n new)
+               (set-node-parent! new n))
   
-            (if (not (node-right n))
-                (begin
-                  (set-node-right! n new)
-                  (set-node-parent! new n))
+             (let loop ([node (node-right n)])
+               (if (node-left node)
+                   (loop (node-left node))
+                   (begin
+                     (set-node-left! node new)
+                     (set-node-parent! new node))))))
   
-                (let loop ([node (node-right n)])
-                  (if (node-left node)
-                      (loop (node-left node))
-                      (begin
-                        (set-node-left! node new)
-                        (set-node-parent! new node))))))
+     ; Make value in new node relative to right-hand parents
+     (let loop ([node new])
+       (let ([p (node-parent node)])
+         (when p
+           (when (eq? node (node-right p))
+             (adjust-offsets p new))
+           (loop p))))
   
-        ; Make value in new node relative to right-hand parents
-        (let loop ([node new])
-          (let ([p (node-parent node)])
-            (when p
-              (when (eq? node (node-right p))
-                (adjust-offsets p new))
-              (loop p))))
+     ; Balance tree
+     (let loop ([node new])
+       (let ([p (node-parent node)])
+         (when (and (not (eq? node (btree-root btree))) (eq? 'red (node-color p)))
+           (let* ([recolor-k (lambda (y)
+                               (set-node-color! p 'black)
+                               (set-node-color! y 'black)
+                               (let ([pp (node-parent p)])
+                                 (set-node-color! pp 'red)
+                                 (loop pp)))]
+                  [rotate-k (lambda (rotate node)
+                              (let ([p (node-parent node)])
+                                (set-node-color! p 'black)
+                                (let ([pp (node-parent p)])
+                                  (set-node-color! pp 'red)
+                                  (rotate pp btree)
+                                  (loop pp))))]
+                  [k (lambda (node-y long-rotate always-rotate)
+                       (let ([y (node-y (node-parent p))])
+                         (if (and y (eq? 'red (node-color y)))
+                             (recolor-k y)
+                             (let ([k (lambda (node) (rotate-k always-rotate node))])
+                               (if (eq? node (node-y p))
+                                   (begin
+                                     (long-rotate p btree)
+                                     (k p))
+                                   (k node))))))])
+             (if (eq? p (node-left (node-parent p)))
+                 (k node-right rotate-left rotate-right)
+                 (k node-left rotate-right rotate-left))))))
   
-        ; Balance tree
-        (let loop ([node new])
-          (let ([p (node-parent node)])
-            (when (and (not (eq? node (btree-root btree))) (eq? 'red (node-color p)))
-              (let* ([recolor-k (lambda (y)
-                                  (set-node-color! p 'black)
-                                  (set-node-color! y 'black)
-                                  (let ([pp (node-parent p)])
-                                    (set-node-color! pp 'red)
-                                    (loop pp)))]
-                     [rotate-k (lambda (rotate node)
-                                 (let ([p (node-parent node)])
-                                   (set-node-color! p 'black)
-                                   (let ([pp (node-parent p)])
-                                     (set-node-color! pp 'red)
-                                     (rotate pp btree)
-                                     (loop pp))))]
-                     [k (lambda (node-y long-rotate always-rotate)
-                          (let ([y (node-y (node-parent p))])
-                            (if (and y (eq? 'red (node-color y)))
-                                (recolor-k y)
-                                (let ([k (lambda (node) (rotate-k always-rotate node))])
-                                  (if (eq? node (node-y p))
-                                      (begin
-                                        (long-rotate p btree)
-                                        (k p))
-                                      (k node))))))])
-                (if (eq? p (node-left (node-parent p)))
-                    (k node-right rotate-left rotate-right)
-                    (k node-left rotate-right rotate-left))))))
-  
-        (set-node-color! (btree-root btree) 'black))))
+     (set-node-color! (btree-root btree) 'black)]))
 
 (define (find-following-node btree pos)
   (define root (btree-root btree))
