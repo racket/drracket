@@ -1,4 +1,16 @@
 ------------------------------
+       Version 8.18
+------------------------------
+
+  . add support for shift-tab to go backwards to previous
+    tab positions
+
+  . adjust the macro stepper to support the string-constants
+    library, allowing it to be translated to other languages.
+
+  . bug fixes and refactorings
+
+------------------------------
        Version 8.17
 ------------------------------
 
