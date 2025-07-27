@@ -101,16 +101,15 @@
      [on-event (lambda (dc x y editorx editory event)
                  (when (send event button-down?)
                    (define popup (make-object popup-menu%))
-                   (for-each (lambda (o)
-                               (make-object menu-item%
-                                            (car o)
-                                            popup
-                                            (lambda (i e)
-                                              (set! current-option o)
-                                              (let ([a (get-admin)])
-                                                (when a
-                                                  (send a needs-update this 0 0 w h))))))
-                             options)
+                   (for ([o (in-list options)])
+                     (make-object menu-item%
+                                  (car o)
+                                  popup
+                                  (lambda (i e)
+                                    (set! current-option o)
+                                    (let ([a (get-admin)])
+                                      (when a
+                                        (send a needs-update this 0 0 w h))))))
                    (define a (get-admin))
                    (when a
                      (send a popup-menu popup this 0 0))))]
