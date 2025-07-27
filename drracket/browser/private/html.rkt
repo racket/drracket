@@ -118,19 +118,17 @@
       (super on-event dc x y editor-x editor-y evt))
     
     (define/override (adjust-cursor dc x y editor-x editor-y evt)
-      (let ([snipx (- (send evt get-x) x)]
-            [snipy (- (send evt get-y) y)])
-        (if (find-rect snipx snipy)
-            finger-cursor
-            #f)))
+      (define snipx (- (send evt get-x) x))
+      (define snipy (- (send evt get-y) y))
+      (if (find-rect snipx snipy) finger-cursor #f))
 
     ;; warning: buggy. This doesn't actually copy the bitmap
     ;; over because there's no get-bitmap method for image-snip%
     ;; at the time of this writing.
     (define/override (copy)
-      (let ([cp (new image-map-snip% (html-text html-text))])
-        (send cp set-key key)
-        (send cp set-rects rects)))
+      (define cp (new image-map-snip% (html-text html-text)))
+      (send cp set-key key)
+      (send cp set-rects rects))
     
     (super-make-object)
     
@@ -143,9 +141,9 @@
 ;;
 
 (define (make-racket-color-delta col)
-  (let ([d (make-object style-delta%)])
-    (send d set-delta-foreground col)
-    d))
+  (define d (make-object style-delta%))
+  (send d set-delta-foreground col)
+  d)
 
 (define racket-code-delta (make-racket-color-delta "brown"))
 (define racket-code-delta/keyword
@@ -163,17 +161,17 @@
 (define current-style-class (make-parameter null))
 
 (define (lookup-class-delta class)
-  (let ([class-path (cons class (current-style-class))])
-    (cond
-     [(sub-path? class-path '("racket")) racket-code-delta]
-     [(sub-path? class-path '("keyword" "racket")) racket-code-delta/keyword]
-     [(sub-path? class-path '("variable" "racket")) racket-code-delta/variable]
-     [(sub-path? class-path '("global" "racket")) racket-code-delta/global]
-     [(or (sub-path? class-path '("selfeval" "racket"))
-          (sub-path? class-path '("racketresponse"))) racket-code-delta/selfeval]
-     [(sub-path? class-path '("comment" "racket")) racket-code-delta/comment]
-     [(sub-path? class-path '("navigation")) navigation-delta]
-     [else #f])))
+  (define class-path (cons class (current-style-class)))
+  (cond
+    [(sub-path? class-path '("racket")) racket-code-delta]
+    [(sub-path? class-path '("keyword" "racket")) racket-code-delta/keyword]
+    [(sub-path? class-path '("variable" "racket")) racket-code-delta/variable]
+    [(sub-path? class-path '("global" "racket")) racket-code-delta/global]
+    [(or (sub-path? class-path '("selfeval" "racket")) (sub-path? class-path '("racketresponse")))
+     racket-code-delta/selfeval]
+    [(sub-path? class-path '("comment" "racket")) racket-code-delta/comment]
+    [(sub-path? class-path '("navigation")) navigation-delta]
+    [else #f]))
 
 (define (sub-path? a b)
   (cond
@@ -241,34 +239,34 @@
 
 ;; cache-bitmap : string -> (is-a?/c bitmap%)
 (define (cache-bitmap url)
-  (let ([url-string (url->string url)])
-    (let loop ([n 0])
-      (cond
-       [(= n NUM-CACHED)
-        ;; Look for item to uncache
-        (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
-        (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
-                   (if (= n NUM-CACHED)
-                       m
-                       (begin
-                         (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
-                         (loop (add1 n) (min m (vector-ref cached-use n))))))])
-          (let loop ([n 0])
-            (if (= (vector-ref cached-use n) m)
-                (let ([bitmap (get-bitmap-from-url url)])
-                  (cond
+  (define url-string (url->string url))
+  (let loop ([n 0])
+    (cond
+      [(= n NUM-CACHED)
+       ;; Look for item to uncache
+       (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
+       (let ([m (let loop ([n 1]
+                           [m (vector-ref cached-use 0)])
+                  (if (= n NUM-CACHED)
+                      m
+                      (begin
+                        (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
+                        (loop (add1 n) (min m (vector-ref cached-use n))))))])
+         (let loop ([n 0])
+           (if (= (vector-ref cached-use n) m)
+               (let ([bitmap (get-bitmap-from-url url)])
+                 (cond
                    [bitmap
                     (vector-set! cached n bitmap)
                     (vector-set! cached-name n url-string)
                     (vector-set! cached-use n 5)
                     bitmap]
                    [else #f]))
-                (loop (add1 n)))))]
-       [(equal? url-string (vector-ref cached-name n))
-        (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
-        (vector-ref cached n)]
-       [else
-        (loop (add1 n))]))))
+               (loop (add1 n)))))]
+      [(equal? url-string (vector-ref cached-name n))
+       (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
+       (vector-ref cached n)]
+      [else (loop (add1 n))])))
 
 (define (update-image-maps image-map-snips image-maps)
   (for-each
@@ -305,28 +303,25 @@
 ;; matches the above, it is interprted propoerly;
 ;; otherwise silently nothing happens.
 (define (add-area image-map-snip sexp)
-  (let ([shape #f]
-        [coords #f]
-        [href #f])
-    (let loop ([sexp sexp])
-      (cond
-       [(pair? sexp)
-        (let ([fst (car sexp)])
-          (when (and (pair? fst)
-                     (symbol? (car fst))
-                     (pair? (cdr fst))
-                     (string? (cadr fst)))
-            (case (car fst)
-              [(shape) (set! shape (cadr fst))]
-              [(coords) (set! coords (cadr fst))]
-              [(href) (set! href (cadr fst))]
-              [else (void)]))
-          (loop (cdr sexp)))]
-       [else (void)]))
-    (when (and shape coords href)
-      (let ([p-coords (parse-coords coords)])
-        (when p-coords
-          (send image-map-snip add-area shape p-coords href))))))
+  (define shape #f)
+  (define coords #f)
+  (define href #f)
+  (let loop ([sexp sexp])
+    (cond
+      [(pair? sexp)
+       (let ([fst (car sexp)])
+         (when (and (pair? fst) (symbol? (car fst)) (pair? (cdr fst)) (string? (cadr fst)))
+           (case (car fst)
+             [(shape) (set! shape (cadr fst))]
+             [(coords) (set! coords (cadr fst))]
+             [(href) (set! href (cadr fst))]
+             [else (void)]))
+         (loop (cdr sexp)))]
+      [else (void)]))
+  (when (and shape coords href)
+    (let ([p-coords (parse-coords coords)])
+      (when p-coords
+        (send image-map-snip add-area shape p-coords href)))))
 
 ;; parse-coords : string -> (listof number)
 ;; separates out a bunch of comma separated numbers in a string
@@ -337,10 +332,9 @@
      [(regexp-match #rx"^[ \t\n]*([0-9]+)[ \t\n]*,(.*)$" str)
       =>
       (lambda (m)
-        (let ([num (cadr m)]
-              [rst (caddr m)])
-          (cons (string->number num)
-                (loop rst))))]
+        (define num (cadr m))
+        (define rst (caddr m))
+        (cons (string->number num) (loop rst)))]
      [(regexp-match #rx"^[ \t\n]*([0-9]+)[ \t\n]*" str)
       =>
       (lambda (m)
@@ -348,25 +342,18 @@
      [else null])))
 
 (define (make-get-field str)
-  (let ([s (apply
-            string-append
-            (map
-             (lambda (c)
-               (format "[~a~a]"
-                       (char-upcase c)
-                       (char-downcase c)))
-             (string->list str)))]
-        [spc (string #\space #\tab #\newline #\return #\vtab)])
-    (let ([re:plain (regexp (format "(^|[~a])~a[~a]*=[~a]*([^~a]*)" spc s spc spc spc))]
-          [re:quote (regexp (format "(^|[~a])~a[~a]*=[~a]*\"([^\"]*)\"" spc s spc spc))])
-      (lambda (args)
-        (let ([m (or (regexp-match re:quote args)
-                     (regexp-match re:plain args))])
-          (and m (caddr m)))))))
+  (define s
+    (apply string-append
+           (map (lambda (c) (format "[~a~a]" (char-upcase c) (char-downcase c))) (string->list str))))
+  (define spc (string #\space #\tab #\newline #\return #\vtab))
+  (define re:plain (regexp (format "(^|[~a])~a[~a]*=[~a]*([^~a]*)" spc s spc spc spc)))
+  (define re:quote (regexp (format "(^|[~a])~a[~a]*=[~a]*\"([^\"]*)\"" spc s spc spc)))
+  (lambda (args)
+    (let ([m (or (regexp-match re:quote args) (regexp-match re:plain args))]) (and m (caddr m)))))
 
 (define (get-field e name)
-  (let ([a (assq name (cadr e))])
-    (and a (cadr a))))
+  (define a (assq name (cadr e)))
+  (and a (cadr a)))
 
 (define get-racket-arg
   (let ([get-rkt (make-get-field "racket")])

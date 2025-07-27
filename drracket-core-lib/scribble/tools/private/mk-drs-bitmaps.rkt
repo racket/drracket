@@ -10,14 +10,14 @@
 (define (draw dc str dx dy color?)
   (send dc clear)
   (send dc set-font (send the-font-list find-or-create-font 15 " Futura" 'swiss 'normal 'bold))
-  (let-values ([(tw th _1 _2) (send dc get-text-extent "@")])
-    (when color? (send dc set-text-foreground (send the-color-database find-color "gray")))
-    (send dc draw-text "@" 
-          (- (/ width 2) (/ tw 2))
-          (- (/ height 2) (/ th 2)))
-    (send dc set-font (send the-font-list find-or-create-font 6 " Gill Sans" 'swiss 'normal 'bold))
-    (when color? (send dc set-text-foreground (send the-color-database find-color "purple")))
-    (send dc draw-text str (+ 0 dx) (- height dy) #f 0 (* pi 1/4))))
+  (define-values (tw th _1 _2) (send dc get-text-extent "@"))
+  (when color?
+    (send dc set-text-foreground (send the-color-database find-color "gray")))
+  (send dc draw-text "@" (- (/ width 2) (/ tw 2)) (- (/ height 2) (/ th 2)))
+  (send dc set-font (send the-font-list find-or-create-font 6 " Gill Sans" 'swiss 'normal 'bold))
+  (when color?
+    (send dc set-text-foreground (send the-color-database find-color "purple")))
+  (send dc draw-text str (+ 0 dx) (- height dy) #f 0 (* pi 1/4)))
 
 (define f (new frame% [label ""] [width 100] [height 100] [alignment '(center center)]))
 (define c (new canvas% 
