@@ -52,10 +52,9 @@
         (unless w
           (define font (send (get-style) get-font))
           (define w+h+ds
-            (map (lambda (o)
-                   (let-values ([(tw th td ta) (send dc get-text-extent (car o) font)])
-                     (list tw th td)))
-                 options))
+            (for/list ([o (in-list options)])
+              (define-values (tw th td ta) (send dc get-text-extent (car o) font))
+              (list tw th td)))
           (if (null? w+h+ds)
               (begin
                 (set! w 10)
