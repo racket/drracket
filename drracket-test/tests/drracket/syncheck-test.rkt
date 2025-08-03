@@ -2009,11 +2009,11 @@
         [(null? ids) null]
         [(null? (cdr ids)) ids]
         [else
-         (let ([fst (car ids)]
-               [snd (cadr ids)])
-           (if (eq? (cadr fst) (cadr snd))
-               (loop (cons (list (string-append (car fst) (car snd)) (cadr fst)) (cddr ids)))
-               (cons fst (loop (cdr ids)))))])))
+         (define fst (car ids))
+         (define snd (cadr ids))
+         (if (eq? (cadr fst) (cadr snd))
+             (loop (cons (list (string-append (car fst) (car snd)) (cadr fst)) (cddr ids)))
+             (cons fst (loop (cdr ids))))])))
     
   ;; compare-arrows : expression
   ;;                  (or/c #f (listof (cons (list number-or-proc number-or-proc)
