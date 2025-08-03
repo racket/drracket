@@ -2069,15 +2069,18 @@
       (for-each (test-binding #f actual-ht) (hash-map expected-ht cons))))
   
   (define (compare-output raw-expected got arrows arrows-got input line)
-    (let ([expected (collapse-and-rename raw-expected)])
-      (cond
-        [(not-matching-colors got expected)
-         =>
-         (λ (msg)
-           (eprintf "FAILED line ~a: ~s\n      expected: ~s\n           got: ~s\n   ~a\n"
-                    line input expected got msg))]
-        [else
-         (compare-arrows input arrows arrows-got line)])))
+    (define expected (collapse-and-rename raw-expected))
+    (cond
+      [(not-matching-colors got expected)
+       =>
+       (λ (msg)
+         (eprintf "FAILED line ~a: ~s\n      expected: ~s\n           got: ~s\n   ~a\n"
+                  line
+                  input
+                  expected
+                  got
+                  msg))]
+      [else (compare-arrows input arrows arrows-got line)]))
   
   (define (not-matching-colors got expected)
     (let loop ([got got]

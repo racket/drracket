@@ -243,11 +243,11 @@
     (common-signatures-sdp)))
 
 (define (prepare-for-test-expression)
-  (let ([drs (wait-for-drracket-frame)])
-    (clear-definitions drs)
-    (set-language #t)
-    (sleep 1) ;; this shouldn't be neccessary....
-    (do-execute drs)))
+  (define drs (wait-for-drracket-frame))
+  (clear-definitions drs)
+  (set-language #t)
+  (sleep 1) ;; this shouldn't be neccessary....
+  (do-execute drs))
 
 ;; test-setting : (-> void) string string string -> void
 ;; opens the language dialog, runs `set-setting'
@@ -262,15 +262,19 @@
   (let ([f (test:get-active-top-level-window)])
     (fw:test:button-push "OK")
     (wait-for-new-frame f))
-  (let* ([drs (test:get-active-top-level-window)]
-         [interactions (send drs get-interactions-text)])
-    (clear-definitions drs)
-    (insert-in-definitions drs expression)
-    (do-execute drs)
-    (let ([got (fetch-output/should-be-tested drs)])
-      (unless (string=? result got)
-        (eprintf "FAILED: ~s ~s ~s test\n expected: ~s\n      got: ~s\n"
-                 (language) setting-name expression result got)))))
+  (define drs (test:get-active-top-level-window))
+  (send drs get-interactions-text)
+  (clear-definitions drs)
+  (insert-in-definitions drs expression)
+  (do-execute drs)
+  (define got (fetch-output/should-be-tested drs))
+  (unless (string=? result got)
+    (eprintf "FAILED: ~s ~s ~s test\n expected: ~s\n      got: ~s\n"
+             (language)
+             setting-name
+             expression
+             result
+             got)))
 
 (define (fetch-output/should-be-tested . args)
   (regexp-replace (regexp

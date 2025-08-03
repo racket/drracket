@@ -44,95 +44,78 @@
     
     (do-execute drs-frame)
     
-    (let ([got (fetch-output drs-frame)]
-          [full-expectation 
-           (string-append
-            (apply string-append (map (lambda (x) (format "Teachpack: ~a.\n" x)) tp-names))
-            expected
-            "\nThis psorgram should be tested.")])
-      (unless (equal? got 
-                      full-expectation)
-        (eprintf
-         "FAILED:       tp: ~s\n             exp: ~s\n        expected: ~s\n             got: ~s\n"
-         tp-exps
-         dr-exp
-         full-expectation
-         got)))))
+    (define got (fetch-output drs-frame))
+    (define full-expectation
+      (string-append (apply string-append (map (lambda (x) (format "Teachpack: ~a.\n" x)) tp-names))
+                     expected
+                     "\nThis psorgram should be tested."))
+    (unless (equal? got full-expectation)
+      (eprintf
+       "FAILED:       tp: ~s\n             exp: ~s\n        expected: ~s\n             got: ~s\n"
+       tp-exps
+       dr-exp
+       full-expectation
+       got))))
 
 ;; there are no more errors when the teachpack is loaded (for now...)
 (define (test-bad/load-teachpack tp-exp expected-error)
   (fw:test:menu-select "Language" "Clear All Teachpacks")
-  (let ([tp-name (normal-case-path
-                  (normalize-path
-                   (build-path
-                    (collection-path "tests" "drracket")
-                    "teachpack-tmp.ss")))])
-    (call-with-output-file tp-name
-      (lambda (port) (display tp-exp port))
-      'truncate)
-    (use-get/put-dialog
-     (lambda ()
-       (fw:test:menu-select "Language" "Add Teachpack…"))
-     tp-name)
-    (let ([dialog
-           (with-handlers ([(lambda (x) #t)
-                            (lambda (x) #f)])
-             (wait-for-new-frame drs-frame))])
-      (cond
-        [dialog
-         (let ([got (send dialog get-message)])
-           (unless (string=? got expected-error)
-             (eprintf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
-                      tp-exp expected-error got))
-           (fw:test:button-push "Ok")
-           (wait-for-new-frame dialog))]
-        [else
-         (eprintf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
-                  tp-exp expected-error)]))))
+  (define tp-name
+    (normal-case-path (normalize-path (build-path (collection-path "tests" "drracket")
+                                                  "teachpack-tmp.ss"))))
+  (call-with-output-file tp-name (lambda (port) (display tp-exp port)) 'truncate)
+  (use-get/put-dialog (lambda () (fw:test:menu-select "Language" "Add Teachpack…")) tp-name)
+  (let ([dialog (with-handlers ([(lambda (x) #t) (lambda (x) #f)])
+                  (wait-for-new-frame drs-frame))])
+    (cond
+      [dialog
+       (let ([got (send dialog get-message)])
+         (unless (string=? got expected-error)
+           (eprintf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
+                    tp-exp
+                    expected-error
+                    got))
+         (fw:test:button-push "Ok")
+         (wait-for-new-frame dialog))]
+      [else
+       (eprintf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
+                tp-exp
+                expected-error)])))
 
 (define (test-bad/execute-teachpack tp-exp expected)
   (fw:test:menu-select "Language" "Clear All Teachpacks")
-  (let ([tp-name (normal-case-path
-                  (normalize-path
-                   (build-path
-                    (collection-path "tests" "drracket")
-                    "teachpack-tmp.ss")))])
-    (call-with-output-file tp-name
-      (lambda (port) (display tp-exp port))
-      'truncate)
-    (use-get/put-dialog
-     (lambda ()
-       (fw:test:menu-select "Language" "Add Teachpack…"))
-     tp-name)
-    (do-execute drs-frame #f)
-    (let ([dialog
-           (with-handlers ([exn:fail? (lambda (x) #f)])
-             (let ([wait-for-error-pred
-                    (lambda ()
-                      (let ([active
-                             (or
-                              (test:get-active-top-level-window)
-                              (and (send interactions-text get-user-eventspace)
-                                   (parameterize ([current-eventspace
-                                                   (send interactions-text get-user-eventspace)])
-                                     (test:get-active-top-level-window))))])
-                        (if (and active (not (eq? active drs-frame)))
-                            active
-                            #f)))])
-               (poll-until wait-for-error-pred)))])
-      (cond
-        [dialog
-         (let ([got (send dialog get-message)]
-               [expected-error
-                (format "Invalid Teachpack: ~a\n~a" tp-name expected)])
-           (unless (string=? got expected-error)
-             (eprintf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
-                      tp-exp expected-error got))
-           (fw:test:button-push "Ok")
-           (wait-for-new-frame dialog))]
-        [else
-         (eprintf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
-                  tp-exp error)]))))
+  (define tp-name
+    (normal-case-path (normalize-path (build-path (collection-path "tests" "drracket")
+                                                  "teachpack-tmp.ss"))))
+  (call-with-output-file tp-name (lambda (port) (display tp-exp port)) 'truncate)
+  (use-get/put-dialog (lambda () (fw:test:menu-select "Language" "Add Teachpack…")) tp-name)
+  (do-execute drs-frame #f)
+  (define dialog
+    (with-handlers ([exn:fail? (lambda (x) #f)])
+      (let ([wait-for-error-pred
+             (lambda ()
+               (let ([active (or (test:get-active-top-level-window)
+                                 (and (send interactions-text get-user-eventspace)
+                                      (parameterize ([current-eventspace (send interactions-text
+                                                                               get-user-eventspace)])
+                                        (test:get-active-top-level-window))))])
+                 (if (and active (not (eq? active drs-frame))) active #f)))])
+        (poll-until wait-for-error-pred))))
+  (cond
+    [dialog
+     (let ([got (send dialog get-message)]
+           [expected-error (format "Invalid Teachpack: ~a\n~a" tp-name expected)])
+       (unless (string=? got expected-error)
+         (eprintf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
+                  tp-exp
+                  expected-error
+                  got))
+       (fw:test:button-push "Ok")
+       (wait-for-new-frame dialog))]
+    [else
+     (eprintf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
+              tp-exp
+              error)]))
 
 (define (generic-tests)
   (test-good-teachpack
@@ -179,10 +162,10 @@
     (lambda (port)
       (apply string-append
              (let loop ()
-               (let ([l (read-line port)])
-                 (if (eof-object? l)
-                     null
-                     (list* l " " (loop)))))))
+               (define l (read-line port))
+               (if (eof-object? l)
+                   null
+                   (list* l " " (loop))))))
     'text))
 
 ;; doesn't test graphing.ss teachpack

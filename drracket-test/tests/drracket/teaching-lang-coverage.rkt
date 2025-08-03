@@ -67,17 +67,15 @@
 
 ;; get-annotate-output : drscheme-frame -> (listof str/ann)
 (define (get-annotated-output drs)
-  (let ([chan (make-channel)])
-    (queue-callback
-     (λ ()
-       (channel-put chan (get-string/style-desc (send drs get-definitions-text)))))
-    (channel-get chan)))
+  (define chan (make-channel))
+  (queue-callback (λ () (channel-put chan (get-string/style-desc (send drs get-definitions-text)))))
+  (channel-get chan))
 
 ;; returns #t if an element of the result of get-string/style-desc
 ;; corresponds to an uncovered region of the editor
 (define (is-uncovered? ele)
-  (let ([style (list-ref ele 1)])
-    (eq? style 'test-coverage-off)))
+  (define style (list-ref ele 1))
+  (eq? style 'test-coverage-off))
 
 ;; find-uncovered-text : list[get-string/style-desc result] -> (listof string)
 ;; returns strings containing the uncovered text in the editor (in the order they appear in the file)
@@ -86,38 +84,35 @@
 
 (fire-up-drracket-and-run-tests
  (λ ()
-   (let* ([drr-frame (wait-for-drracket-frame)]
-          [definitions-text (send drr-frame get-definitions-text)]
-          [interactions-text (send drr-frame get-interactions-text)])
-       
-     (let ([last-lang #f])
-       (for ([t (in-list tests)])
-         
-         
-         (let* ([this-lang (test-lang-regexp t)]
-                [same-last-time? (and (regexp? last-lang)
-                                      (equal? (object-name last-lang)
-                                              (object-name this-lang)))])
-           (unless same-last-time?
-             (set! last-lang this-lang)
-             (set-language-level! (list this-lang))))
-         
-         (clear-definitions drr-frame)
-         (insert-in-definitions drr-frame (test-program t))
-         (do-execute drr-frame)
-         
-         (let ([result (fetch-output
-                        drr-frame
-                        (send interactions-text paragraph-start-position 2)
-                        (send interactions-text last-position))])
-           (unless (regexp-match #rx"^[ \n\t0-9>]*$" result)
-             (eprintf "FAILED line ~a, got ~s for the output, but expected only digits and whitespace"
-                      (test-line t)
-                      result)))
-
-         (let ([got (find-uncovered-text (get-annotated-output drr-frame))])
-           (unless (equal? got (test-uncovered t))
-             (eprintf "FAILED line ~a\n     got: ~s\nexpected: ~s\n"
-                      (test-line t)
-                      got
-                      (test-uncovered t)))))))))
+   (define drr-frame (wait-for-drracket-frame))
+   (send drr-frame get-definitions-text)
+   (define interactions-text (send drr-frame get-interactions-text))
+   
+   (define last-lang #f)
+   (for ([t (in-list tests)])
+   
+     (let* ([this-lang (test-lang-regexp t)]
+            [same-last-time? (and (regexp? last-lang)
+                                  (equal? (object-name last-lang) (object-name this-lang)))])
+       (unless same-last-time?
+         (set! last-lang this-lang)
+         (set-language-level! (list this-lang))))
+   
+     (clear-definitions drr-frame)
+     (insert-in-definitions drr-frame (test-program t))
+     (do-execute drr-frame)
+   
+     (let ([result (fetch-output drr-frame
+                                 (send interactions-text paragraph-start-position 2)
+                                 (send interactions-text last-position))])
+       (unless (regexp-match #rx"^[ \n\t0-9>]*$" result)
+         (eprintf "FAILED line ~a, got ~s for the output, but expected only digits and whitespace"
+                  (test-line t)
+                  result)))
+   
+     (let ([got (find-uncovered-text (get-annotated-output drr-frame))])
+       (unless (equal? got (test-uncovered t))
+         (eprintf "FAILED line ~a\n     got: ~s\nexpected: ~s\n"
+                  (test-line t)
+                  got
+                  (test-uncovered t)))))))
