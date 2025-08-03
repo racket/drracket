@@ -8,8 +8,7 @@
 (define new-collection-root 
   #;
   (string->path "C:\\tmp")
-  (make-temporary-file "drracket-test-example-tool~a"
-                       'directory))
+  (make-temporary-directory "drracket-test-example-tool~a"))
 (define coll (build-path new-collection-root "coll"))
 (unless (directory-exists? coll) (make-directory coll))
 
