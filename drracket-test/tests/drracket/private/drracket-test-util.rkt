@@ -593,9 +593,9 @@
            (call-with-values f (lambda x (set! anss x))))
          (semaphore-post s)))
       (semaphore-wait s)
-      (if raised-exn?
-          (raise exn)
-          (apply values anss))))
+      (when raised-exn?
+        (raise exn))
+      (apply values anss)))
   
   ;; this is assumed to not open an windows or anything like that
   ;; but just to print and return.
