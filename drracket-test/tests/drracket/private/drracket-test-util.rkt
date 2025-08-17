@@ -160,17 +160,13 @@
     (poll-until wait-for-computation-to-finish 60)
     (sync (system-idle-evt)))
 
-  (define do-execute 
-    (case-lambda
-     [(frame)
-      (do-execute frame #t)]
-     [(frame wait-for-finish?)
-      (not-on-eventspace-handler-thread 'do-execute)
-      (queue-callback/res (λ () (verify-drracket-frame-frontmost 'do-execute frame)))
-      (let ([button (queue-callback/res (λ () (send frame get-execute-button)))])
-	(fw:test:run-one (lambda () (send button command)))
-	(when wait-for-finish?
-          (wait-for-computation frame)))]))
+  (define (do-execute frame [wait-for-finish? #t])
+    (not-on-eventspace-handler-thread 'do-execute)
+    (queue-callback/res (λ () (verify-drracket-frame-frontmost 'do-execute frame)))
+    (let ([button (queue-callback/res (λ () (send frame get-execute-button)))])
+      (fw:test:run-one (lambda () (send button command)))
+      (when wait-for-finish?
+        (wait-for-computation frame))))
   
   (define (verify-drracket-frame-frontmost function-name frame)
     (on-eventspace-handler-thread 'verify-drracket-frame-frontmost)
@@ -252,17 +248,15 @@
         (let ([c (string-ref str i)]) (fw:test:keystroke (if (char=? c #\newline) #\return c)))
         (loop (+ i 1)))))
   
-  (define wait
-    (case-lambda 
-     [(test desc-string) (wait test desc-string 5)]
-     [(test desc-string time)
-      (let ([int 1/2])
-	(let loop ([sofar 0])
-	  (cond
-	    [(> sofar time) (error 'wait desc-string)]
-	    [(test) (void)]
-	    [else (sleep int)
-		  (loop (+ sofar int))])))]))
+  (define (wait test desc-string [time 5])
+    (let ([int 1/2])
+      (let loop ([sofar 0])
+        (cond
+          [(> sofar time) (error 'wait desc-string)]
+          [(test) (void)]
+          [else
+           (sleep int)
+           (loop (+ sofar int))]))))
   
   (define (wait-pending)
     (wait (lambda () (= 0 (fw:test:number-pending-actions)))
