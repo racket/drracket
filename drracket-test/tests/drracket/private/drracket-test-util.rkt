@@ -320,96 +320,92 @@
   ;; set-language-level! : (cons (union regexp string) (listof (union regexp string))) boolean -> void
   ;; set language level in the frontmost DrRacket frame (resets settings to defaults)
   ;; If `close-dialog?' it #t,
-  (define set-language-level!
-    (lambda (in-language-spec [close-dialog? #t])
-      (unless (and (pair? in-language-spec)
-                   (list? in-language-spec)
-                   (andmap (lambda (x) (or string? regexp?)) in-language-spec))
-        (error 'set-language-level!
-               "expected a non-empty list of regexps and strings for language, got: ~e"
-               in-language-spec))
-      (not-on-eventspace-handler-thread 'set-language-level!)
-      (let ([drs-frame (fw:test:get-active-top-level-window)])
-        (fw:test:menu-select "Language" "Choose Language…")
-        (define language-dialog (wait-for-new-frame drs-frame))
-        (fw:test:set-radio-box-item! #rx"Other Languages")
-        (define language-choices (find-labelled-windows #f hierarchical-list%
-                                                        (fw:test:get-active-top-level-window)))
-        (define (click-on-snip snip)
-          (define-values (x y)
-            (queue-callback/res
-             (λ ()        
-               (define b1 (box 0))
-               (define b2 (box 0))
-               (define editor (send (send snip get-admin) get-editor))
-               (define between-threshold (send editor get-between-threshold))
-               (send editor get-snip-location snip b1 b2)
-               (define-values (gx gy) (send editor editor-location-to-dc-location
-                                            (unbox b1)
-                                            (unbox b2)))
-               (define x (inexact->exact (floor (+ gx between-threshold 1))))
-               (define y (inexact->exact (floor (+ gy between-threshold 1))))
-               (values x y))))
-          (fw:test:mouse-click 'left x y))
-          
-        (define found-language? #f)
-             
-        (for ([language-choice (in-list language-choices)])
-          (queue-callback/res (λ () (send language-choice focus)))
-          (let loop ([list-item language-choice]
-                     [language-spec in-language-spec])
-            (let* ([name (car language-spec)]
-                   [which 
-                    (queue-callback/res 
-                     (λ ()
-                       (filter (lambda (child)
-                                 (let* ([text (send (send child get-editor) get-text)]
-                                        [matches
-                                         (or (and (regexp? name)
-                                                  (regexp-match name text))
-                                             (and (string? name)
-                                                  (string=? name text)))])
-                                   (and matches
-                                        child)))
-                               (send list-item get-items))))])
-              (unless (null? which)
-                (unless (= 1 (length which))
-                  (error 'set-language-level! "couldn't find language: ~e, double match ~e"
-                         in-language-spec name))
-                (let ([next-item (car which)])
-                  (cond
-                    [(null? (cdr language-spec))
-                     (when (is-a? next-item hierarchical-list-compound-item<%>)
-                       (error 'set-language-level!
-                              "expected no more languages after ~e, but still are, input ~e"
-                              name in-language-spec))
-                     (set! found-language? #t)
-                     (click-on-snip (send next-item get-clickable-snip))]
-                    [else
-                     (unless (is-a? next-item hierarchical-list-compound-item<%>)
-                       (error 'set-language-level!
-                              "expected more languages after ~e, but got to end, input ~e"
-                              name in-language-spec))
-                     (unless (queue-callback/res (λ () (send next-item is-open?)))
-                       (click-on-snip (send next-item get-arrow-snip)))
-                     (loop next-item (cdr language-spec))]))))))
-        
-        (unless found-language?
-          (error 'set-language-level! "couldn't find language: ~e" in-language-spec))
-        
-        (with-handlers ([exn:fail? (lambda (x) (void))])
-          (fw:test:button-push "Show Details"))
-        
-        (fw:test:button-push "Revert to Language Defaults")
-        
-        (when close-dialog?
-          (fw:test:button-push "OK")
-          (let ([new-frame (wait-for-new-frame language-dialog)])
-            (unless (eq? new-frame drs-frame)
-              (error 'set-language-level! 
-                     "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
-                     new-frame
-                     drs-frame)))))))
+  (define (set-language-level! in-language-spec [close-dialog? #t])
+    (unless (and (pair? in-language-spec)
+                 (list? in-language-spec)
+                 (andmap (lambda (x) (or string? regexp?)) in-language-spec))
+      (error 'set-language-level!
+             "expected a non-empty list of regexps and strings for language, got: ~e"
+             in-language-spec))
+    (not-on-eventspace-handler-thread 'set-language-level!)
+    (let ([drs-frame (fw:test:get-active-top-level-window)])
+      (fw:test:menu-select "Language" "Choose Language…")
+      (define language-dialog (wait-for-new-frame drs-frame))
+      (fw:test:set-radio-box-item! #rx"Other Languages")
+      (define language-choices
+        (find-labelled-windows #f hierarchical-list% (fw:test:get-active-top-level-window)))
+      (define (click-on-snip snip)
+        (define-values (x y)
+          (queue-callback/res (λ ()
+                                (define b1 (box 0))
+                                (define b2 (box 0))
+                                (define editor (send (send snip get-admin) get-editor))
+                                (define between-threshold (send editor get-between-threshold))
+                                (send editor get-snip-location snip b1 b2)
+                                (define-values (gx gy)
+                                  (send editor editor-location-to-dc-location (unbox b1) (unbox b2)))
+                                (define x (inexact->exact (floor (+ gx between-threshold 1))))
+                                (define y (inexact->exact (floor (+ gy between-threshold 1))))
+                                (values x y))))
+        (fw:test:mouse-click 'left x y))
+  
+      (define found-language? #f)
+  
+      (for ([language-choice (in-list language-choices)])
+        (queue-callback/res (λ () (send language-choice focus)))
+        (let loop ([list-item language-choice]
+                   [language-spec in-language-spec])
+          (let* ([name (car language-spec)]
+                 [which (queue-callback/res
+                         (λ ()
+                           (filter (lambda (child)
+                                     (let* ([text (send (send child get-editor) get-text)]
+                                            [matches (or (and (regexp? name) (regexp-match name text))
+                                                         (and (string? name) (string=? name text)))])
+                                       (and matches child)))
+                                   (send list-item get-items))))])
+            (unless (null? which)
+              (unless (= 1 (length which))
+                (error 'set-language-level!
+                       "couldn't find language: ~e, double match ~e"
+                       in-language-spec
+                       name))
+              (let ([next-item (car which)])
+                (cond
+                  [(null? (cdr language-spec))
+                   (when (is-a? next-item hierarchical-list-compound-item<%>)
+                     (error 'set-language-level!
+                            "expected no more languages after ~e, but still are, input ~e"
+                            name
+                            in-language-spec))
+                   (set! found-language? #t)
+                   (click-on-snip (send next-item get-clickable-snip))]
+                  [else
+                   (unless (is-a? next-item hierarchical-list-compound-item<%>)
+                     (error 'set-language-level!
+                            "expected more languages after ~e, but got to end, input ~e"
+                            name
+                            in-language-spec))
+                   (unless (queue-callback/res (λ () (send next-item is-open?)))
+                     (click-on-snip (send next-item get-arrow-snip)))
+                   (loop next-item (cdr language-spec))]))))))
+  
+      (unless found-language?
+        (error 'set-language-level! "couldn't find language: ~e" in-language-spec))
+  
+      (with-handlers ([exn:fail? (lambda (x) (void))])
+        (fw:test:button-push "Show Details"))
+  
+      (fw:test:button-push "Revert to Language Defaults")
+  
+      (when close-dialog?
+        (fw:test:button-push "OK")
+        (let ([new-frame (wait-for-new-frame language-dialog)])
+          (unless (eq? new-frame drs-frame)
+            (error 'set-language-level!
+                   "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
+                   new-frame
+                   drs-frame))))))
   
   (define (set-module-language! [close-dialog? #t])
     (not-on-eventspace-handler-thread 'set-module-language!)
