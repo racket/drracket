@@ -59,25 +59,25 @@
   ;; filename is a string naming a file that should be typed into the dialog
   (define (use-get/put-dialog open-dialog filename)
     (not-on-eventspace-handler-thread 'use-get/put-dialog)
-    (let ([drs (wait-for-drracket-frame)])
-      (with-handlers ([(lambda (x) #t)
-		       (lambda (x)
-			 (fw:preferences:set 'framework:file-dialogs 'std)
-			 (raise x))])
-	(fw:preferences:set 'framework:file-dialogs 'common)
-	(open-dialog)
-	(let ([dlg (wait-for-new-frame drs)])
-	  (send (find-labelled-window "Filename:" #f (fw:test:get-active-top-level-window)) focus)
-	  (fw:test:keystroke #\a (list (case (system-type)
-					 [(windows) 'control]
-					 [(macosx macos) 'meta]
-					 [(unix) 'control]
-                                         [else (error 'use-get/put-dialog "unknown platform: ~s\n"
-                                                      (system-type))])))
-	  (for-each fw:test:keystroke (string->list (path->string filename)))
-	  (fw:test:button-push "OK")
-	  (wait-for-new-frame dlg))
-	(fw:preferences:set 'framework:file-dialogs 'std))))
+    (define drs (wait-for-drracket-frame))
+    (with-handlers ([(lambda (x) #t) (lambda (x)
+                                       (fw:preferences:set 'framework:file-dialogs 'std)
+                                       (raise x))])
+      (fw:preferences:set 'framework:file-dialogs 'common)
+      (open-dialog)
+      (let ([dlg (wait-for-new-frame drs)])
+        (send (find-labelled-window "Filename:" #f (fw:test:get-active-top-level-window)) focus)
+        (fw:test:keystroke
+         #\a
+         (list (case (system-type)
+                 [(windows) 'control]
+                 [(macosx macos) 'meta]
+                 [(unix) 'control]
+                 [else (error 'use-get/put-dialog "unknown platform: ~s\n" (system-type))])))
+        (for-each fw:test:keystroke (string->list (path->string filename)))
+        (fw:test:button-push "OK")
+        (wait-for-new-frame dlg))
+      (fw:preferences:set 'framework:file-dialogs 'std)))
 
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) (current-continuation-marks))))
@@ -180,20 +180,19 @@
   
   (define (verify-drracket-frame-frontmost function-name frame)
     (on-eventspace-handler-thread 'verify-drracket-frame-frontmost)
-    (let ([tl (fw:test:get-active-top-level-window)])
-      (unless (and (eq? frame tl)
-                   (drracket-frame? tl))
-        (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl))))
+    (define tl (fw:test:get-active-top-level-window))
+    (unless (and (eq? frame tl) (drracket-frame? tl))
+      (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl)))
   
   (define (clear-definitions frame)
     (queue-callback/res (λ () (verify-drracket-frame-frontmost 'clear-definitions frame)))
     (fw:test:new-window (queue-callback/res (λ () (send frame get-definitions-canvas))))
     (let ([window (queue-callback/res (λ () (send frame get-edit-target-window)))])
-      (let-values ([(cw ch) (queue-callback/res (λ () (send window get-client-size)))]
-                   [(w h) (queue-callback/res (λ () (send window get-size)))])
-        (fw:test:mouse-click 'left
-			     (inexact->exact (floor (+ cw (/ (- w cw) 2))))
-			     (inexact->exact (floor (+ ch (/ (- h ch) 2)))))))
+      (define-values (cw ch) (queue-callback/res (λ () (send window get-client-size))))
+      (define-values (w h) (queue-callback/res (λ () (send window get-size))))
+      (fw:test:mouse-click 'left
+                           (inexact->exact (floor (+ cw (/ (- w cw) 2))))
+                           (inexact->exact (floor (+ ch (/ (- h ch) 2))))))
     (fw:test:menu-select "Edit" "Select All")
     (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 				    "Clear"
@@ -216,52 +215,48 @@
     (not-on-eventspace-handler-thread 'put-in-frame)
     (unless (and (object? frame) (is-a? frame top-level-window<%>))
       (error who "expected a frame or a dialog as the first argument, got ~e" frame))
-    (let ([str (if (string? str/sexp)
-		   str/sexp
-		   (let ([port (open-output-string)])
-		     (parameterize ([current-output-port port])
-		       (write str/sexp port))
-		     (get-output-string port)))])
-      (queue-callback/res (λ () (verify-drracket-frame-frontmost who frame)))
-      (let ([canvas (queue-callback/res (λ () (get-canvas frame)))])
-	(fw:test:new-window canvas)
-	(let ([editor (queue-callback/res (λ () (send canvas get-editor)))])
-          (cond
-            [just-insert? 
-             (let ([s (make-semaphore 0)])
-               (queue-callback
-                (λ () 
-                  (send editor set-caret-owner #f)
-                  (send editor insert str)
-                  (semaphore-post s)))
-               (unless (sync/timeout 3 s)
-                 (error who "callback didn't run for 3 seconds; trying to insert ~s" str/sexp)))]
-            [else 
-             (queue-callback/res (λ () (send editor set-caret-owner #f)))
-             (type-string str)])))))
+    (define str
+      (if (string? str/sexp)
+          str/sexp
+          (let ([port (open-output-string)])
+            (parameterize ([current-output-port port])
+              (write str/sexp port))
+            (get-output-string port))))
+    (queue-callback/res (λ () (verify-drracket-frame-frontmost who frame)))
+    (define canvas (queue-callback/res (λ () (get-canvas frame))))
+    (fw:test:new-window canvas)
+    (define editor (queue-callback/res (λ () (send canvas get-editor))))
+    (cond
+      [just-insert?
+       (let ([s (make-semaphore 0)])
+         (queue-callback (λ ()
+                           (send editor set-caret-owner #f)
+                           (send editor insert str)
+                           (semaphore-post s)))
+         (unless (sync/timeout 3 s)
+           (error who "callback didn't run for 3 seconds; trying to insert ~s" str/sexp)))]
+      [else
+       (queue-callback/res (λ () (send editor set-caret-owner #f)))
+       (type-string str)]))
   
   (define (alt-return-in-interactions frame)
     (not-on-eventspace-handler-thread 'alt-return-in-interactions)
     (queue-callback/res (λ () (verify-drracket-frame-frontmost 'alt-return-in-interactions frame)))
-    (let ([canvas (send frame get-interactions-canvas)])
-      (fw:test:new-window canvas)
-      (let ([editor (send canvas get-editor)])
-        (send editor set-caret-owner #f)
-        (fw:test:keystroke #\return '(alt)))))
+    (define canvas (send frame get-interactions-canvas))
+    (fw:test:new-window canvas)
+    (define editor (send canvas get-editor))
+    (send editor set-caret-owner #f)
+    (fw:test:keystroke #\return '(alt)))
         
   ;; type-string : string -> void
   ;; to call test:keystroke repeatedly with the characters
   (define (type-string str)
     (not-on-eventspace-handler-thread 'type-string)
-    (let ([len (string-length str)])
-      (let loop ([i 0])
-        (unless (>= i len)
-          (let ([c (string-ref str i)])
-            (fw:test:keystroke
-             (if (char=? c #\newline)
-                 #\return
-                 c)))
-          (loop (+ i 1))))))
+    (define len (string-length str))
+    (let loop ([i 0])
+      (unless (>= i len)
+        (let ([c (string-ref str i)]) (fw:test:keystroke (if (char=? c #\newline) #\return c)))
+        (loop (+ i 1)))))
   
   (define wait
     (case-lambda 
@@ -309,9 +304,9 @@
   
   (define (get-text-pos text)
     (on-eventspace-handler-thread 'get-text-pos)
-    (let* ([last-pos (send text last-position)]
-	   [last-line (send text position-line last-pos)])
-      (send text line-start-position last-line)))
+    (define last-pos (send text last-position))
+    (define last-line (send text position-line last-pos))
+    (send text line-start-position last-line))
   
   ; poll for enabled button
   
@@ -430,53 +425,50 @@
   
   (define (set-module-language! [close-dialog? #t])
     (not-on-eventspace-handler-thread 'set-module-language!)
-    (let ([drs-frame (fw:test:get-active-top-level-window)])
-      (fw:test:menu-select "Language" "Choose Language…")
-      (let* ([language-dialog (wait-for-new-frame drs-frame)])
-        (fw:test:set-radio-box-item! #rx"The Racket Language")
-        
-        (with-handlers ([exn:fail? (lambda (x) (void))])
-          (fw:test:button-push "Show Details"))
-        
-        (fw:test:button-push "Revert to Language Defaults")
-        
-        (when close-dialog?
-          (fw:test:button-push "OK")
-          (let ([new-frame (wait-for-new-frame language-dialog)])
-            (unless (eq? new-frame drs-frame)
-              (error 'set-module-language!
-                     "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
-                     new-frame
-                     drs-frame)))))))
+    (define drs-frame (fw:test:get-active-top-level-window))
+    (fw:test:menu-select "Language" "Choose Language…")
+    (define language-dialog (wait-for-new-frame drs-frame))
+    (fw:test:set-radio-box-item! #rx"The Racket Language")
+    
+    (with-handlers ([exn:fail? (lambda (x) (void))])
+      (fw:test:button-push "Show Details"))
+    
+    (fw:test:button-push "Revert to Language Defaults")
+    
+    (when close-dialog?
+      (fw:test:button-push "OK")
+      (let ([new-frame (wait-for-new-frame language-dialog)])
+        (unless (eq? new-frame drs-frame)
+          (error 'set-module-language!
+                 "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
+                 new-frame
+                 drs-frame)))))
   
   (provide (contract-out [check-language-level ((or/c string? regexp?) . -> . void?)]))
   ;; checks that the language in the drracket window is set to the given one.
   ;; clears the definitions, clicks execute and checks the interactions window.
   (define (check-language-level lang-spec)
     (not-on-eventspace-handler-thread 'check-language-level!)
-    (let* ([drs-frame (wait-for-drracket-frame)]
-           [interactions (send drs-frame get-interactions-text)]
-           [definitions-canvas (send drs-frame get-definitions-canvas)])
-      (fw:test:new-window definitions-canvas)
-      (fw:test:menu-select "Edit" "Select All")
-      (fw:test:menu-select "Edit" "Delete")
-      (do-execute drs-frame)
-      (let ([lang-line (queue-callback/res
-                        (λ ()
-                          (send interactions get-text
-                                (send interactions line-start-position 1)
-                                (send interactions line-end-position 1))))])
-        (unless (regexp-match lang-spec lang-line)
-          (error 'check-language-level "expected ~s to match ~s"
-                 lang-line lang-spec)))))
+    (define drs-frame (wait-for-drracket-frame))
+    (define interactions (send drs-frame get-interactions-text))
+    (define definitions-canvas (send drs-frame get-definitions-canvas))
+    (fw:test:new-window definitions-canvas)
+    (fw:test:menu-select "Edit" "Select All")
+    (fw:test:menu-select "Edit" "Delete")
+    (do-execute drs-frame)
+    (define lang-line
+      (queue-callback/res (λ ()
+                            (send interactions get-text
+                                  (send interactions line-start-position 1)
+                                  (send interactions line-end-position 1)))))
+    (unless (regexp-match lang-spec lang-line)
+      (error 'check-language-level "expected ~s to match ~s" lang-line lang-spec)))
   
   
   (define (repl-in-edit-sequence?)
     (not-on-eventspace-handler-thread 'repl-in-edit-sequence?)
-    (let ([drr (wait-for-drracket-frame)])
-      (queue-callback/res
-       (λ ()
-         (send (send drr get-interactions-text) refresh-delayed?)))))
+    (define drr (wait-for-drracket-frame))
+    (queue-callback/res (λ () (send (send drr get-interactions-text) refresh-delayed?))))
  
   ;; has-error? : frame -> (union #f string)
   ;; returns the text of an error in the interactions window of the frame or #f if there is none.
@@ -486,40 +478,41 @@
     (run-one/sync
      (lambda ()
        (verify-drracket-frame-frontmost 'had-error? frame)
-       (let* ([interactions-text (send frame get-interactions-text)]
-              [last-para (send interactions-text last-paragraph)])
-         (unless (>= last-para 2)
-           (error 'has-error? "expected at least 2 paragraphs in interactions window, found ~a"
-                  (+ last-para 1)))
-         (let ([start (send interactions-text paragraph-start-position 2)]
-               [end (send interactions-text paragraph-end-position
-                          (- (send interactions-text last-paragraph) 1))])
-           (send interactions-text split-snip start)
-           (send interactions-text split-snip end)
-           (let loop ([pos start])
-             (cond
-               [(<= end pos) #f]
-               [else
-                (let ([snip (send interactions-text find-snip pos 'after-or-none)])
-                  (cond
-                    [(not snip) #f]
-                    [else
-                     (let ([color (send (send snip get-style) get-foreground)])
-                       (if (and (= 255 (send color red))
-                                (= 0 (send color blue) (send color green)))
-                           
-                           ;; return the text of the entire line containing the red text
-                           (let ([para (send interactions-text position-paragraph pos)])
-                             (unless (exact-nonnegative-integer? para)
-                               (error 'has-error? 
-                                      "got back a bad result from position-paragraph: ~s ~s\n" 
-                                      para
-                                      (list pos (send interactions-text last-position))))
-                             (send interactions-text get-text
-                                   (send interactions-text paragraph-start-position para)
-                                   (send interactions-text paragraph-end-position para)))
-                           
-                           (loop (+ pos (send snip get-count)))))]))])))))))
+       (define interactions-text (send frame get-interactions-text))
+       (define last-para (send interactions-text last-paragraph))
+       (unless (>= last-para 2)
+         (error 'has-error?
+                "expected at least 2 paragraphs in interactions window, found ~a"
+                (+ last-para 1)))
+       (define start (send interactions-text paragraph-start-position 2))
+       (define end
+         (send interactions-text paragraph-end-position
+               (- (send interactions-text last-paragraph) 1)))
+       (send interactions-text split-snip start)
+       (send interactions-text split-snip end)
+       (let loop ([pos start])
+         (cond
+           [(<= end pos) #f]
+           [else
+            (let ([snip (send interactions-text find-snip pos 'after-or-none)])
+              (cond
+                [(not snip) #f]
+                [else
+                 (let ([color (send (send snip get-style) get-foreground)])
+                   (if (and (= 255 (send color red)) (= 0 (send color blue) (send color green)))
+       
+                       ;; return the text of the entire line containing the red text
+                       (let ([para (send interactions-text position-paragraph pos)])
+                         (unless (exact-nonnegative-integer? para)
+                           (error 'has-error?
+                                  "got back a bad result from position-paragraph: ~s ~s\n"
+                                  para
+                                  (list pos (send interactions-text last-position))))
+                         (send interactions-text get-text
+                               (send interactions-text paragraph-start-position para)
+                               (send interactions-text paragraph-end-position para)))
+       
+                       (loop (+ pos (send snip get-count)))))]))])))))
 
   (define fetch-output
     (case-lambda
