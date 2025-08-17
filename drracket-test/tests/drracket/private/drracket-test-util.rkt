@@ -507,17 +507,18 @@
         (lambda ()
           (verify-drracket-frame-frontmost 'fetch-output frame)
           (define-values (start end)
-            (if (and _start _end)
-                (values _start _end)
-                (let* ([interactions-text (send frame get-interactions-text)]
-                       [last-para (send interactions-text last-paragraph)])
-                  (unless (>= last-para 2)
-                    (error 'fetch-output 
-                           "expected at least 2 paragraphs in interactions window, found ~a"
-                           (+ last-para 1)))
-                  (values (send interactions-text paragraph-start-position 2)
-                          (send interactions-text paragraph-end-position
-                                (- (send interactions-text last-paragraph) 1))))))
+            (cond
+              [(and _start _end) (values _start _end)]
+              [else
+               (define interactions-text (send frame get-interactions-text))
+               (define last-para (send interactions-text last-paragraph))
+               (unless (>= last-para 2)
+                 (error 'fetch-output
+                        "expected at least 2 paragraphs in interactions window, found ~a"
+                        (+ last-para 1)))
+               (values (send interactions-text paragraph-start-position 2)
+                       (send interactions-text paragraph-end-position
+                             (- (send interactions-text last-paragraph) 1)))]))
 
           (define (fetch-text-content text start end)
             (send text split-snip start)
