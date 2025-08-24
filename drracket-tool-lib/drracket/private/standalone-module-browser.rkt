@@ -1012,7 +1012,7 @@
              (set-member? pkg-restriction (send word-ship/lines get-pkg))))
 
       (define/private (reset-levels)
-        (for* ([(level snips) (in-hash level-ht)]
+        (for* ([snips (in-hash-values level-ht)]
                [snip (in-list snips)])
           (send snip reset-level))
         (set! level-ht (make-hash)))
@@ -1027,7 +1027,7 @@
           ;; major-dim is the dimension that new levels extend along
           ;; minor-dim is the dimension that snips inside a level extend along
           
-          (for ([(n v) (in-hash level-ht)])
+          (for ([v (in-hash-values level-ht)])
             (set! max-minor
                   (max max-minor
                        (apply +
