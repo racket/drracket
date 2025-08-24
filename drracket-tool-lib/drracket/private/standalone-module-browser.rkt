@@ -1224,7 +1224,8 @@
         (send dc set-font label-font)
         (cond
           [found-highlight? (send dc set-brush search-result-background 'solid)]
-          [lines-brush (send dc set-brush lines-brush)])
+          [lines-brush (send dc set-brush lines-brush)]
+          [else (void)])
         (when (rectangles-intersect? left top right bottom x y (+ x snip-width) (+ y snip-height))
           (send dc draw-rectangle x y snip-width snip-height)
           (send dc
