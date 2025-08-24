@@ -783,7 +783,7 @@
   (for ([(level+mods requires) (in-hash phase-to-requires)])
     (define new-hash (make-hash))
     (hash-set! unused/phases level+mods new-hash)
-    (for ([(k v) (in-hash requires)])
+    (for ([k (in-hash-keys requires)])
       (hash-set! new-hash k #t)))
 
   (for ([(level binders) (in-hash phase-to-binders)])
@@ -820,7 +820,7 @@
   ;; build a set of all of the known phases
   (define phases (set))
   (define all-mods (set))
-  (for ([(phase _) (in-hash phase-to-binders)])
+  (for ([phase (in-hash-keys phase-to-binders)])
     (set! phases (set-add phases phase)))
   (for ([(phase+mod _) (in-hash phase-to-requires)])
     (define phase (list-ref phase+mod 0))
