@@ -123,7 +123,7 @@
       (send ok-button enable #f)
       (set! callbacks (cons (fw:preferences:add-callback 'external-browser enable-button) callbacks)))
     (send d show #t)
-    (map (lambda (f) (f)) callbacks)
+    (for-each (lambda (f) (f)) callbacks)
     ok?)
 
   (define panel-installed? #f)
@@ -141,7 +141,7 @@
                     (lambda (parent)
                       (define-values (panel cbs) (f parent))
                       (set! prefs-panel panel)
-                      (map (lambda (f) (f panel)) additions)
+                      (for-each (lambda (f) (f panel)) additions)
                       (set! additions null)
                       panel))))))
 
