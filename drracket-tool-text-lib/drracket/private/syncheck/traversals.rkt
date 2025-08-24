@@ -684,10 +684,7 @@
                  (vector-ref the-vec 8)
                  (vector-ref the-vec 9)))
        (define key (list level mods))
-       (hash-set! sub-identifier-binding-directives
-                  key
-                  (cons new-entry
-                        (hash-ref sub-identifier-binding-directives key '())))]
+       (hash-update! sub-identifier-binding-directives key (λ (v) (cons new-entry v)) '())]
       [(vector? prop)
        (log-check-syntax-debug
         "found a vector in a 'sub-range-binders property that is ill-formed ~s"
