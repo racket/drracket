@@ -987,7 +987,7 @@
   (define source-id (list-ref source-req-path/pr 1))
   (define req-phase+space-shift (list-ref req-path/pr 3))
   (define req-phase-level (if (pair? req-phase+space-shift) (car req-phase+space-shift) req-phase+space-shift))
-  (define req-space (if (pair? req-phase+space-shift) (cdr req-phase+space-shift) #f))
+  (define req-space (and (pair? req-phase+space-shift) (cdr req-phase+space-shift)))
   (define require-hash-key (list req-phase-level mods))
   (define require-ht (hash-ref phase-to-requires require-hash-key #f))
   (when id
