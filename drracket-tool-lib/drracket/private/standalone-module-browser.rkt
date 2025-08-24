@@ -1276,7 +1276,7 @@
                             (substring short-name 0 1)
                             (map (λ (x) (substring x 1 2)) ms))])])]
               [(long) word]
-              [(very-long) (string-append word ": " (format "~s" require-phases))]))
+              [(very-long) (format "~a: ~s" word require-phases)]))
            last-name]))
       
       (super-new)))
