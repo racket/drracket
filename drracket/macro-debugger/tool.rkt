@@ -461,9 +461,9 @@
                 (define canvas (send obj get-canvas))
                 (when canvas
                   (define frame (send canvas get-top-level-window))
-                  (when (is-a? frame frame/supports-macro-stepper<%>)
-                    (when (send frame allow-macro-stepper?)
-                      (send frame run-macro-stepper)))))))
+                  (when (and (is-a? frame frame/supports-macro-stepper<%>)
+                             (send frame allow-macro-stepper?))
+                    (send frame run-macro-stepper))))))
       (send keymap map-function "c:c;c:m" "macro stepper"))
 
     (add-macro-stepper-key-bindings (drracket:rep:get-drs-bindings-keymap))
