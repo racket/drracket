@@ -1074,12 +1074,6 @@ This produces an ACK message
            [source-location (test-source-location in-vector)]
            [setup (test-setup in-vector)]
            [teardown (test-teardown in-vector)]
-           [start-line (and (pair? source-location)
-                            (number->string (+ 1 (loc-line (car source-location)))))]
-           [start-col (and (pair? source-location)
-                           (number->string (loc-col (car source-location))))]
-           [start-pos (and (pair? source-location)
-                           (number->string (+ 1 (loc-offset (car source-location)))))]
            [breaking-test? (test-breaking-test? in-vector)])
       
       (setup)
