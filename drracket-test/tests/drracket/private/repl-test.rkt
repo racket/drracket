@@ -1137,20 +1137,20 @@ This produces an ACK message
             (eprintf "FAILED execute test for ~s\n  expected interactions to have the focus\n"
                      program))]
          [defs-focus?
-          (let ([start (car source-location)]
-                [finish (cdr source-location)])
-            (let* ([error-ranges (queue-callback/res (λ () (send ints-text get-error-ranges)))]
-                   [error-range (and error-ranges (not (null? error-ranges)) (car error-ranges))])
-              (unless (and error-range
-                           (= (+ (srcloc-position error-range) -1) (loc-offset start))
-                           (= (+ (srcloc-position error-range) -1 (srcloc-span error-range))
-                              (loc-offset finish)))
-                (eprintf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~s\n"
-                         program
-                         (and error-range
-                              (list (+ (srcloc-position error-range) -1)
-                                    (+ (srcloc-position error-range) -1 (srcloc-span error-range))))
-                         (list (loc-offset start) (loc-offset finish))))))])])
+          (define start (car source-location))
+          (define finish (cdr source-location))
+          (define error-ranges (queue-callback/res (λ () (send ints-text get-error-ranges))))
+          (define error-range (and error-ranges (not (null? error-ranges)) (car error-ranges)))
+          (unless (and error-range
+                       (= (+ (srcloc-position error-range) -1) (loc-offset start))
+                       (= (+ (srcloc-position error-range) -1 (srcloc-span error-range))
+                          (loc-offset finish)))
+            (eprintf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~s\n"
+                     program
+                     (and error-range
+                          (list (+ (srcloc-position error-range) -1)
+                                (+ (srcloc-position error-range) -1 (srcloc-span error-range))))
+                     (list (loc-offset start) (loc-offset finish))))])])
   
     ; check text for execute test
     (next-test)
