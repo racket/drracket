@@ -89,7 +89,7 @@
   (define (wait-for-drracket-frame [print-message? #f])
     (define (wait-for-drracket-frame-pred)
       (define active (fw:test:get-active-top-level-window))
-      (and (and active (drracket-frame? active)) active))
+      (and active (drracket-frame? active) active))
     (define drr-fr
       (or (wait-for-drracket-frame-pred)
           (begin
@@ -112,7 +112,7 @@
                          (for/or ([eventspace (in-list extra-eventspaces)]) 
                            (parameterize ([current-eventspace eventspace])
                              (fw:test:get-active-top-level-window)))))
-      (and (and active (not (eq? active old-frame))) active))
+      (and active (not (eq? active old-frame)) active))
     (define lab (send old-frame get-label))
     (define fr (poll-until 
                 (procedure-rename wait-for-new-frame-pred
