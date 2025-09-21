@@ -1047,15 +1047,15 @@ This produces an ACK message
     (define snip
       (queue-callback/res
        (lambda ()
-         (let* ([start (send ints-text paragraph-start-position 2)]
-                ;; since the fraction is supposed to be one char wide, we just
-                ;; select one char, so that, if the regular number prints out,
-                ;; this test will fail.
-                [end (+ start 1)])
-           (send ints-text split-snip start)
-           (send ints-text split-snip end)
-           (define snip (send ints-text find-snip start 'after))
-           (and snip (send snip copy))))))
+         (define start (send ints-text paragraph-start-position 2))
+         ;; since the fraction is supposed to be one char wide, we just
+         ;; select one char, so that, if the regular number prints out,
+         ;; this test will fail.
+         (define end (+ start 1))
+         (send ints-text split-snip start)
+         (send ints-text split-snip end)
+         (define snip (send ints-text find-snip start 'after))
+         (and snip (send snip copy)))))
     (clear-definitions drr-frame)
     (type-in-definitions drr-frame "(+ ")
     (queue-callback/res
@@ -1069,181 +1069,160 @@ This produces an ACK message
   ; results of these operations against expected results.
   (define ((run-single-test execute-text-start escape language-cust) in-vector)
     ;(printf "\n>> testing ~s\n" (test-program in-vector))
-    (let* ([program (test-program in-vector)]
-           [execute-answer (make-execute-answer in-vector language-cust)]
-           [source-location (test-source-location in-vector)]
-           [setup (test-setup in-vector)]
-           [teardown (test-teardown in-vector)]
-           [start-line (and (pair? source-location)
-                            (number->string (+ 1 (loc-line (car source-location)))))]
-           [start-col (and (pair? source-location)
-                           (number->string (loc-col (car source-location))))]
-           [start-pos (and (pair? source-location)
-                           (number->string (+ 1 (loc-offset (car source-location)))))]
-           [breaking-test? (test-breaking-test? in-vector)])
-      
-      (setup)
-      
-      (clear-definitions drr-frame)
-      ; load contents of test-file into the REPL, recording
-      ; the start and end positions of the text
-      
-      (wait-for-drracket-frame)
-      
-      (cond
-        [(string? program)
-         (insert-in-definitions/newlines drr-frame program)]
-        [(eq? program 'fraction-sum)
-         (setup-fraction-sum-interactions)]
-        [(list? program)
-         (for-each
-          (lambda (item)
-            (cond
-              [(string? item) (insert-in-definitions/newlines drr-frame item)]
-              [(eq? item 'left)
-               (queue-callback/res
-                (λ ()
-                  (send defs-text 
-                        set-position
-                        (- (send defs-text get-start-position) 1)
-                        (- (send defs-text get-start-position) 1))))]
-              [(pair? item) (apply test:menu-select item)]))
-          program)])
-      
+    (define program (test-program in-vector))
+    (define execute-answer (make-execute-answer in-vector language-cust))
+    (define source-location (test-source-location in-vector))
+    (define setup (test-setup in-vector))
+    (define teardown (test-teardown in-vector))
+    (and (pair? source-location) (number->string (+ 1 (loc-line (car source-location)))))
+    (and (pair? source-location) (number->string (loc-col (car source-location))))
+    (and (pair? source-location) (number->string (+ 1 (loc-offset (car source-location)))))
+    (define breaking-test? (test-breaking-test? in-vector))
+  
+    (setup)
+  
+    (clear-definitions drr-frame)
+    ; load contents of test-file into the REPL, recording
+    ; the start and end positions of the text
+  
+    (wait-for-drracket-frame)
+  
+    (cond
+      [(string? program) (insert-in-definitions/newlines drr-frame program)]
+      [(eq? program 'fraction-sum) (setup-fraction-sum-interactions)]
+      [(list? program)
+       (for-each (lambda (item)
+                   (cond
+                     [(string? item) (insert-in-definitions/newlines drr-frame item)]
+                     [(eq? item 'left)
+                      (queue-callback/res (λ ()
+                                            (send defs-text set-position
+                                                  (- (send defs-text get-start-position) 1)
+                                                  (- (send defs-text get-start-position) 1))))]
+                     [(pair? item) (apply test:menu-select item)]))
+                 program)])
+  
+    (do-execute drr-frame #f)
+  
+    ;; make sure that the execute callback has really completed
+    ;; (is this necc w/ test:run-one below?)
+    (queue-callback/res void)
+  
+    (when breaking-test?
+      (test:run-one (λ () (send (send drr-frame get-break-button) command))))
+    (wait-for-drr-frame-computation)
+  
+    (define execute-text-end (max 0 (- (get-int-pos) 1))) ;; subtract one to skip last newline
+    (define received-execute (fetch-output drr-frame execute-text-start execute-text-end))
+  
+    ; check focus and selection for execute test
+    (case language-cust
+      [(raw) (void)]
+      [else
+       (define edit-target (queue-callback/res (λ () (send drr-frame get-edit-target-window))))
+       (define defs-focus? (eq? edit-target defs-canvas))
+       (define ints-focus? (eq? edit-target ints-canvas))
+       (cond
+         [(eq? source-location 'dont-care) (void)]
+         [(eq? source-location 'definitions)
+          (unless defs-focus?
+            (eprintf "FAILED execute test for ~s\n  expected definitions to have the focus\n"
+                     program))]
+         [(eq? source-location 'interactions)
+          (unless ints-focus?
+            (eprintf "FAILED execute test for ~s\n  expected interactions to have the focus\n"
+                     program))]
+         [defs-focus?
+          (let ([start (car source-location)]
+                [finish (cdr source-location)])
+            (let* ([error-ranges (queue-callback/res (λ () (send ints-text get-error-ranges)))]
+                   [error-range (and error-ranges (not (null? error-ranges)) (car error-ranges))])
+              (unless (and error-range
+                           (= (+ (srcloc-position error-range) -1) (loc-offset start))
+                           (= (+ (srcloc-position error-range) -1 (srcloc-span error-range))
+                              (loc-offset finish)))
+                (eprintf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~s\n"
+                         program
+                         (and error-range
+                              (list (+ (srcloc-position error-range) -1)
+                                    (+ (srcloc-position error-range) -1 (srcloc-span error-range))))
+                         (list (loc-offset start) (loc-offset finish))))))])])
+  
+    ; check text for execute test
+    (next-test)
+    (unless (cond
+              [(string? execute-answer) (string=? execute-answer received-execute)]
+              [(regexp? execute-answer) (regexp-match execute-answer received-execute)]
+              [else #f])
+      (failure)
+      (eprintf "FAILED execute test for ~s (~a)\n  expected: ~s\n       got: ~s\n"
+               program
+               language-cust
+               execute-answer
+               received-execute))
+  
+    (test:new-window ints-canvas)
+  
+    ; save the file so that load is in sync
+    (test:menu-select "File" "Save Definitions")
+  
+    ; make sure that a prompt is available at end of the REPL
+    (unless (queue-callback/res
+             (λ ()
+               (and (char=? #\> (send ints-text get-character (- (send ints-text last-position) 2)))
+                    (char=? #\space
+                            (send ints-text get-character (- (send ints-text last-position) 1))))))
+      (test:keystroke #\return))
+  
+    (define (load-test short-filename load-answer)
+      ;; in order to erase the state in the namespace already, we clear (but don't save!)
+      ;; the definitions and click execute with the empty buffer
+      (test:new-window defs-canvas)
+      (test:menu-select "Edit" "Select All")
+      (test:menu-select "Edit" "Delete")
       (do-execute drr-frame #f)
-      
-      ;; make sure that the execute callback has really completed 
-      ;; (is this necc w/ test:run-one below?)
-      (queue-callback/res void)
-      
+      (wait-for-drr-frame-computation)
+  
+      ;; stuff the load command into the REPL
+      (insert-in-interactions drr-frame (format "(load ~s)" short-filename))
+  
+      ;; record current text position, then stuff a CR into the REPL
+      (define load-text-start (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+  
+      (test:keystroke #\return)
+  
       (when breaking-test?
         (test:run-one (λ () (send (send drr-frame get-break-button) command))))
       (wait-for-drr-frame-computation)
-      
-      (let* ([execute-text-end (max 0 (- (get-int-pos) 1))] ;; subtract one to skip last newline
-             [received-execute
-              (fetch-output drr-frame execute-text-start execute-text-end)])
-        
-        ; check focus and selection for execute test
-        (case language-cust
-          [(raw) (void)]
-          [else
-           (define edit-target 
-             (queue-callback/res (λ () (send drr-frame get-edit-target-window))))
-           (define defs-focus? (eq? edit-target defs-canvas))
-           (define ints-focus? (eq? edit-target ints-canvas))
-           (cond
-             [(eq? source-location 'dont-care)
-              (void)]
-             [(eq? source-location 'definitions)
-              (unless defs-focus?
-                (eprintf "FAILED execute test for ~s\n  expected definitions to have the focus\n"
-                         program))]
-             [(eq? source-location 'interactions)
-              (unless ints-focus?
-                (eprintf "FAILED execute test for ~s\n  expected interactions to have the focus\n"
-                         program))]
-             [defs-focus?
-               (let ([start (car source-location)]
-                     [finish (cdr source-location)])
-                 (let* ([error-ranges (queue-callback/res (λ () (send ints-text get-error-ranges)))]
-                        [error-range (and error-ranges
-                                          (not (null? error-ranges))
-                                          (car error-ranges))])
-                   (unless (and error-range
-                                (= (+ (srcloc-position error-range) -1) (loc-offset start))
-                                (= (+ (srcloc-position error-range) -1 (srcloc-span error-range)) 
-                                   (loc-offset finish)))
-                     (eprintf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~s\n"
-                              program
-                              (and error-range
-                                   (list (+ (srcloc-position error-range) -1)
-                                         (+ (srcloc-position error-range) -1 
-                                            (srcloc-span error-range))))
-                              (list (loc-offset start)
-                                    (loc-offset finish))))))])])
-        
-        ; check text for execute test
+  
+      (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
+             [received-load (fetch-output drr-frame load-text-start load-text-end)])
+  
+        ;; check load text
         (next-test)
         (unless (cond
-                  [(string? execute-answer)
-                   (string=? execute-answer received-execute)]
-                  [(regexp? execute-answer)
-                   (regexp-match execute-answer received-execute)]
+                  [(string? load-answer) (string=? load-answer received-load)]
+                  [(regexp? load-answer) (regexp-match load-answer received-load)]
                   [else #f])
           (failure)
-          (eprintf "FAILED execute test for ~s (~a)\n  expected: ~s\n       got: ~s\n"
+          (eprintf "FAILED load test ~a for ~s\n  expected: ~s\n       got: ~s\n"
+                   short-filename
                    program
-                   language-cust
-                   execute-answer received-execute))
-        
-        (test:new-window ints-canvas)
-        
-        ; save the file so that load is in sync
-        (test:menu-select "File" "Save Definitions")
-        
-        ; make sure that a prompt is available at end of the REPL
-        (unless (queue-callback/res
-                 (λ () 
-                   (and (char=? #\>
-                                (send ints-text get-character
-                                      (- (send ints-text last-position) 2)))
-                        (char=? #\space
-                                (send ints-text get-character
-                                      (- (send ints-text last-position) 1))))))
-          (test:keystroke #\return))
-        
-        (define (load-test short-filename load-answer)
-          ;; in order to erase the state in the namespace already, we clear (but don't save!)
-          ;; the definitions and click execute with the empty buffer
-          (test:new-window defs-canvas)
-          (test:menu-select "Edit" "Select All")
-          (test:menu-select "Edit" "Delete")
-          (do-execute drr-frame #f)
-          (wait-for-drr-frame-computation)
-          
-          ;; stuff the load command into the REPL 
-          (insert-in-interactions drr-frame (format "(load ~s)" short-filename))
-          
-          ;; record current text position, then stuff a CR into the REPL
-          (define load-text-start 
-            (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
-          
-          (test:keystroke #\return)
-          
-          (when breaking-test?
-            (test:run-one (λ () (send (send drr-frame get-break-button) command))))
-          (wait-for-drr-frame-computation)
-          
-          (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
-                 [received-load 
-                  (fetch-output drr-frame load-text-start load-text-end)])
-            
-            ;; check load text 
-            (next-test)
-            (unless (cond
-                      [(string? load-answer)
-                       (string=? load-answer received-load)]
-                      [(regexp? load-answer)
-                       (regexp-match load-answer received-load)]
-                      [else #f])
-              (failure)
-              (eprintf "FAILED load test ~a for ~s\n  expected: ~s\n       got: ~s\n"
-                       short-filename
-                       program load-answer received-load))))
-        (load-test tmp-load-short-filename (make-load-answer in-vector language-cust #f))
-        (when (file-exists? tmp-load3-filename)
-          (delete-file tmp-load3-filename))
-        (copy-file tmp-load-filename tmp-load3-filename)
-        (load-test tmp-load3-short-filename 
-                   (make-load-answer in-vector language-cust tmp-load3-short-filename))
-        
-        (teardown)
-        
-        ; check for edit-sequence
-        (when (repl-in-edit-sequence?)
-          (eprintf "FAILED: repl in edit-sequence")
-          (escape)))))
+                   load-answer
+                   received-load))))
+    (load-test tmp-load-short-filename (make-load-answer in-vector language-cust #f))
+    (when (file-exists? tmp-load3-filename)
+      (delete-file tmp-load3-filename))
+    (copy-file tmp-load-filename tmp-load3-filename)
+    (load-test tmp-load3-short-filename
+               (make-load-answer in-vector language-cust tmp-load3-short-filename))
+  
+    (teardown)
+  
+    ; check for edit-sequence
+    (when (repl-in-edit-sequence?)
+      (eprintf "FAILED: repl in edit-sequence")
+      (escape)))
   
   (define tests 0)
   (define failures 0)
@@ -1318,16 +1297,16 @@ This produces an ACK message
     (wait-for-drr-frame-computation)
     
     (for-each test:keystroke (string->list "x"))
-    (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-      (test:keystroke #\return)
-      (wait-for-drr-frame-computation)
-      
-      (let* ([end (- (get-int-pos) 1)]
-             [output (fetch-output drr-frame start end)]
-             [expected #rx"x:.*cannot reference an identifier before its definition"])
-        (unless (regexp-match expected output)
-          (failure)
-          (eprintf "callcc-test: expected something matching ~s, got ~s\n" expected output)))))
+    (define start (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    
+    (define end (- (get-int-pos) 1))
+    (define output (fetch-output drr-frame start end))
+    (define expected #rx"x:.*cannot reference an identifier before its definition")
+    (unless (regexp-match expected output)
+      (failure)
+      (eprintf "callcc-test: expected something matching ~s, got ~s\n" expected output)))
   
   (define (random-seed-test)
     (define expression 
@@ -1338,57 +1317,55 @@ This produces an ACK message
     (wait-for-drr-frame-computation)
     
     (insert-in-interactions drr-frame expression)
-    (let ([start1 (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-      (test:keystroke #\return)
-      (wait-for-drr-frame-computation)
-      (let ([output1 (fetch-output drr-frame start1 (- (get-int-pos) 1))])
-        (insert-in-interactions drr-frame expression)
-        (let ([start2 (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-          (test:keystroke #\return)
-          (wait-for-drr-frame-computation)
-          (let ([output2 (fetch-output drr-frame start2 (- (get-int-pos) 1))])
-            (unless (equal? output1 output2)
-              (failure)
-              (eprintf "random-seed-test: expected\n  ~s\nand\n  ~s\nto be the same"
-                       output1
-                       output2)))))))
+    (define start1 (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    (define output1 (fetch-output drr-frame start1 (- (get-int-pos) 1)))
+    (insert-in-interactions drr-frame expression)
+    (define start2 (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    (define output2 (fetch-output drr-frame start2 (- (get-int-pos) 1)))
+    (unless (equal? output1 output2)
+      (failure)
+      (eprintf "random-seed-test: expected\n  ~s\nand\n  ~s\nto be the same" output1 output2)))
   
   (define (top-interaction-test)
     (clear-definitions drr-frame)
     (do-execute drr-frame)
     (wait-for-drr-frame-computation)
-    (let ([ints-just-after-welcome (queue-callback/res (λ () (+ 1 (send ints-text last-position))))])
-      
-      (type-in-definitions 
-       drr-frame
-       "(define-syntax #%top-interaction (syntax-rules () [(_ . e) 'e]))\n(+ 1 2)\n")
-      (test:menu-select "File" "Save Definitions")
-      
-      (clear-definitions drr-frame)
-      (do-execute drr-frame)
+    (queue-callback/res (λ () (+ 1 (send ints-text last-position))))
+    
+    (type-in-definitions
+     drr-frame
+     "(define-syntax #%top-interaction (syntax-rules () [(_ . e) 'e]))\n(+ 1 2)\n")
+    (test:menu-select "File" "Save Definitions")
+    
+    (clear-definitions drr-frame)
+    (do-execute drr-frame)
+    (wait-for-drr-frame-computation)
+    
+    (for-each test:keystroke (string->list (format "(load ~s)" tmp-load-short-filename)))
+    (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
+      (test:keystroke #\return)
       (wait-for-drr-frame-computation)
-      
-      (for-each test:keystroke (string->list (format "(load ~s)" tmp-load-short-filename)))
-      (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-        (test:keystroke #\return)
-        (wait-for-drr-frame-computation)
-        (let* ([end (- (get-int-pos) 1)]
-               [output (fetch-output drr-frame start end)]
-               [expected "(+ 1 2)"])
-          (unless (equal? output expected)
-            (error 'top-interaction-test "expected.1 ~s, got ~s" expected output))
-          (next-test)))
-      
-      (for-each test:keystroke (string->list "(+ 4 5)"))
-      (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
-        (test:keystroke #\return)
-        (wait-for-drr-frame-computation)
-        (let* ([end (- (get-int-pos) 1)]
-               [output (fetch-output drr-frame start end)]
-               [expected "(+ 4 5)"])
-          (unless (equal? output expected)
-            (error 'top-interaction-test "expected.2 ~s, got ~s" expected output))
-          (next-test)))))
+      (let* ([end (- (get-int-pos) 1)]
+             [output (fetch-output drr-frame start end)]
+             [expected "(+ 1 2)"])
+        (unless (equal? output expected)
+          (error 'top-interaction-test "expected.1 ~s, got ~s" expected output))
+        (next-test)))
+    
+    (for-each test:keystroke (string->list "(+ 4 5)"))
+    (define start (+ 1 (queue-callback/res (λ () (send ints-text last-position)))))
+    (test:keystroke #\return)
+    (wait-for-drr-frame-computation)
+    (define end (- (get-int-pos) 1))
+    (define output (fetch-output drr-frame start end))
+    (define expected "(+ 4 5)")
+    (unless (equal? output expected)
+      (error 'top-interaction-test "expected.2 ~s, got ~s" expected output))
+    (next-test))
   
   (when (file-exists? tmp-load-filename)
     (delete-file tmp-load-filename))
