@@ -517,6 +517,55 @@
   '((66 77) (92 95)) ;; sketchy; should we eliminate?
   '((85 88) (92 95))))
 
+(let ()
+  (define prefix
+    (string-append
+     "#lang racket/base\n"
+     "(require (for-syntax racket/base))\n"
+     "(define-syntax (m stx)\n"
+     "  (syntax-case stx ()\n"
+     "    [(_ x y)\n"
+     "     (syntax-property\n"
+     "      #'(void)\n"
+     "      'disappeared-use\n"
+     "      (syntax-property\n"
+     "       (syntax-local-introduce #'x)\n"
+     "       'disappeared-use\n"
+     "       (syntax-local-introduce #'y)))]))\n"))
+
+  ;; drop all the arrows in the prefix, and
+  ;; adjust the arrows after the prefix to
+  ;; treat the end of the prefix as position 0.
+  (define (remove-prefix set)
+    (define new-set
+      
+      (for/set ([e (in-set set)])
+        (define new
+          (match e
+            [(list (list start-left start-right)
+                   (list end-left end-right))
+             (list (list (- start-left (string-length prefix))
+                         (- start-right (string-length prefix)))
+                   (list (- end-left (string-length prefix))
+                         (- end-right (string-length prefix))))]))
+        (and (0 . <= . (list-ref (list-ref new 0) 0))
+             (0 . <= . (list-ref (list-ref new 0) 0))
+             new)))
+    (set-remove new-set #f))
+  
+  (check-equal?
+   (remove-prefix
+    (get-binding-arrows
+     (string-append
+      prefix
+      "\n"
+      "(define f 1)\n"
+      "(define g 1)\n"
+      "(m f g)\n")))
+   (set '((9 10) (30 31))
+        '((22 23) (32 33)))))
+
+
 ;                                                       
 ;                                                       
 ;                                                       
