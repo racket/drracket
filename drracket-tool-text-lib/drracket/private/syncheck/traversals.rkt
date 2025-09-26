@@ -265,20 +265,22 @@
                                              (+ level level-of-enclosing-module))]
            [binders (lookup-phase-to-mapping phase-to-binders
                                              (+ level level-of-enclosing-module))]
-           [tops (lookup-phase-to-mapping phase-to-tops (+ level level-of-enclosing-module))]
-           [collect-general-info
-            (λ (stx)
-              (add-origins stx varrefs level-of-enclosing-module)
-              (add-disappeared-bindings stx binders sub-identifier-binding-directives varrefs
-                                        level level-of-enclosing-module mods)
-              (add-disappeared-uses stx varrefs sub-identifier-binding-directives
-                                    level level-of-enclosing-module mods)
-              (add-mouse-over-tooltips stx)
-              (add-sub-range-binders stx
-                                     sub-identifier-binding-directives
-                                     level
-                                     level-of-enclosing-module
-                                     mods))])
+           [tops (lookup-phase-to-mapping phase-to-tops (+ level level-of-enclosing-module))])
+
+      (define (collect-general-info stx)
+        (add-origins stx varrefs level-of-enclosing-module collect-general-info)
+        (add-disappeared-bindings stx binders sub-identifier-binding-directives varrefs
+                                  level level-of-enclosing-module mods
+                                  collect-general-info)
+        (add-disappeared-uses stx varrefs sub-identifier-binding-directives
+                              level level-of-enclosing-module mods
+                              collect-general-info)
+        (add-mouse-over-tooltips stx)
+        (add-sub-range-binders stx
+                               sub-identifier-binding-directives
+                               level
+                               level-of-enclosing-module
+                               mods))
 
       (define (collect-nested-general-info stx)
         (let loop ([stx stx])
@@ -399,7 +401,7 @@
         [(set! var e)
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-           (add-origins (list-ref (syntax->list stx-obj) 1) varrefs level-of-enclosing-module)
+           (add-origins (list-ref (syntax->list stx-obj) 1) varrefs level-of-enclosing-module collect-general-info)
            ;; tops are used here because a binding free use of a set!'d variable
            ;; is treated just the same as (#%top . x).
            (add-id varsets (syntax var) level-of-enclosing-module)
@@ -714,7 +716,8 @@
                                   disappeared-uses
                                   level
                                   level-of-enclosing-module
-                                  mods)
+                                  mods
+                                  collect-general-info)
   (define prop (syntax-property stx 'disappeared-binding))
   (when prop
     (let loop ([prop prop])
@@ -723,7 +726,7 @@
          (loop (car prop))
          (loop (cdr prop))]
         [(identifier? prop)
-         (add-origins prop disappeared-uses level-of-enclosing-module)
+         (collect-general-info prop)
          (add-binders prop
                       binders
                       #f
@@ -739,7 +742,8 @@
                               sub-identifier-binding-directives
                               level
                               level-of-enclosing-module
-                              mods)
+                              mods
+                              collect-general-info)
   (define prop (syntax-property stx 'disappeared-use))
   (when prop
     (let loop ([prop prop])
@@ -748,6 +752,7 @@
          (loop (car prop))
          (loop (cdr prop))]
         [(identifier? prop)
+         (collect-general-info prop)
          (add-sub-range-binders prop
                                 sub-identifier-binding-directives
                                 level
@@ -1388,13 +1393,14 @@
     (values cleaned-up-path rkt-submods)))
 
 ;; add-origins : syntax? id-set exact-integer? -> void
-(define (add-origins stx id-set level-of-enclosing-module)
+(define (add-origins stx id-set level-of-enclosing-module collect-general-info)
   (let loop ([ct (syntax-property stx 'origin)])
     (match ct
       [(cons hd tl)
        (loop hd)
        (loop tl)]
       [(? identifier?)
+       (collect-general-info ct)
        (add-id id-set ct level-of-enclosing-module)]
       [_ (void)])))
 
