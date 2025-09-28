@@ -296,19 +296,15 @@
               (cons (string->symbol (format "~a" (bri-label bri))) (bri-value bri)))))
   
   (define (get-environment)
-    (string-append (send environment get-value)
-                   "\n"
-                   (format "Human Language: ~a\n" (send human-language get-value))
-                   (format "(current-memory-use) ~a\n" (send memory-use get-value))
-                   (format "raco pkg (show):\n~a\n" (send (send pkg-info get-editor) get-text))
-                   "\n"
-                   "\nCollections:\n"
-                   (format "~a" (send (send collections get-editor) get-text))
-                   "\n"
-                   (apply 
-                    string-append
-                    (for/list ([extra (in-list extras)])
-                      (format "~a: ~a\n" (car extra) (send (cdr extra) get-value))))))
+    (format "~a\n~a~a~a\n\nCollections:\n~a\n~a"
+            (send environment get-value)
+            (format "Human Language: ~a\n" (send human-language get-value))
+            (format "(current-memory-use) ~a\n" (send memory-use get-value))
+            (format "raco pkg (show):\n~a\n" (send (send pkg-info get-editor) get-text))
+            (send (send collections get-editor) get-text)
+            (apply string-append
+                   (for/list ([extra (in-list extras)])
+                     (format "~a: ~a\n" (car extra) (send (cdr extra) get-value))))))
   
   (define (get-content canvas) 
     (define t (send canvas get-editor))
