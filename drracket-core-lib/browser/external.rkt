@@ -209,20 +209,21 @@
               [note1 (make-object message% (string-constant browser-cmdline-expl-line-1) v-panel)]
               [note2 (make-object message% (string-constant browser-cmdline-expl-line-2) v-panel)]
               [refresh-controls (lambda (pref)
-                                  (if (pair? pref)
-                                      (begin
-                                        (send r set-selection custom-index)
-                                        (send pre set-value (car pref))
-                                        (send post set-value (cdr pref)))
-                                      (let init ([x raw:unix-browser-list]
-                                                 [n 0])
-                                        (cond
-                                          [(null? x) (send r set-selection n)]
-                                          [else
-                                           (if (eq? pref (car x))
-                                               (send r set-selection n)
-                                               (init (cdr x)
-                                                     (add1 n)))]))))])
+                                  (cond
+                                    [(pair? pref)
+                                     (send r set-selection custom-index)
+                                     (send pre set-value (car pref))
+                                     (send post set-value (cdr pref))]
+                                    [else
+                                     (let init ([x raw:unix-browser-list]
+                                                [n 0])
+                                       (cond
+                                         [(null? x) (send r set-selection n)]
+                                         [else
+                                          (if (eq? pref (car x))
+                                              (send r set-selection n)
+                                              (init (cdr x)
+                                                    (add1 n)))]))]))])
        
            (unless ask-later?
              (send r enable none-index #f))
@@ -281,20 +282,20 @@
                   [bad-host (make-object message% (string-constant proxy-bad-host) p)]
                   [update-gui (lambda (proxy-val)
                                 (send bad-host show #f)
-                                (if proxy-val
-                                    (begin
-                                      (send rb set-selection 1)
-                                      (send proxy-spec enable #t)
-                                      (unless (string=? (cadr proxy-val) (send host get-value))
-                                        (send host set-value (cadr proxy-val)))
-                                      (unless (equal? (caddr proxy-val)
-                                                      (string->number (send port get-value)))
-                                        (send port set-value (number->string (caddr proxy-val)))))
-                                    (begin
-                                      (send rb set-selection 0)
-                                      (send proxy-spec enable #f)
-                                      (send host set-value "")
-                                      (send port set-value ""))))])
+                                (cond
+                                  [proxy-val
+                                   (send rb set-selection 1)
+                                   (send proxy-spec enable #t)
+                                   (unless (string=? (cadr proxy-val) (send host get-value))
+                                     (send host set-value (cadr proxy-val)))
+                                   (unless (equal? (caddr proxy-val)
+                                                   (string->number (send port get-value)))
+                                     (send port set-value (number->string (caddr proxy-val))))]
+                                  [else
+                                   (send rb set-selection 0)
+                                   (send proxy-spec enable #f)
+                                   (send host set-value "")
+                                   (send port set-value "")]))])
        
            (fw:preferences:add-callback http-proxy-preference (lambda (name val) (update-gui val)))
            (update-gui (fw:preferences:get http-proxy-preference))
