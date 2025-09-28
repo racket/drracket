@@ -15,36 +15,41 @@
   (values (+ x (* w 1/2) (* w 1/2 ce)) (+ y (* h 1/2) (* h 1/2 se))))
 
 (define (weighted-arc path x y w h start end ccw? [dx1 0.0] [dy1 0.2] [dx2 dx1] [dy2 (- dy1)])
-  (let ([sweep (let loop ([s (if ccw? (- end start) (- start end))])
-                 (if (< s 0) (loop (+ s (* 2 pi))) s))])
-    (if (> sweep pi)
-        (let ([halfway ((if ccw? + -) start (/ sweep 2))])
-          (weighted-arc path x y w h start halfway ccw? dx1 dy1 dx2 dy2)
-          (weighted-arc path x y w h halfway end ccw? dx2 (- dy2) dx1 (- dy1)))
-        (let ([p (new dc-path%)])
-          ;; Set p to be the arc for a unit circle,
-          ;;  centered on the X-axis:
-          (let* ([x0 (cos (/ sweep 2))]
-                 [y0 (sin (/ sweep 2))]
-                 [x1 (/ (- 4 x0) 3)]
-                 [y1 (/ (* (- 1 x0) (- 3 x0)) (* 3 y0))]
-                 [x2 x1]
-                 [y2 (- y1)]
-                 [x3 x0]
-                 [y3 (- y0)]
-                 [sw (/ w 2)]
-                 [sh (/ h 2)])
-            (send p move-to x0 y0)
-            (send p curve-to (+ x1 dx1) (+ y1 dy1) (+ x2 dx2) (+ y2 dy2) x3 y3)
-            ;; Rotate to match start:
-            (send p rotate (+ (if ccw? start end) (/ sweep 2)))
-            ;; Scale to match width and height:
-            (send p scale (/ w 2) (/ h 2))
-            ;; Translate to match x and y
-            (send p translate (+ x (/ w 2)) (+ y (/ h 2)))
-            (unless ccw?
-              (send p reverse)))
-          (send path append p)))))
+  (define sweep
+    (let loop ([s (if ccw?
+                      (- end start)
+                      (- start end))])
+      (if (< s 0)
+          (loop (+ s (* 2 pi)))
+          s)))
+  (if (> sweep pi)
+      (let ([halfway ((if ccw? + -) start (/ sweep 2))])
+        (weighted-arc path x y w h start halfway ccw? dx1 dy1 dx2 dy2)
+        (weighted-arc path x y w h halfway end ccw? dx2 (- dy2) dx1 (- dy1)))
+      (let ([p (new dc-path%)])
+        ;; Set p to be the arc for a unit circle,
+        ;;  centered on the X-axis:
+        (let* ([x0 (cos (/ sweep 2))]
+               [y0 (sin (/ sweep 2))]
+               [x1 (/ (- 4 x0) 3)]
+               [y1 (/ (* (- 1 x0) (- 3 x0)) (* 3 y0))]
+               [x2 x1]
+               [y2 (- y1)]
+               [x3 x0]
+               [y3 (- y0)]
+               [sw (/ w 2)]
+               [sh (/ h 2)])
+          (send p move-to x0 y0)
+          (send p curve-to (+ x1 dx1) (+ y1 dy1) (+ x2 dx2) (+ y2 dy2) x3 y3)
+          ;; Rotate to match start:
+          (send p rotate (+ (if ccw? start end) (/ sweep 2)))
+          ;; Scale to match width and height:
+          (send p scale (/ w 2) (/ h 2))
+          ;; Translate to match x and y
+          (send p translate (+ x (/ w 2)) (+ y (/ h 2)))
+          (unless ccw?
+            (send p reverse)))
+        (send path append p))))
 
 (define overall-rotation (- (* pi 1/2 3/8)))
 
@@ -133,20 +138,15 @@
        (+ big-fin-bottom-y 10)))
 
 (define (add-big-fin-bottom add)
-  (let ([fin-width (- big-fin-right-edge big-fin-bottom-x)])
-    (add 
-     (+ big-fin-bottom-x fin-width)
-     (+ big-fin-bottom-y 10)
-     
-     (+ big-fin-bottom-x (* 1/3 fin-width))
-     (- (/ (+ big-fin-bottom-y big-fin-top-y) 2)
-        big-fin-curve-bottom-offset)
-     
-     (+ big-fin-bottom-x (* 1/5 fin-width))
-     (/ (+ big-fin-bottom-y big-fin-top-y) 2)
-     
-     big-fin-bottom-x
-     big-fin-bottom-y)))
+  (define fin-width (- big-fin-right-edge big-fin-bottom-x))
+  (add (+ big-fin-bottom-x fin-width)
+       (+ big-fin-bottom-y 10)
+       (+ big-fin-bottom-x (* 1/3 fin-width))
+       (- (/ (+ big-fin-bottom-y big-fin-top-y) 2) big-fin-curve-bottom-offset)
+       (+ big-fin-bottom-x (* 1/5 fin-width))
+       (/ (+ big-fin-bottom-y big-fin-top-y) 2)
+       big-fin-bottom-x
+       big-fin-bottom-y))
 
 (define (add-little-fin-top add)
   (add

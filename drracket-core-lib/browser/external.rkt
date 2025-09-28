@@ -252,11 +252,11 @@
                                          (string-constant proxy-use-proxy))
                                    p
                                    (lambda (r e)
-                                     (let ([proxy? (= 1 (send r get-selection))])
-                                       (send proxy-spec enable proxy?)
-                                       (if proxy?
-                                           (update-proxy)
-                                           (fw:preferences:set http-proxy-preference #f)))))]
+                                     (define proxy? (= 1 (send r get-selection)))
+                                     (send proxy-spec enable proxy?)
+                                     (if proxy?
+                                         (update-proxy)
+                                         (fw:preferences:set http-proxy-preference #f))))]
                   [proxy-spec (instantiate horizontal-panel% (p)
                                 [stretchable-width #f]
                                 [stretchable-height #f]
@@ -264,14 +264,15 @@
                   [update-proxy (lambda ()
                                   (let ([host (send host get-value)]
                                         [port (send port get-value)])
-                                    (let ([ok? (and (regexp-match? #rx"^[-0-9a-zA-Z.]+$" host)
-                                                    (regexp-match? #rx"^[0-9]+$" port)
-                                                    (string->number port)
-                                                    (<= 1 (string->number port) 65535))])
-                                      (when ok?
-                                        (fw:preferences:set http-proxy-preference
-                                                            (list "http" host (string->number port))))
-                                      (send bad-host show (not ok?)))))]
+                                    (define ok?
+                                      (and (regexp-match? #rx"^[-0-9a-zA-Z.]+$" host)
+                                           (regexp-match? #rx"^[0-9]+$" port)
+                                           (string->number port)
+                                           (<= 1 (string->number port) 65535)))
+                                    (when ok?
+                                      (fw:preferences:set http-proxy-preference
+                                                          (list "http" host (string->number port))))
+                                    (send bad-host show (not ok?))))]
                   [host (make-object text-field%
                                      (string-constant proxy-host)
                                      proxy-spec
