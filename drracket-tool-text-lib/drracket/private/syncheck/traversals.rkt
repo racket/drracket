@@ -1394,11 +1394,14 @@
 
 ;; add-origins : syntax? id-set exact-integer? -> void
 (define (add-origins stx id-set level-of-enclosing-module collect-general-info)
+  (define did-already (make-hasheq))
   (let loop ([ct (syntax-property stx 'origin)])
     (match ct
       [(cons hd tl)
-       (loop hd)
-       (loop tl)]
+       (unless (hash-ref did-already ct #f)
+         (hash-set! did-already ct #t)
+         (loop hd)
+         (loop tl))]
       [(? identifier?)
        (collect-general-info ct)
        (add-id id-set ct level-of-enclosing-module)]
