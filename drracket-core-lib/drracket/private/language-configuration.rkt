@@ -40,17 +40,17 @@
                        [(cmd) "⌘"]
                        [else (format "~a-" x)])))])
       (define (mouse-event-uses-shortcut-prefix? evt)
-        (andmap (λ (prefix)
-                  (case prefix
-                    [(alt) (case (system-type)
-                             [(windows) (send evt get-meta-down)]
-                             [else (send evt get-alt-down)])]
-                    [(cmd) (send evt get-meta-down)]
-                    [(meta) (send evt get-meta-down)]
-                    [(ctl) (send evt get-control-down)]
-                    [(shift) (send evt get-shiftdown)]
-                    [(option) (send evt get-alt-down)]))
-                shortcut-prefix))
+        (for/and ([prefix (in-list shortcut-prefix)])
+          (case prefix
+            [(alt)
+             (case (system-type)
+               [(windows) (send evt get-meta-down)]
+               [else (send evt get-alt-down)])]
+            [(cmd) (send evt get-meta-down)]
+            [(meta) (send evt get-meta-down)]
+            [(ctl) (send evt get-control-down)]
+            [(shift) (send evt get-shiftdown)]
+            [(option) (send evt get-alt-down)])))
       (values (string-append (string-constant the-racket-language)
                              (format " (~aR)" menukey-string))
               (string-append (string-constant teaching-languages)
