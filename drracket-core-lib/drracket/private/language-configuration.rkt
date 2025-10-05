@@ -51,12 +51,9 @@
             [(ctl) (send evt get-control-down)]
             [(shift) (send evt get-shiftdown)]
             [(option) (send evt get-alt-down)])))
-      (values (string-append (string-constant the-racket-language)
-                             (format " (~aR)" menukey-string))
-              (string-append (string-constant teaching-languages)
-                             (format " (~aT)" menukey-string))
-              (string-append (string-constant other-languages)
-                             (format " (~aO)" menukey-string))
+      (values (format "~a (~aR)" (string-constant the-racket-language) menukey-string)
+              (format "~a (~aT)" (string-constant teaching-languages) menukey-string)
+              (format "~a (~aO)" (string-constant other-languages) menukey-string)
               mouse-event-uses-shortcut-prefix?)))
   
   (provide language-configuration@)
