@@ -2721,11 +2721,13 @@ If the namespace does not, they are colored the unbound color.
           [(is-a? text syncheck-text<%>) text]
           [else 
            (define admin (send text get-admin))
-           (and (is-a? admin editor-snip-editor-admin<%>)
-                (let* ([enclosing-editor-snip (send admin get-snip)]
-                       [editor-snip-admin (send enclosing-editor-snip get-admin)]
-                       [enclosing-editor (send editor-snip-admin get-editor)])
-                  (loop enclosing-editor)))])))
+           (cond
+             [(is-a? admin editor-snip-editor-admin<%>)
+              (define enclosing-editor-snip (send admin get-snip))
+              (define editor-snip-admin (send enclosing-editor-snip get-admin))
+              (define enclosing-editor (send editor-snip-admin get-editor))
+              (loop enclosing-editor)]
+             [else #f])])))
     ;                                                 
     ;                                                 
     ;                                                 
