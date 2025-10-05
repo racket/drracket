@@ -35,11 +35,10 @@
     (let* ([shortcut-prefix (get-default-shortcut-prefix)]
            [menukey-string 
             (apply string-append
-                   (map (λ (x)
-                          (case x
-                            [(cmd) "⌘"]
-                            [else (format "~a-" x)]))
-                        shortcut-prefix))])
+                   (for/list ([x (in-list shortcut-prefix)])
+                     (case x
+                       [(cmd) "⌘"]
+                       [else (format "~a-" x)])))])
       (define (mouse-event-uses-shortcut-prefix? evt)
         (andmap (λ (prefix)
                   (case prefix
