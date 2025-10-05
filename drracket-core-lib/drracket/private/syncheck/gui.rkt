@@ -410,7 +410,8 @@ If the namespace does not, they are colored the unbound color.
                      highlight-range unhighlight-range
                      paragraph-end-position first-line-currently-drawn-specially?
                      line-end-position position-line
-                     syncheck:add-docs-range syncheck:add-require-candidate get-padding)
+                     syncheck:add-docs-range syncheck:add-require-candidate get-padding
+                     get-extent)
             
             ;; arrow-records : (U #f hash[text% => arrow-record])
             ;; arrow-record = interval-map[(listof arrow-entry)]
@@ -1231,13 +1232,43 @@ If the namespace does not, they are colored the unbound color.
                   (when (update-latent-arrows mouse-x mouse-y)
                     (start-arrow-draw-timer syncheck-arrow-delay)))
                 (let ([draw-arrow2
-                       (λ (arrow)
+                       (λ (arrow
+                           #:x-min [var-arrow-end-x-min #f]
+                           #:x-max [var-arrow-end-x-max #f])
+                         ;; care only about end-x!
                          (define-values (start-x start-y end-x end-y)
                            (get-arrow-poss arrow))
                          (unless (and (= start-x end-x)
                                       (= start-y end-y))
+                           (define smaller-x (min start-x end-x))
+                           (define larger-x (max start-x end-x))
+                           (define %age
+                             (cond
+                               [(and var-arrow-end-x-min var-arrow-end-x-max)
+                                (define base-%age
+                                  (/ (- end-x var-arrow-end-x-min)
+                                     (- var-arrow-end-x-max var-arrow-end-x-min)))
+                                (if (< (var-arrow-start-pos-left arrow)
+                                       (var-arrow-end-pos-left arrow))
+                                    base-%age
+                                    (- base-%age))]
+                               [else #f]))
+                           (define max-width-for-arrow
+                             (let ()
+                               (define admin (get-admin))
+                               (cond
+                                 [admin
+                                  (define wb (box 0))
+                                  (get-extent wb #f)
+                                  (unbox wb)]
+                                 [else #f])))
                            (drracket:arrow:draw-arrow dc start-x start-y end-x end-y dx dy
-                                                      #:pen-width 2)
+                                                      #:pen-width 2
+                                                      #:%age %age
+                                                      #:bb (list 0
+                                                                 #f
+                                                                 max-width-for-arrow
+                                                                 #f))
                            (when (and (var-arrow? arrow) (not (var-arrow-actual? arrow)))
                              (define old-font (send dc get-font))
                              (send dc set-font
@@ -1289,6 +1320,18 @@ If the namespace does not, they are colored the unbound color.
                              cursor-text)
                     (define arrow-records-at-cursor (fetch-arrow-records cursor-text cursor-pos))
                     (define tail-arrows '())
+                    (define arrows-count (- (length (filter var-arrow? arrow-records-at-cursor)) 1))
+                    (define-values (var-arrow-end-x-min var-arrow-end-x-max)
+                      (for/fold ([x-min #f]
+                                 [x-max #f])
+                                ([(ele _) (in-hash current-matching-identifiers)])
+
+                        (match-define (list end-text pos-left pos-right) ele)
+                        (define-values (end-x end-y)
+                          (find-poss end-text pos-left pos-right 1/2 1/2))
+                        (values (if x-min (min x-min end-x) end-x)
+                                (if x-max (max x-max end-x) end-x))))
+
                     (when arrow-records-at-cursor
                       (for ([ele (in-list arrow-records-at-cursor)])
                         (cond [(var-arrow? ele)
@@ -1297,7 +1340,9 @@ If the namespace does not, they are colored the unbound color.
                                           (send dc set-brush (get-untacked-brush)))
                                    (begin (send dc set-pen (get-templ-pen))
                                           (send dc set-brush (get-untacked-brush))))
-                               (draw-arrow2 ele)]
+                               (draw-arrow2 ele
+                                            #:x-min var-arrow-end-x-min
+                                            #:x-max var-arrow-end-x-max)]
                               [(tail-arrow? ele)
                                (set! tail-arrows (cons ele tail-arrows))])))
                     
