@@ -109,15 +109,13 @@
                           #:allow-executable-creation? [allow-executable-creation? #f])
       
       (drracket:tools:only-in-phase 'drracket:language:add-language 'phase2)
-      (for-each
-       (λ (i<%>)
-         (unless (is-a? language i<%>)
-           (error 'drracket:language:add-language
-                  (string-append
-                   "expected language ~e to implement ~e,"
-                   " forgot to use `drracket:language:get-default-mixin'?")
-                  language i<%>)))
-       (drracket:language:get-language-extensions))
+      (for ([i<%> (in-list (drracket:language:get-language-extensions))])
+        (unless (is-a? language i<%>)
+          (error 'drracket:language:add-language
+                 (string-append "expected language ~e to implement ~e,"
+                                " forgot to use `drracket:language:get-default-mixin'?")
+                 language
+                 i<%>)))
       
       (ensure-no-duplicate-numbers language languages)
       (when allow-executable-creation?
@@ -129,16 +127,13 @@
                 (append languages (list language)))))
     
     (define (ensure-no-duplicate-numbers l1 languages)
-      (for-each
-       (λ (l2)
-         (when (equal? (send l1 get-language-numbers)
-                       (send l2 get-language-numbers))
-           (error 'drracket:language-configuration:add-language
-                  "found two languages with the same result from get-language-numbers: ~s, ~s and ~s"
-                  (send l1 get-language-numbers)
-                  (send l1 get-language-position)
-                  (send l2 get-language-position))))
-       languages))
+      (for ([l2 (in-list languages)])
+        (when (equal? (send l1 get-language-numbers) (send l2 get-language-numbers))
+          (error 'drracket:language-configuration:add-language
+                 "found two languages with the same result from get-language-numbers: ~s, ~s and ~s"
+                 (send l1 get-language-numbers)
+                 (send l1 get-language-position)
+                 (send l2 get-language-position)))))
     
     ;; get-languages : -> (listof languages)
     (define (get-languages) 
@@ -953,12 +948,8 @@
                         (when delta
                           (cond
                             [(list? delta)
-                             (for-each (λ (x)
-                                         (send text change-style 
-                                               (car x)
-                                               (cadr x)
-                                               (caddr x)))
-                                       delta)]
+                             (for ([x (in-list delta)])
+                               (send text change-style (car x) (cadr x) (caddr x)))]
                             [(is-a? delta style-delta%)
                              (send text change-style 
                                    (send language get-style-delta)
