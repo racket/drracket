@@ -149,13 +149,11 @@
     (define (get-default-language-settings)
       (when (null? languages)
         (error 'get-default-language-settings "no languages registered!"))
-      (let ([lang (or (ormap (λ (x)
-                               (and (equal? (send x get-language-position)
-                                            initial-language-position)
-                                    x))
-                             (get-languages))
-                      (list-ref (get-languages) 0))])
-        (language-settings lang (send lang default-settings))))
+      (define lang
+        (or (ormap (λ (x) (and (equal? (send x get-language-position) initial-language-position) x))
+                   (get-languages))
+            (list-ref (get-languages) 0)))
+      (language-settings lang (send lang default-settings)))
 
     ;; only-module-language? : -> boolean
     ;; returns #t when the only language that's been installed is the module language
@@ -366,17 +364,20 @@
                      client->screen
                      get-editor)
             (define/override (on-char evt)
-              (let ([code (send evt get-key-code)])
-                (case code
-                  [(up)   (select-next sub1)]
-                  [(down) (select-next add1)]
-                  ;; right key is fine, but nicer to close after a left
-                  [(left) (super on-char evt)
-                          (cond [(get-selected)
-                                 => (λ (i)
-                                      (when (is-a? i hierarchical-list-compound-item<%>)
-                                        (send i close)))])]
-                  [else (super on-char evt)])))
+              (define code (send evt get-key-code))
+              (case code
+                [(up) (select-next sub1)]
+                [(down) (select-next add1)]
+                ;; right key is fine, but nicer to close after a left
+                [(left)
+                 (super on-char evt)
+                 (cond
+                   [(get-selected)
+                    =>
+                    (λ (i)
+                      (when (is-a? i hierarchical-list-compound-item<%>)
+                        (send i close)))])]
+                [else (super on-char evt)]))
             
             (inherit get-items)
             
@@ -402,38 +403,38 @@
                        (or (not p)
                            (and (send p is-open?)
                                 (loop (send p get-parent)))))))
-              (let* ([fringe     (get-fringe)]
-                     [fringe-len (vector-length fringe)]
-                     [n (if current
-                            (let loop ([i (sub1 (vector-length fringe))])
-                              (cond [(< i 0) (error 'select-next "item not found in fringe")]
-                                    [(eq? current (vector-ref fringe i))
-                                     (min (sub1 fringe-len) (max 0 (inc i)))]
-                                    [else (loop (sub1 i))]))
-                            (modulo (inc fringe-len) (add1 fringe-len)))])
-                ;; need to choose item n, but go on looking for one that is
-                ;; selectable and open
-                (let loop ([n n])
-                  (when (< -1 n fringe-len)
-                    (let ([item (vector-ref fringe n)])
-                      (if (selectable? item)
-                          (choose item)
-                          (loop (inc n))))))))
+              (define fringe (get-fringe))
+              (define fringe-len (vector-length fringe))
+              (define n
+                (if current
+                    (let loop ([i (sub1 (vector-length fringe))])
+                      (cond
+                        [(< i 0) (error 'select-next "item not found in fringe")]
+                        [(eq? current (vector-ref fringe i)) (min (sub1 fringe-len) (max 0 (inc i)))]
+                        [else (loop (sub1 i))]))
+                    (modulo (inc fringe-len) (add1 fringe-len))))
+              ;; need to choose item n, but go on looking for one that is
+              ;; selectable and open
+              (let loop ([n n])
+                (when (< -1 n fringe-len)
+                  (let ([item (vector-ref fringe n)])
+                    (if (selectable? item)
+                        (choose item)
+                        (loop (inc n)))))))
             
             (define cached-fringe #f)
             (define/public (clear-fringe-cache) (set! cached-fringe #f))
             (define (get-fringe)
               (unless cached-fringe
-                (let ([fringe
-                       (let loop ([items (get-items)])
-                         (apply append
-                                (map (λ (item)
-                                       (if (is-a? item hierarchical-list-compound-item<%>)
-                                           (cons item
-                                                 (loop (send item get-items)))
-                                           (list item)))
-                                     items)))])
-                  (set! cached-fringe (list->vector fringe))))
+                (define fringe
+                  (let loop ([items (get-items)])
+                    (apply append
+                           (map (λ (item)
+                                  (if (is-a? item hierarchical-list-compound-item<%>)
+                                      (cons item (loop (send item get-items)))
+                                      (list item)))
+                                items))))
+                (set! cached-fringe (list->vector fringe)))
               cached-fringe)
             
             (define/override (on-select i)
@@ -900,25 +901,23 @@
                                (set! language-details-panel language-details-panel-real)
                                (set! real-get/set-settings get/set-settings))
                              
-                             (let-values ([(vis-lang vis-settings)
-                                           (cond
-                                             [(and (not selected-language)
-                                                   (eq? language-to-show language))
-                                              (values language-to-show settings-to-show)]
-                                             [(eq? selected-language language)
-                                              (values language 
-                                                      (if (eq? language language-to-show)
-                                                          settings-to-show
-                                                          (send language default-settings)))]
-                                             [else (values #f #f)])])
+                             (define-values (vis-lang vis-settings)
                                (cond
-                                 [(and vis-lang
-                                       (equal? (send vis-lang get-language-position)
-                                               (send language get-language-position)))
-                                  (get/set-settings vis-settings)
-                                  (send details-panel active-child language-details-panel)]
-                                 [else
-                                  (get/set-settings (send language default-settings))])))))
+                                 [(and (not selected-language) (eq? language-to-show language))
+                                  (values language-to-show settings-to-show)]
+                                 [(eq? selected-language language)
+                                  (values language
+                                          (if (eq? language language-to-show)
+                                              settings-to-show
+                                              (send language default-settings)))]
+                                 [else (values #f #f)]))
+                             (cond
+                               [(and vis-lang
+                                     (equal? (send vis-lang get-language-position)
+                                             (send language get-language-position)))
+                                (get/set-settings vis-settings)
+                                (send details-panel active-child language-details-panel)]
+                               [else (get/set-settings (send language default-settings))]))))
                    
                    (cond
                      [(equal? positions (list (string-constant module-language-name)))
@@ -1053,13 +1052,12 @@
         ;; the language's default settings, unless this is
         ;; the to-show language.
         (define (make-details-panel language)
-          (let ([panel (instantiate vertical-panel% ()
-                         (parent details-panel)
-                         (stretchable-width #f)
-                         (stretchable-height #f))])
-            (values
-             panel
-             (send language config-panel panel))))
+          (define panel
+            (instantiate vertical-panel% ()
+              [parent details-panel]
+              [stretchable-width #f]
+              [stretchable-height #f]))
+          (values panel (send language config-panel panel)))
         
         ;; close-all-languages : -> void
         ;; closes all of the tabs in the language hier-list.
@@ -1126,28 +1124,24 @@
              (send (car (send hier-list get-items)) select #t)]
             [else
              (let loop ([hi hier-list]
-                        
+             
                         ;; skip the first position, since it is flattened into the dialog
                         [first-pos (cadr language-position)]
                         [position (cddr language-position)])
-               (let ([matching-children
-                      (filter (λ (x)
-                                (equal? (send (send x get-editor) get-text)
-                                        first-pos))
-                              (send hi get-items))])
-                 (cond
-                   [(null? matching-children) 
-                    (void)]
-                   [else
-                    (let ([child (car matching-children)])
-                      (cond
-                        [(null? position)
-                         (send child select #t)]
-                        [else
-                          ;; test can fail when prefs are bad
-                         (when (is-a? child hierarchical-list-compound-item<%>)
-                           (send child open)
-                           (loop child (car position) (cdr position)))]))])))]))
+               (define matching-children
+                 (filter (λ (x) (equal? (send (send x get-editor) get-text) first-pos))
+                         (send hi get-items)))
+               (cond
+                 [(null? matching-children) (void)]
+                 [else
+                  (let ([child (car matching-children)])
+                    (cond
+                      [(null? position) (send child select #t)]
+                      [else
+                       ;; test can fail when prefs are bad
+                       (when (is-a? child hierarchical-list-compound-item<%>)
+                         (send child open)
+                         (loop child (car position) (cdr position)))]))]))]))
         
         (define (select-first-language-in-hierlist hier-list)
           (let loop ([hi hier-list])
