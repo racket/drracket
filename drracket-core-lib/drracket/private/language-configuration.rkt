@@ -212,117 +212,120 @@
     ;; allows the user to configure their language. The input language-setting is used
     ;; as the defaults in the dialog and the output language setting is the user's choice
     ;; todo: when button is clicked, ensure language is selected
-    (define language-dialog
-      (λ (show-welcome? language-settings-to-show [parent #f])
-        (define ret-dialog%
-          (class (frame:focus-table-mixin dialog%)
-            (define/override (on-subwindow-char receiver evt)
-              (case (send evt get-key-code)
-                [(escape) (cancel-callback)]
-                [(#\return numpad-enter) (enter-callback)]
-                [else
-                 (or (key-pressed receiver evt)
-                     (super on-subwindow-char receiver evt))]))
-            (super-new)))
-        
-        (define dialog (instantiate ret-dialog% ()
-                         (label (if show-welcome?
-                                    (string-constant welcome-to-drscheme)
-                                    (string-constant language-dialog-title)))
-                         (parent parent)
-                         (style '(resize-border))))
-        (define welcome-before-panel (instantiate horizontal-pane% ()
-                                       (parent dialog)
-                                       (stretchable-height #f)))
-        (define language-dialog-meat-panel (make-object vertical-pane% dialog))
-        
-        (define welcome-after-panel (instantiate vertical-pane% () 
-                                      (parent dialog)
-                                      (stretchable-height #f)))
-        
-        (define button-panel (instantiate horizontal-pane% ()
-                               (parent dialog)
-                               (stretchable-height #f)))
-        
-        ;; initialized below
-        (define ok-button #f)
-        (define cancel-button #f)
-        
-        ;; cancelled? : boolean
-        ;; flag that indicates if the dialog was cancelled.
-        (define cancelled? #t)
-        
-        ;; enter-callback : -> bool
-        ;; returns #f if no language is selected (so the event will be
-        ;; processed by the hierlist widget, which will toggle subtrees)
-        (define (enter-callback)
-          (cond [(get-selected-language)
-                 (set! cancelled? #f)
-                 (send dialog show #f)
-                 #t]
-                [else #f]))
-        
-        ;; ok-callback : -> void
-        ;; similar to the above, but shows an error dialog if no language os
-        ;; selected
-        (define (ok-callback)
-          (unless (enter-callback)
-            (message-box (string-constant drscheme)
-                         (string-constant please-select-a-language)
-                         #:dialog-mixin frame:focus-table-mixin)))
-        
-        ;; cancel-callback : -> void
-        (define (cancel-callback)
-          (send dialog show #f))
-        
-        ;; a handler for "ok"-related stuff
-        (define ok-handler
-          ;; this is called before the buttons are made: keep track of state
-          ;; in that case
-          (let ([enabled? #t])
-            (define (enable! state)
-              (set! enabled? state)
-              (when ok-button (send ok-button enable state)))
-            (λ (msg)
-              (case msg
-                [(disable)     (enable! #f)]
-                [(enable)      (enable! #t)]
-                [(enable-sync) (enable! enabled?)]
-                [(execute)     (enter-callback) (void)]
-                [else (error 'ok-handler "internal error (~e)" msg)]))))
-        
-        (define-values (get-selected-language get-selected-language-settings key-pressed)
-          (fill-language-dialog language-dialog-meat-panel
-                                button-panel
-                                language-settings-to-show
-                                #f
-                                ok-handler
-                                (and (is-a? parent drracket:unit:frame<%>)
-                                     (send parent get-definitions-text))))
-        
-        ;; create ok/cancel buttons
-        (make-object horizontal-pane% button-panel)
-        (set!-values (ok-button cancel-button)
-                     (gui-utils:ok/cancel-buttons button-panel
-                                                  (λ (x y) (ok-callback))
-                                                  (λ (x y) (cancel-callback))))
-        (ok-handler 'enable-sync) ; sync enable status now
-        (make-object grow-box-spacer-pane% button-panel)
-        
-        (when show-welcome?
-          (add-welcome dialog welcome-before-panel welcome-after-panel))
-        
-        (send dialog stretchable-width #f)
-        (send dialog stretchable-height #f)
-        
-        (unless parent
-          (send dialog center 'both))
-        (send dialog show #t)
-        (if cancelled?
-            #f
-            (language-settings
-             (get-selected-language)
-             (get-selected-language-settings)))))
+    (define (language-dialog show-welcome? language-settings-to-show [parent #f])
+      (define ret-dialog%
+        (class (frame:focus-table-mixin dialog%)
+          (define/override (on-subwindow-char receiver evt)
+            (case (send evt get-key-code)
+              [(escape) (cancel-callback)]
+              [(#\return numpad-enter) (enter-callback)]
+              [else (or (key-pressed receiver evt) (super on-subwindow-char receiver evt))]))
+          (super-new)))
+    
+      (define dialog
+        (instantiate ret-dialog% ()
+          [label
+           (if show-welcome?
+               (string-constant welcome-to-drscheme)
+               (string-constant language-dialog-title))]
+          [parent parent]
+          [style '(resize-border)]))
+      (define welcome-before-panel
+        (instantiate horizontal-pane% ()
+          [parent dialog]
+          [stretchable-height #f]))
+      (define language-dialog-meat-panel (make-object vertical-pane% dialog))
+    
+      (define welcome-after-panel
+        (instantiate vertical-pane% ()
+          [parent dialog]
+          [stretchable-height #f]))
+    
+      (define button-panel
+        (instantiate horizontal-pane% ()
+          [parent dialog]
+          [stretchable-height #f]))
+    
+      ;; initialized below
+      (define ok-button #f)
+      (define cancel-button #f)
+    
+      ;; cancelled? : boolean
+      ;; flag that indicates if the dialog was cancelled.
+      (define cancelled? #t)
+    
+      ;; enter-callback : -> bool
+      ;; returns #f if no language is selected (so the event will be
+      ;; processed by the hierlist widget, which will toggle subtrees)
+      (define (enter-callback)
+        (cond
+          [(get-selected-language)
+           (set! cancelled? #f)
+           (send dialog show #f)
+           #t]
+          [else #f]))
+    
+      ;; ok-callback : -> void
+      ;; similar to the above, but shows an error dialog if no language os
+      ;; selected
+      (define (ok-callback)
+        (unless (enter-callback)
+          (message-box (string-constant drscheme)
+                       (string-constant please-select-a-language)
+                       #:dialog-mixin frame:focus-table-mixin)))
+    
+      ;; cancel-callback : -> void
+      (define (cancel-callback)
+        (send dialog show #f))
+    
+      ;; a handler for "ok"-related stuff
+      (define ok-handler
+        ;; this is called before the buttons are made: keep track of state
+        ;; in that case
+        (let ([enabled? #t])
+          (define (enable! state)
+            (set! enabled? state)
+            (when ok-button
+              (send ok-button enable state)))
+          (λ (msg)
+            (case msg
+              [(disable) (enable! #f)]
+              [(enable) (enable! #t)]
+              [(enable-sync) (enable! enabled?)]
+              [(execute)
+               (enter-callback)
+               (void)]
+              [else (error 'ok-handler "internal error (~e)" msg)]))))
+    
+      (define-values (get-selected-language get-selected-language-settings key-pressed)
+        (fill-language-dialog language-dialog-meat-panel
+                              button-panel
+                              language-settings-to-show
+                              #f
+                              ok-handler
+                              (and (is-a? parent drracket:unit:frame<%>)
+                                   (send parent get-definitions-text))))
+    
+      ;; create ok/cancel buttons
+      (make-object horizontal-pane% button-panel)
+      (set!-values
+       (ok-button cancel-button)
+       (gui-utils:ok/cancel-buttons button-panel (λ (x y) (ok-callback)) (λ (x y) (cancel-callback))))
+      (ok-handler 'enable-sync) ; sync enable status now
+      (make-object grow-box-spacer-pane% button-panel)
+    
+      (when show-welcome?
+        (add-welcome dialog welcome-before-panel welcome-after-panel))
+    
+      (send dialog stretchable-width #f)
+      (send dialog stretchable-height #f)
+    
+      (unless parent
+        (send dialog center 'both))
+      (send dialog show #t)
+      (if cancelled?
+          #f
+          (language-settings (get-selected-language) (get-selected-language-settings))))
 
     (define wob-style-delta (new style-delta%))
     (send wob-style-delta set-delta-foreground "white")
