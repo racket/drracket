@@ -730,16 +730,15 @@
         ;;                  ->
         ;;                  ((implements hierlist<%>) -> (implements hierlist<%>))
         ;; a mixin that responds to language selections and updates the details-panel
-        (define (language-mixin language get-language-details-panel get/set-settings)
-          (λ (%)
-            (class* % (hieritem-language<%>)
-              (init-rest args)
-              (define/public (get-language) language)
-              (define/public (selected)
-                (update-gui-based-on-selected-language language
-                                                       get-language-details-panel
-                                                       get/set-settings))
-              (apply super-make-object args))))
+        (define ((language-mixin language get-language-details-panel get/set-settings) %)
+          (class* % (hieritem-language<%>)
+            (init-rest args)
+            (define/public (get-language) language)
+            (define/public (selected)
+              (update-gui-based-on-selected-language language
+                                                     get-language-details-panel
+                                                     get/set-settings))
+            (apply super-make-object args)))
         
         (define (update-gui-based-on-selected-language language
                                                        get-language-details-panel
