@@ -2132,9 +2132,8 @@ If the namespace does not, they are colored the unbound color.
         (define/public (syncheck:clear-error-message)
           (define old-error-report-visible? error-report-visible?)
           (turn-off-error-report)
-          (when old-error-report-visible?
-            (when (is-current-tab?)
-              (send (get-frame) hide-error-report))))
+          (when (and old-error-report-visible? (is-current-tab?))
+            (send (get-frame) hide-error-report)))
         
         (define/public (syncheck:clear-highlighting)
           (define definitions (get-defs))
