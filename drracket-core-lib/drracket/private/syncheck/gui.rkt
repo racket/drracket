@@ -316,7 +316,8 @@ If the namespace does not, they are colored the unbound color.
       show-online-internal-error
       show-error-report
       tack-crossing-arrows-callback
-      add-prefix-for-require)
+      add-prefix-for-require
+      invalidate-bitmap-cache/padding)
     
     ;; clearing-text-mixin : (mixin text%)
     ;; overrides methods that make sure the arrows go away appropriately.
@@ -411,7 +412,7 @@ If the namespace does not, they are colored the unbound color.
                      paragraph-end-position first-line-currently-drawn-specially?
                      line-end-position position-line
                      syncheck:add-docs-range syncheck:add-require-candidate get-padding
-                     get-extent)
+                     get-extent get-view-size)
             
             ;; arrow-records : (U #f hash[text% => arrow-record])
             ;; arrow-record = interval-map[(listof arrow-entry)]
@@ -532,6 +533,10 @@ If the namespace does not, they are colored the unbound color.
               
               ;; find-dc-location : text number -> (values number number)
               (define (find-dc-location text pos)
+                (define xlb (box 0))
+                (define ylb (box 0))
+                (define xrb (box 0))
+                (define yrb (box 0))
                 (send text position-location pos xlb xrb)
                 (send text editor-location-to-dc-location (unbox xlb) (unbox xrb)))
               
@@ -555,6 +560,10 @@ If the namespace does not, they are colored the unbound color.
             ;; returns the bounding box (left, top, right, bottom) for the text range.
             ;; only works right if the text is on a single line.
             (define/private (find-char-box text left-pos right-pos)
+              (define xlb (box 0))
+              (define ylb (box 0))
+              (define xrb (box 0))
+              (define yrb (box 0))
               (send text position-location left-pos xlb ylb #t)
               (send text position-location right-pos xrb yrb #f)
               (define-values (xl-off yl-off) 
@@ -569,64 +578,6 @@ If the namespace does not, they are colored the unbound color.
                yl
                xr 
                yr))
-            
-            (define/private (get-arrow-poss arrow)
-              (cond
-                [(var-arrow? arrow) (get-var-arrow-poss arrow)]
-                [(tail-arrow? arrow) (get-tail-arrow-poss arrow)]))
-            
-            (define/private (get-var-arrow-poss arrow)
-              (let-values ([(start-x start-y) (find-poss 
-                                               (var-arrow-start-text arrow)
-                                               (var-arrow-start-pos-left arrow)
-                                               (var-arrow-start-pos-right arrow)
-                                               (var-arrow-start-px arrow)
-                                               (var-arrow-start-py arrow))]
-                           [(end-x end-y) (find-poss 
-                                           (var-arrow-end-text arrow)
-                                           (var-arrow-end-pos-left arrow)
-                                           (var-arrow-end-pos-right arrow)
-                                           (var-arrow-end-px arrow)
-                                           (var-arrow-end-py arrow))])
-                (values start-x start-y end-x end-y)))
-            
-            (define/private (get-tail-arrow-poss arrow)
-              ;; If the item is an embedded editor snip, redirect
-              ;; the arrow to point at the left edge rather than the
-              ;; midpoint.
-              (define (find-poss/embedded text pos)
-                (let* ([snip (send text find-snip pos 'after)])
-                  (cond
-                    [(and snip 
-                          (is-a? snip editor-snip%)
-                          (= pos (send text get-snip-position snip)))
-                     (find-poss text pos pos .5 .5)]
-                    [else
-                     (find-poss text pos (+ pos 1) .5 .5)])))
-              (let-values ([(start-x start-y) (find-poss/embedded 
-                                               (tail-arrow-from-text arrow)
-                                               (tail-arrow-from-pos arrow))]
-                           [(end-x end-y) (find-poss/embedded
-                                           (tail-arrow-to-text arrow)
-                                           (tail-arrow-to-pos arrow))])
-                (values start-x start-y end-x end-y)))
-
-            (define xlb (box 0))
-            (define ylb (box 0))
-            (define xrb (box 0))
-            (define yrb (box 0))
-
-            (define/private (find-poss text left-pos right-pos px py)
-              (send text position-location left-pos xlb ylb #t)
-              (send text position-location right-pos xrb yrb #f)
-              (let*-values ([(xl-off yl-off) (send text editor-location-to-dc-location 
-                                                   (unbox xlb) (unbox ylb))]
-                            [(xl yl) (dc-location-to-editor-location xl-off yl-off)]
-                            [(xr-off yr-off) (send text editor-location-to-dc-location 
-                                                   (unbox xrb) (unbox yrb))]
-                            [(xr yr) (dc-location-to-editor-location xr-off yr-off)])
-                (values (+ xl (* (- xr xl) px))
-                        (+ yl (* (- yr yl) py)))))
             
             ;; syncheck:init-arrows : -> void
             (define/public (syncheck:init-arrows)
@@ -1203,17 +1154,12 @@ If the namespace does not, they are colored the unbound color.
             (define/augment (on-change)
               (inner (void) on-change)
               (when arrow-records
-                (let ([any-tacked? #f])
-                  (when tacked-hash-table
-                    (let/ec k
-                      (hash-for-each
-                       tacked-hash-table
-                       (λ (key val)
-                         (set! any-tacked? #t)
-                         (k (void))))))
-                  (when any-tacked?
-                    (invalidate-bitmap-cache/padding)))))
-            
+                (define any-tacked?
+                  (for/or ([(key val) (in-hash tacked-hash-table)])
+                    val))
+                (when any-tacked?
+                  (invalidate-bitmap-cache/padding))))
+
             (define/override (on-paint before dc left top right bottom dx dy draw-caret)
               (when (and arrow-records (not before))
                 (define admin (get-admin))
@@ -1231,168 +1177,119 @@ If the namespace does not, they are colored the unbound color.
                   ;; update on a timer if the arrows changed
                   (when (update-latent-arrows mouse-x mouse-y)
                     (start-arrow-draw-timer syncheck-arrow-delay)))
-                (let ([draw-arrow2
-                       (λ (arrow
-                           #:x-min [var-arrow-end-x-min #f]
-                           #:x-max [var-arrow-end-x-max #f])
-                         ;; care only about end-x!
-                         (define-values (start-x start-y end-x end-y)
-                           (get-arrow-poss arrow))
-                         (unless (and (= start-x end-x)
-                                      (= start-y end-y))
-                           (define smaller-x (min start-x end-x))
-                           (define larger-x (max start-x end-x))
-                           (define %age
-                             (cond
-                               [(and var-arrow-end-x-min var-arrow-end-x-max)
-                                (define base-%age
-                                  (/ (- end-x var-arrow-end-x-min)
-                                     (- var-arrow-end-x-max var-arrow-end-x-min)))
-                                (if (< (var-arrow-start-pos-left arrow)
-                                       (var-arrow-end-pos-left arrow))
-                                    base-%age
-                                    (- base-%age))]
-                               [else #f]))
-                           (define max-width-for-arrow
-                             (let ()
-                               (define admin (get-admin))
-                               (cond
-                                 [admin
-                                  (define wb (box 0))
-                                  (get-extent wb #f)
-                                  (unbox wb)]
-                                 [else #f])))
-                           (drracket:arrow:draw-arrow dc start-x start-y end-x end-y dx dy
-                                                      #:pen-width 2
-                                                      #:%age %age
-                                                      #:bb (list 0
-                                                                 #f
-                                                                 max-width-for-arrow
-                                                                 #f))
-                           (when (and (var-arrow? arrow) (not (var-arrow-actual? arrow)))
-                             (define old-font (send dc get-font))
-                             (send dc set-font
-                                   (send the-font-list find-or-create-font
-                                         (* 2 (send old-font get-point-size))
-                                         (send old-font get-face)
-                                         (send old-font get-family)
-                                         (send old-font get-style)
-                                         (send old-font get-weight)
-                                         (send old-font get-underlined)
-                                         (send old-font get-smoothing)
-                                         #f
-                                         (send old-font get-hinting)))
-                             (define-values (fw fh _d _v) (send dc get-text-extent "?"))
-                             (send dc draw-text "?"
-                                   (+ end-x dx (/ fw 2))
-                                   (+ end-y dy (- fh)))
-                             (send dc set-font old-font))))]
-                      [old-brush (send dc get-brush)]
-                      [old-pen   (send dc get-pen)]
-                      [old-font  (send dc get-font)]
-                      [old-text-foreground (send dc get-text-foreground)]
-                      [old-text-mode (send dc get-text-mode)]
-                      [old-alpha (send dc get-alpha)]
-                      [white-on-black? (preferences:get 'framework:white-on-black?)]) 
-                  (send dc set-font
-                        (send the-font-list find-or-create-font
-                              (send old-font get-point-size)
-                              'default
-                              'normal
-                              'bold))
-                  (send dc set-text-foreground
-                        (color-prefs:lookup-in-color-scheme 'drracket:syncheck:template-arrow))
-                  (send dc set-alpha 0.5)
-                  (for ([(arrow v) (in-hash tacked-hash-table)])
-                    (when v 
-                      (cond
-                        [(var-arrow? arrow)
-                         (if (var-arrow-actual? arrow)
-                             (begin (send dc set-pen (get-var-pen))
-                                    (send dc set-brush (get-tacked-var-brush)))
-                             (begin (send dc set-pen (get-templ-pen))
-                                    (send dc set-brush (get-tacked-templ-brush))))]
-                        [(tail-arrow? arrow)
-                         (send dc set-pen (get-tail-pen))
-                         (send dc set-brush (get-tacked-tail-brush))])
-                      (draw-arrow2 arrow)))
-                  (when (and cursor-pos
-                             cursor-text)
-                    (define arrow-records-at-cursor (fetch-arrow-records cursor-text cursor-pos))
-                    (define tail-arrows '())
-                    (define arrows-count (- (length (filter var-arrow? arrow-records-at-cursor)) 1))
-                    (define-values (var-arrow-end-x-min var-arrow-end-x-max)
-                      (for/fold ([x-min #f]
-                                 [x-max #f])
-                                ([(ele _) (in-hash current-matching-identifiers)])
 
-                        (match-define (list end-text pos-left pos-right) ele)
-                        (define-values (end-x end-y)
-                          (find-poss end-text pos-left pos-right 1/2 1/2))
-                        (values (if x-min (min x-min end-x) end-x)
-                                (if x-max (max x-max end-x) end-x))))
+                (when admin
+                  (define hb (box 0))
+                  (define wb (box 0))
+                  (get-extent wb #f)
+                  (define max-width-for-arrow (unbox wb))
+                  (get-view-size wb hb)
 
-                    (when arrow-records-at-cursor
-                      (for ([ele (in-list arrow-records-at-cursor)])
-                        (cond [(var-arrow? ele)
-                               (if (var-arrow-actual? ele)
-                                   (begin (send dc set-pen (get-var-pen))
-                                          (send dc set-brush (get-untacked-brush)))
-                                   (begin (send dc set-pen (get-templ-pen))
-                                          (send dc set-brush (get-untacked-brush))))
-                               (draw-arrow2 ele
-                                            #:x-min var-arrow-end-x-min
-                                            #:x-max var-arrow-end-x-max)]
-                              [(tail-arrow? ele)
-                               (set! tail-arrows (cons ele tail-arrows))])))
-                    
-                    (send dc set-pen (get-tail-pen))
-                    (send dc set-brush (get-untacked-brush))
-                    (for-each-tail-arrows draw-arrow2 tail-arrows))
-                  (send dc set-brush old-brush)
-                  (send dc set-pen old-pen)
-                  (send dc set-font old-font)
-                  (send dc set-text-foreground old-text-foreground)
-                  (send dc set-text-mode old-text-mode)
-                  (send dc set-alpha old-alpha)))
+                  ;; if anything in this vector changes, then
+                  ;; the tacked arrows will draw differently
+                  (define mouse-over-current-arrows-key
+                    (vector dx dy
+                            max-width-for-arrow
+                            (hash-copy current-matching-identifiers)
+                            ;; the tacked-hash-table is derived from this
+                            ;; (and from the user tacking arrows)
+                            ;; so it shouldn't be needed
+                            ;(hash-copy arrow-records)
+                            cursor-text
+                            cursor-pos))
+                  (send mouse-over-arrow-drawing handle-arrow-drawing
+                        dc dx dy (unbox wb) (unbox hb)
+                        max-width-for-arrow
+                        this
+                        mouse-over-current-arrows-key
+                        (λ () (determine-the-mouse-over-arrows)))
+
+                  ;; if anything in this vector changes, then
+                  ;; the mouse-over arrows will draw differently
+                  (define tacked-over-current-arrows-key
+                    (vector dx dy
+                            max-width-for-arrow
+                            (hash-copy tacked-hash-table)
+                            ;; the current-matching-identifiers is derived from this
+                            ;; so it shouldn't be needed
+                            ;(hash-copy arrow-records)
+                            ;cursor-text
+                            ;cursor-pos
+                            ))
+                  (send tacked-arrow-drawing handle-arrow-drawing
+                        dc dx dy (unbox wb) (unbox hb)
+                        max-width-for-arrow
+                        this
+                        tacked-over-current-arrows-key
+                        (λ () (determine-the-tacked-arrows)))))
               
               ;; do the drawing before calling super so that the arrows don't
               ;; cross the "#lang ..." line, if it is present.
               (super on-paint before dc left top right bottom dx dy draw-caret))
+
+            (define tacked-arrow-drawing (new arrow-drawing% [who "tacked arrows"]))
+            (define mouse-over-arrow-drawing (new arrow-drawing% [who "mouse-over arrows"]))
+
+            (define/private (get-var-arrow-end-x-min-and-max matching-identifiers)
+              (for/fold ([x-min #f]
+                         [x-max #f])
+                        ([(ele _) (in-hash matching-identifiers)])
+                (match-define (list end-text pos-left pos-right) ele)
+                (define-values (end-x end-y)
+                  (find-poss end-text pos-left pos-right 1/2 1/2))
+                (values (if x-min (min x-min end-x) end-x)
+                        (if x-max (max x-max end-x) end-x))))
+
+            (define/private (determine-the-mouse-over-arrows)
+              (define-values (var-arrow-end-x-min var-arrow-end-x-max)
+                (get-var-arrow-end-x-min-and-max current-matching-identifiers))
+              (define arrow-records-at-cursor
+                (and cursor-text cursor-pos (fetch-arrow-records cursor-text cursor-pos)))
+
+              (define arrows-to-draw '())
+
+              (when arrow-records-at-cursor
+                (define tail-arrows '())
+
+                (when arrow-records-at-cursor
+                  (for ([ele (in-list arrow-records-at-cursor)])
+                    (cond [(var-arrow? ele)
+                           (set! arrows-to-draw (cons ele arrows-to-draw))]
+                          [(tail-arrow? ele)
+                           (set! tail-arrows (cons ele tail-arrows))])))
+                (for-each-tail-arrows-top-level
+                 (λ (arr)
+                   (set! arrows-to-draw (cons arr arrows-to-draw)))
+                 tail-arrows arrow-records))
+              (list (arrows-and-min-max-width arrows-to-draw var-arrow-end-x-min var-arrow-end-x-max #f)))
+
+            (define/private (determine-the-tacked-arrows)
+              (define tacked-arrows-to-draw '())
+              (define arrow->matching-identifiers-hash (make-hash))
+              (define table (make-hash))
+
+              (for ([(arrow v) (in-hash tacked-hash-table)])
+                (when v
+                  (define arrow-text+arrow-pos
+                    (cond
+                      [(var-arrow? arrow) (cons (var-arrow-start-text arrow)
+                                                (var-arrow-start-pos-left arrow))]
+                      [(tail-arrow? arrow) (cons (tail-arrow-from-text arrow)
+                                                 (tail-arrow-from-pos arrow))]))
+                  (hash-set! table arrow-text+arrow-pos (cons arrow (hash-ref table arrow-text+arrow-pos '())))))
+
+              (for/list ([(arrow-text+arrow-pos arrows) (in-hash table)])
+                (match-define (cons arrow-text arrow-pos) arrow-text+arrow-pos)
+                (define-values (_binders make-identifiers-hash)
+                  (position->matching-identifiers-hash arrow-text arrow-pos arrow-pos
+                                                       #:also-look-backward-one? #f))
+                (define-values (var-arrow-end-x-min var-arrow-end-x-max)
+                  (get-var-arrow-end-x-min-and-max (make-identifiers-hash)))
+                (arrows-and-min-max-width arrows var-arrow-end-x-min var-arrow-end-x-max #t)))
             
             ;; for-each-tail-arrows : (tail-arrow -> void) tail-arrow -> void
             (define/private (for-each-tail-arrows f tail-arrows)
-              ;; call-f-ht ensures that `f' is only called once per arrow
-              (define call-f-ht (make-hash))
-              
-              (for ([tail-arrow (in-list tail-arrows)])
-                (define (for-each-tail-arrows/to/from tail-arrow-pos tail-arrow-text
-                                                      tail-arrow-other-pos tail-arrow-other-text)
-                  
-                  ;; traversal-ht ensures that we don't loop in the arrow traversal.
-                  (let ([traversal-ht (make-hasheq)])
-                    (let loop ([tail-arrow tail-arrow])
-                      (unless (hash-ref traversal-ht tail-arrow #f)
-                        (hash-set! traversal-ht tail-arrow #t)
-                        (unless (hash-ref call-f-ht tail-arrow #f)
-                          (hash-set! call-f-ht tail-arrow #t)
-                          (f tail-arrow))
-                        (let* ([next-pos (tail-arrow-pos tail-arrow)]
-                               [next-text (tail-arrow-text tail-arrow)]
-                               [arrow-record (hash-ref arrow-records next-text #f)])
-                          (when arrow-record
-                            (for ([ele (in-list (interval-map-ref arrow-record next-pos null))])
-                              (cond
-                                [(tail-arrow? ele)
-                                 (let ([other-pos (tail-arrow-other-pos ele)]
-                                       [other-text (tail-arrow-other-text ele)])
-                                   (when (and (= other-pos next-pos)
-                                              (eq? other-text next-text))
-                                     (loop ele)))]))))))))
-                (for-each-tail-arrows/to/from tail-arrow-to-pos tail-arrow-to-text
-                                              tail-arrow-from-pos tail-arrow-from-text)
-                (for-each-tail-arrows/to/from tail-arrow-from-pos tail-arrow-from-text
-                                              tail-arrow-to-pos tail-arrow-to-text)))
+              (for-each-tail-arrows-top-level f tail-arrows arrow-records))
             
             ;; after a short delay, current-* are set to latent-*, and arrows are drawn
             (define latent-pos #f)
@@ -1844,6 +1741,10 @@ If the namespace does not, they are colored the unbound color.
                 (send ed get-canvas)))
             
             (define/private (tooltip-info->ltrb tooltip)
+              (define xlb (box 0))
+              (define ylb (box 0))
+              (define xrb (box 0))
+              (define yrb (box 0))
               (define left-pos (tooltip-info-pos-left tooltip))
               (define right-pos (tooltip-info-pos-right tooltip))
               (define text (tooltip-info-text tooltip))
@@ -1890,34 +1791,28 @@ If the namespace does not, they are colored the unbound color.
             ;; tack/untack-callback : (listof arrow) -> void
             ;; callback for the tack/untack menu item
             (define/private (tack/untack-callback arrows)
-              (let ([arrow-tacked?
-                     (λ (arrow)
-                       (hash-ref
-                        tacked-hash-table
-                        arrow
-                        (λ () #f)))]
-                    [untack-arrows? #f])
-                (for-each 
-                 (λ (arrow)
-                   (cond
-                     [(var-arrow? arrow)
-                      (set! untack-arrows? (or untack-arrows? (arrow-tacked? arrow)))]
-                     [(tail-arrow? arrow)
-                      (for-each-tail-arrows
-                       (λ (arrow) (set! untack-arrows? (or untack-arrows? (arrow-tacked? arrow))))
-                       (list arrow))]))
-                 arrows)
-                (for-each 
-                 (λ (arrow)
-                   (cond
-                     [(var-arrow? arrow)
-                      (hash-set! tacked-hash-table arrow (not untack-arrows?))]
-                     [(tail-arrow? arrow)
-                      (for-each-tail-arrows
-                       (λ (arrow) 
-                         (hash-set! tacked-hash-table arrow (not untack-arrows?)))
-                       (list arrow))]))
-                 arrows))
+              (define (arrow-tacked? arrow)
+                (hash-ref tacked-hash-table arrow #f))
+              (define untack-arrows? #f)
+              (define (update-arrow arrow)
+                (if untack-arrows?
+                    (hash-remove! tacked-hash-table arrow)
+                    (hash-set! tacked-hash-table arrow #t)))
+              (for ([arrow (in-list arrows)])
+                (cond
+                  [(var-arrow? arrow)
+                   (set! untack-arrows? (or untack-arrows? (arrow-tacked? arrow)))]
+                  [(tail-arrow? arrow)
+                   (for-each-tail-arrows
+                    (λ (arrow) (set! untack-arrows? (or untack-arrows? (arrow-tacked? arrow))))
+                    (list arrow))]))
+              (for ([arrow (in-list arrows)])
+                (cond
+                  [(var-arrow? arrow) (update-arrow arrow)]
+                  [(tail-arrow? arrow)
+                   (for-each-tail-arrows
+                    (λ (arrow) (update-arrow arrow))
+                    (list arrow))]))
               (invalidate-bitmap-cache/padding))
             
             (define/public (tack-crossing-arrows-callback text)
@@ -2104,11 +1999,321 @@ If the namespace does not, they are colored the unbound color.
                           [else 
                            (snip-loop (send snip next))]))]))]))
             
-            (define/private (invalidate-bitmap-cache/padding)
+            (define/public (invalidate-bitmap-cache/padding)
               (define-values (l t r b) (get-padding))
               (invalidate-bitmap-cache l))
             
             (super-new)))))
+
+    (define arrow-drawing%
+      (class object%
+        (init-field who)
+        (super-new)
+
+        ;; bitmap-arrows-key will be #f when the arrows-bitmap is either not set or is being built
+        ;; when it isn't #f it is a value that, when compared with equal? will indicate if the values
+        ;; that the bitmap is built against have changed.
+        (define bitmap-arrows-key #f)
+        ;; this will be #f to mean no pending-drawing, or a box holding the current state
+        ;; set the box's content to #f to cause the pending arrow drawing to give up.
+        (define pending-arrow-drawing #f)
+        ;; this is the same type as bitmap-arrows-key, but for the bitmap that's being built (if any)
+        (define pending-arrows-key #f)
+        (define arrows-bitmap #f)
+
+        ;; determine-the-arrows : -> (listof arrows-and-min-max-width?)
+        (define/public (handle-arrow-drawing dc dx dy width height max-width-for-arrow text current-arrows-key determine-the-arrows)
+          (cond
+            [(equal? current-arrows-key bitmap-arrows-key)
+             (when arrows-bitmap
+               ;; we arrive here when we have computed a bitmap
+               ;; but when there are no arrows, we have no bitmap
+               (send dc draw-bitmap arrows-bitmap 0 0))]
+            [(equal? current-arrows-key pending-arrows-key)
+             ;; here we have a some callbacks running to build
+             ;; the bitmap; when they complete, they'll trigger
+             ;; a refresh that'll draw the arrows, so we do nothing now
+             (void)]
+            [else
+             (define initial-arrows (determine-the-arrows))
+             (cond
+               [(null? initial-arrows)
+                ;; we can avoid creating the bitmap if there are no arrows at all
+                (set! bitmap-arrows-key current-arrows-key)
+                (set! arrows-bitmap #f)
+                (void)]
+               [else
+                (unless (and arrows-bitmap
+                             (= (send arrows-bitmap get-width) width)
+                             (= (send arrows-bitmap get-height) height))
+                  (set! arrows-bitmap (make-screen-bitmap width height)))
+
+                (define bdc (make-object bitmap-dc% arrows-bitmap))
+                (send bdc erase)
+                (send bdc set-bitmap #f)
+
+                ;; built the box that gets closed over in do-some-drawing-and-continue-in-callbacks
+                (define my-arrow-drawing (box initial-arrows))
+                ;; abort any pending drawing
+                (when pending-arrow-drawing
+                  (set-box! pending-arrow-drawing #f))
+                ;; install my-arrow-drawing to be able to abort this new go
+                (set! pending-arrow-drawing my-arrow-drawing)
+
+                (define (do-some-drawing-and-continue-in-callbacks first-go?)
+                  (match (unbox my-arrow-drawing)
+                    [#f
+                     ;; we were told to abort, as this work is now useless
+                     (void)]
+                    [arrows-and-min-max-widths
+                     ;; here there are more arrows to draw
+                     (define bdc (make-object bitmap-dc% arrows-bitmap))
+                     (define next-state
+                       (draw-the-arrows bdc dx dy
+                                        max-width-for-arrow
+                                        arrows-and-min-max-widths))
+                     (send bdc set-bitmap #f)
+                     (match next-state
+                       ["done"
+                        (set! bitmap-arrows-key current-arrows-key)
+                        (set! pending-arrows-key #f)
+                        (cond
+                          [first-go?
+                           (send dc draw-bitmap arrows-bitmap 0 0)]
+                          [else
+                           (send text invalidate-bitmap-cache/padding)])]
+                       [_
+                        (set-box! my-arrow-drawing next-state)
+                        (queue-callback
+                         (λ () (do-some-drawing-and-continue-in-callbacks #f))
+                         #f)])]))
+                (set! pending-arrows-key current-arrows-key)
+                (do-some-drawing-and-continue-in-callbacks #t)])]))
+
+        ;; ... -> (or/c "done" (vector (listof arrow) (listof arrow)))
+        ;; if the result is done, all arrows are drawn without the time budget expiring
+        ;; if the result is a vector, it contains the arrows that
+        ;;   remain to be drawn and the time budget has expired
+        (define/private (draw-the-arrows dc dx dy max-width-for-arrow arrows-and-min-max-widths)
+          (define old-brush (send dc get-brush))
+          (define old-pen   (send dc get-pen))
+          (define old-font  (send dc get-font))
+          (define old-text-foreground (send dc get-text-foreground))
+          (define old-text-mode (send dc get-text-mode))
+          (define old-alpha (send dc get-alpha))
+          (define white-on-black? (preferences:get 'framework:white-on-black?))
+          (send dc set-font
+                (send the-font-list find-or-create-font
+                      (send old-font get-point-size)
+                      'default
+                      'normal
+                      'bold))
+          (send dc set-text-foreground
+                (color-prefs:lookup-in-color-scheme 'drracket:syncheck:template-arrow))
+          (send dc set-alpha 0.5)
+
+          (define (draw-an-arrow tacked? ele var-arrow-end-x-min var-arrow-end-x-max)
+            (cond [(var-arrow? ele)
+                   (if (var-arrow-actual? ele)
+                       (begin (send dc set-pen (get-var-pen))
+                              (send dc set-brush (if tacked? (get-tacked-var-brush) (get-untacked-brush))))
+                       (begin (send dc set-pen (get-templ-pen))
+                              (send dc set-brush (if tacked? (get-tacked-templ-brush) (get-untacked-brush)))))]
+                  [(tail-arrow? ele)
+                   (send dc set-pen (get-tail-pen))
+                   (send dc set-brush (if tacked? (get-tacked-tail-brush) (get-untacked-brush)))])
+            (draw-arrow2 ele
+                         max-width-for-arrow dc dx dy
+                         ;; when drawing tacked arrows, the var-arrow-end-x-min
+                         ;; and var-arrow-end-x-max are wrong; need to save those
+                         #:x-min var-arrow-end-x-min
+                         #:x-max var-arrow-end-x-max))
+
+          (define start-time (current-inexact-monotonic-milliseconds))
+          (define timeout-in-milliseconds 15)
+          (define result
+            (let loop ([arrows-and-min-max-widths arrows-and-min-max-widths]
+                       [arrows #f]
+                       [var-arrow-end-x-min #f]
+                       [var-arrow-end-x-max #f]
+                       [tacked? #f]
+                       [drew-at-least-one-arrow? #f])
+              (cond
+                [(and drew-at-least-one-arrow? (>= (current-inexact-monotonic-milliseconds)
+                                                   (+ start-time timeout-in-milliseconds)))
+                 (if arrows
+                     (cons (arrows-and-min-max-width arrows var-arrow-end-x-min var-arrow-end-x-max tacked?)
+                           arrows-and-min-max-widths)
+                     arrows-and-min-max-widths)]
+                [(and (not arrows) (null? arrows-and-min-max-widths))
+                 "done"]
+                [(not arrows)
+                 (match-define (arrows-and-min-max-width arrows var-arrow-end-x-min var-arrow-end-x-max tacked?)
+                   (car arrows-and-min-max-widths))
+                 (loop (cdr arrows-and-min-max-widths)
+                       arrows
+                       var-arrow-end-x-min
+                       var-arrow-end-x-max
+                       tacked?
+                       drew-at-least-one-arrow?)]
+                [(null? arrows)
+                 (loop arrows-and-min-max-widths #f #f #f #f drew-at-least-one-arrow?)]
+                [else
+                 (draw-an-arrow tacked? (car arrows) var-arrow-end-x-min var-arrow-end-x-max)
+                 (loop arrows-and-min-max-widths
+                       (cdr arrows)
+                       var-arrow-end-x-min
+                       var-arrow-end-x-max
+                       tacked?
+                       #t)])))
+        
+          (send dc set-brush old-brush)
+          (send dc set-pen old-pen)
+          (send dc set-font old-font)
+          (send dc set-text-foreground old-text-foreground)
+          (send dc set-text-mode old-text-mode)
+          (send dc set-alpha old-alpha)
+          result)))
+
+    (struct arrows-and-min-max-width (arrows var-arrow-end-x-min var-arrow-end-x-max tacked?))
+
+    (define (draw-arrow2 arrow max-width-for-arrow dc dx dy
+                         #:x-min [var-arrow-end-x-min #f]
+                         #:x-max [var-arrow-end-x-max #f])
+      (define-values (start-x start-y end-x end-y) (get-arrow-poss arrow))
+      (unless (and (= start-x end-x)
+                   (= start-y end-y))
+        (define smaller-x (min start-x end-x))
+        (define larger-x (max start-x end-x))
+        (define %age
+          (cond
+            [(and var-arrow-end-x-min var-arrow-end-x-max)
+             (define base-%age
+               (/ (- end-x var-arrow-end-x-min)
+                  (- var-arrow-end-x-max var-arrow-end-x-min)))
+             (if (< (var-arrow-start-pos-left arrow)
+                    (var-arrow-end-pos-left arrow))
+                 base-%age
+                 (- base-%age))]
+            [else #f]))
+        (drracket:arrow:draw-arrow dc start-x start-y end-x end-y dx dy
+                                   #:pen-width 2
+                                   #:%age %age
+                                   #:bb (list 0
+                                              #f
+                                              max-width-for-arrow
+                                              #f))
+        (when (and (var-arrow? arrow) (not (var-arrow-actual? arrow)))
+          (define old-font (send dc get-font))
+          (send dc set-font
+                (send the-font-list find-or-create-font
+                      (* 2 (send old-font get-point-size))
+                      (send old-font get-face)
+                      (send old-font get-family)
+                      (send old-font get-style)
+                      (send old-font get-weight)
+                      (send old-font get-underlined)
+                      (send old-font get-smoothing)
+                      #f
+                      (send old-font get-hinting)))
+          (define-values (fw fh _d _v) (send dc get-text-extent "?"))
+          (send dc draw-text "?"
+                (+ end-x dx (/ fw 2))
+                (+ end-y dy (- fh)))
+          (send dc set-font old-font))))
+
+    
+    (define (get-arrow-poss arrow)
+      (cond
+        [(var-arrow? arrow) (get-var-arrow-poss arrow)]
+        [(tail-arrow? arrow) (get-tail-arrow-poss arrow)]))
+            
+    (define (get-var-arrow-poss arrow)
+      (let-values ([(start-x start-y) (find-poss 
+                                       (var-arrow-start-text arrow)
+                                       (var-arrow-start-pos-left arrow)
+                                       (var-arrow-start-pos-right arrow)
+                                       (var-arrow-start-px arrow)
+                                       (var-arrow-start-py arrow))]
+                   [(end-x end-y) (find-poss 
+                                   (var-arrow-end-text arrow)
+                                   (var-arrow-end-pos-left arrow)
+                                   (var-arrow-end-pos-right arrow)
+                                   (var-arrow-end-px arrow)
+                                   (var-arrow-end-py arrow))])
+        (values start-x start-y end-x end-y)))
+            
+    (define (get-tail-arrow-poss arrow)
+      ;; If the item is an embedded editor snip, redirect
+      ;; the arrow to point at the left edge rather than the
+      ;; midpoint.
+      (define (find-poss/embedded text pos)
+        (let* ([snip (send text find-snip pos 'after)])
+          (cond
+            [(and snip 
+                  (is-a? snip editor-snip%)
+                  (= pos (send text get-snip-position snip)))
+             (find-poss text pos pos .5 .5)]
+            [else
+             (find-poss text pos (+ pos 1) .5 .5)])))
+      (let-values ([(start-x start-y) (find-poss/embedded 
+                                       (tail-arrow-from-text arrow)
+                                       (tail-arrow-from-pos arrow))]
+                   [(end-x end-y) (find-poss/embedded
+                                   (tail-arrow-to-text arrow)
+                                   (tail-arrow-to-pos arrow))])
+        (values start-x start-y end-x end-y)))
+
+    (define (find-poss text left-pos right-pos px py)
+      (define xlb (box 0))
+      (define ylb (box 0))
+      (define xrb (box 0))
+      (define yrb (box 0))
+
+      (send text position-location left-pos xlb ylb #t)
+      (send text position-location right-pos xrb yrb #f)
+      (let*-values ([(xl-off yl-off) (send text editor-location-to-dc-location 
+                                           (unbox xlb) (unbox ylb))]
+                    [(xl yl) (send text dc-location-to-editor-location xl-off yl-off)]
+                    [(xr-off yr-off) (send text editor-location-to-dc-location 
+                                           (unbox xrb) (unbox yrb))]
+                    [(xr yr) (send text dc-location-to-editor-location xr-off yr-off)])
+        (values (+ xl (* (- xr xl) px))
+                (+ yl (* (- yr yl) py)))))
+
+    ;; for-each-tail-arrows : (tail-arrow -> void) tail-arrow -> void
+    (define (for-each-tail-arrows-top-level f tail-arrows arrow-records)
+      ;; call-f-ht ensures that `f' is only called once per arrow
+      (define call-f-ht (make-hash))
+              
+      (for ([tail-arrow (in-list tail-arrows)])
+        (define (for-each-tail-arrows/to/from tail-arrow-pos tail-arrow-text
+                                              tail-arrow-other-pos tail-arrow-other-text)
+                  
+          ;; traversal-ht ensures that we don't loop in the arrow traversal.
+          (let ([traversal-ht (make-hasheq)])
+            (let loop ([tail-arrow tail-arrow])
+              (unless (hash-ref traversal-ht tail-arrow #f)
+                (hash-set! traversal-ht tail-arrow #t)
+                (unless (hash-ref call-f-ht tail-arrow #f)
+                  (hash-set! call-f-ht tail-arrow #t)
+                  (f tail-arrow))
+                (let* ([next-pos (tail-arrow-pos tail-arrow)]
+                       [next-text (tail-arrow-text tail-arrow)]
+                       [arrow-record (hash-ref arrow-records next-text #f)])
+                  (when arrow-record
+                    (for ([ele (in-list (interval-map-ref arrow-record next-pos null))])
+                      (cond
+                        [(tail-arrow? ele)
+                         (let ([other-pos (tail-arrow-other-pos ele)]
+                               [other-text (tail-arrow-other-text ele)])
+                           (when (and (= other-pos next-pos)
+                                      (eq? other-text next-text))
+                             (loop ele)))]))))))))
+        (for-each-tail-arrows/to/from tail-arrow-to-pos tail-arrow-to-text
+                                      tail-arrow-from-pos tail-arrow-from-text)
+        (for-each-tail-arrows/to/from tail-arrow-from-pos tail-arrow-from-text
+                                      tail-arrow-to-pos tail-arrow-to-text)))
     
     (keymap:add-to-right-button-menu/before
      (let ([old (keymap:add-to-right-button-menu/before)])
