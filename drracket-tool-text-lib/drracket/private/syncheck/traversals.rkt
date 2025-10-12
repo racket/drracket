@@ -1090,7 +1090,7 @@
     (define phase-shift (if (pair? phase+space-shift) (car phase+space-shift) phase+space-shift))
     (define phase+space (list-ref binding 6))
     (define phase (if (pair? phase+space) (car phase+space) phase+space))
-    (define space (if (pair? phase+space) (cdr phase+space) #f))
+    (define space (and (pair? phase+space) (cdr phase+space)))
     (when (and (number? phase-level)
                (not (= phase-level
                        (+ phase-shift
