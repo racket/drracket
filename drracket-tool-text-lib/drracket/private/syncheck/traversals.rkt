@@ -1200,10 +1200,11 @@
     (define (is-lexical? b)
       (or (not b)
           (eq? b 'lexical)
-          (and (pair? b)
-               (let ([path (caddr b)])
-                 (and (module-path-index? path)
-                      (self-module? path))))))
+          (cond
+            [(pair? b)
+             (define path (caddr b))
+             (and (module-path-index? path) (self-module? path))]
+            [else #f])))
 
 ;; initialize-binder-connections : id-set connections -> void
 (define (initialize-binder-connections binders connections)
