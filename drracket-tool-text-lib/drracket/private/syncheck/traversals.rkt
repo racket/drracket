@@ -827,7 +827,7 @@
   (define all-mods (set))
   (for ([phase (in-hash-keys phase-to-binders)])
     (set! phases (set-add phases phase)))
-  (for ([(phase+mod _) (in-hash phase-to-requires)])
+  (for ([phase+mod (in-hash-keys phase-to-requires)])
     (define phase (list-ref phase+mod 0))
     (define mod (list-ref phase+mod 1))
     (set! phases (set-add phases phase))
@@ -891,19 +891,17 @@
 ;; color-unused : hash-table[sexp -o> syntax] hash-table[sexp -o> #f] hash-table[syntax -o> #t]
 ;;             -> void
 (define (color-unused requires unused module-lang-requires)
-  (for ([(k v) (in-hash unused)])
+  (for ([k (in-hash-keys unused)])
     (define require-contexts
-      (hash-ref requires k
-                (λ ()
-                  (error 'syncheck/traversals.rkt
-                         "requires doesn't have a mapping for ~s"
-                         k))))
+      (hash-ref requires
+                k
+                (λ () (error 'syncheck/traversals.rkt "requires doesn't have a mapping for ~s" k))))
     (for ([require-context (in-list require-contexts)])
       (define binder+mods (require-context-b+m require-context))
       (define stx (binder+mods-binder binder+mods))
-      (unless (hash-ref module-lang-requires (list (syntax-source stx)
-                                                   (syntax-position stx)
-                                                   (syntax-span stx)) #f)
+      (unless (hash-ref module-lang-requires
+                        (list (syntax-source stx) (syntax-position stx) (syntax-span stx))
+                        #f)
         (define defs-text (current-annotations))
         (define source-editor (find-source-editor stx))
         (when (and defs-text source-editor)
@@ -913,8 +911,7 @@
             (define start (- pos 1))
             (define fin (+ start span))
             (send defs-text syncheck:add-unused-require source-editor start fin)
-            (send defs-text syncheck:add-text-type
-                  source-editor start fin 'unused-identifier)))
+            (send defs-text syncheck:add-text-type source-editor start fin 'unused-identifier)))
         (color stx unused-require-style-name)))))
 
 ;; color-unused-binder : source integer integer -> void
