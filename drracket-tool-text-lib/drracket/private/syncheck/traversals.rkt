@@ -1152,39 +1152,39 @@
 ;; records the src locs of each 'end' position of each arrow)
 ;; to do this, but maybe lets leave that for another day.
 (define (annotate-counts connections)
-  (for ([(key val) (in-hash connections)])
-    (when (list? val)
-      (define start (first val))
-      (define end (second val))
-      (define color? (third val))
-      (define (show-starts)
-        (when (zero? start)
-          (define defs-text (current-annotations))
-          (when defs-text
-            (send defs-text syncheck:unused-binder
-                  (list-ref key 0) (list-ref key 1) (list-ref key 2))))
-        (add-mouse-over/loc (list-ref key 0) (list-ref key 1) (list-ref key 2)
-                            (cond
-                              [(zero? start)
-                               (string-constant cs-zero-varrefs)]
-                              [(= 1 start)
-                               (string-constant cs-one-varref)]
-                              [else
-                               (format (string-constant cs-n-varrefs) start)])))
-      (define (show-ends)
-        (unless (= 1 end)
-          (add-mouse-over/loc (list-ref key 0) (list-ref key 1) (list-ref key 2)
-                              (format (string-constant cs-binder-count) end))))
-      (cond
-        [(zero? end)   ;; assume this is a binder, show uses
-         #;(when (and color? (zero? start))
-             (color-unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2)))
-         (show-starts)]
-        [(zero? start) ;; assume this is a use, show bindings (usually just one, so do nothing)
-         (show-ends)]
-        [else          ;; crazyness, show both
-         (show-starts)
-         (show-ends)]))))
+  (for ([(key val) (in-hash connections)]
+        #:when (list? val))
+    (define start (first val))
+    (define end (second val))
+    (define color? (third val))
+    (define (show-starts)
+      (when (zero? start)
+        (define defs-text (current-annotations))
+        (when defs-text
+          (send defs-text syncheck:unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2))))
+      (add-mouse-over/loc (list-ref key 0)
+                          (list-ref key 1)
+                          (list-ref key 2)
+                          (cond
+                            [(zero? start) (string-constant cs-zero-varrefs)]
+                            [(= 1 start) (string-constant cs-one-varref)]
+                            [else (format (string-constant cs-n-varrefs) start)])))
+    (define (show-ends)
+      (unless (= 1 end)
+        (add-mouse-over/loc (list-ref key 0)
+                            (list-ref key 1)
+                            (list-ref key 2)
+                            (format (string-constant cs-binder-count) end))))
+    (cond
+      ;; assume this is a binder, show uses
+      #;(when (and color? (zero? start))
+          (color-unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2)))
+      [(zero? end) (show-starts)]
+      ;; assume this is a use, show bindings (usually just one, so do nothing)
+      [(zero? start) (show-ends)]
+      [else ;; crazyness, show both
+       (show-starts)
+       (show-ends)])))
 
 ;; color-variable : syntax phase-level identifier-mapping -> void
 (define (color-variable var phase-level varsets)
