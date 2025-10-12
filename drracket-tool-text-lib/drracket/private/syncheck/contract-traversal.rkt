@@ -218,7 +218,7 @@
   (let loop ([val (syntax-property stx prop)])
     (cond
       [(symbol? val)
-       (hash-set! map val (cons stx (hash-ref map val '())))]
+       (hash-update! map val (λ (v) (cons stx v)) '())]
       [(pair? val)
        (loop (car val))
        (loop (cdr val))])))
