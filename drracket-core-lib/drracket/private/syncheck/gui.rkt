@@ -1561,7 +1561,7 @@ If the namespace does not, they are colored the unbound color.
                                      (equal? style r-style))))))))
               
               (un/highlight #f)
-              
+
               (set! current-matching-identifiers
                     (cond
                       [(and cursor-text cursor-pos)
@@ -2090,10 +2090,10 @@ If the namespace does not, they are colored the unbound color.
                 (set! pending-arrows-key current-arrows-key)
                 (do-some-drawing-and-continue-in-callbacks #t)])]))
 
-        ;; ... -> (or/c "done" (vector (listof arrow) (listof arrow)))
+        ;; ... -> (or/c "done" (listof arrows-and-min-max-width?))
         ;; if the result is done, all arrows are drawn without the time budget expiring
-        ;; if the result is a vector, it contains the arrows that
-        ;;   remain to be drawn and the time budget has expired
+        ;; if the result is a list, it contains the arrows that
+        ;;   remain to be drawn; also, the time budget has expired
         (define/private (draw-the-arrows dc dx dy max-width-for-arrow arrows-and-min-max-widths)
           (define old-brush (send dc get-brush))
           (define old-pen   (send dc get-pen))
@@ -2124,8 +2124,6 @@ If the namespace does not, they are colored the unbound color.
                    (send dc set-brush (if tacked? (get-tacked-tail-brush) (get-untacked-brush)))])
             (draw-arrow2 ele
                          max-width-for-arrow dc dx dy
-                         ;; when drawing tacked arrows, the var-arrow-end-x-min
-                         ;; and var-arrow-end-x-max are wrong; need to save those
                          #:x-min var-arrow-end-x-min
                          #:x-max var-arrow-end-x-max))
 
@@ -2183,11 +2181,11 @@ If the namespace does not, they are colored the unbound color.
       (define-values (start-x start-y end-x end-y) (get-arrow-poss arrow))
       (unless (and (= start-x end-x)
                    (= start-y end-y))
-        (define smaller-x (min start-x end-x))
-        (define larger-x (max start-x end-x))
         (define %age
           (cond
-            [(and var-arrow-end-x-min var-arrow-end-x-max)
+            [(and (var-arrow? arrow)
+                  var-arrow-end-x-min
+                  var-arrow-end-x-max)
              (define base-%age
                (/ (- end-x var-arrow-end-x-min)
                   (- var-arrow-end-x-max var-arrow-end-x-min)))
@@ -2195,7 +2193,16 @@ If the namespace does not, they are colored the unbound color.
                     (var-arrow-end-pos-left arrow))
                  base-%age
                  (- base-%age))]
-            [else #f]))
+            [(var-arrow? arrow)
+             ;; when we don't have `var-arrow-end-x-min` and `var-arrow-end-x-max`
+             ;; then this is a require arrow so we use the entire width
+             ;; to determine the curvature of the arrow
+             (define base-%age (/ end-x max-width-for-arrow))
+             (if (< (var-arrow-start-pos-left arrow)
+                    (var-arrow-end-pos-left arrow))
+                 base-%age
+                 (- base-%age))]
+            [else "leftup"]))
         (drracket:arrow:draw-arrow dc start-x start-y end-x end-y dx dy
                                    #:pen-width 2
                                    #:%age %age
