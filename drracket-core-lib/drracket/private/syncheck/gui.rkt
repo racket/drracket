@@ -1183,45 +1183,46 @@ If the namespace does not, they are colored the unbound color.
                   (define wb (box 0))
                   (get-extent wb #f)
                   (define max-width-for-arrow (unbox wb))
-                  (get-view-size wb hb)
+                  (unless (zero? max-width-for-arrow)
+                    (get-view-size wb hb)
 
-                  ;; if anything in this vector changes, then
-                  ;; the tacked arrows will draw differently
-                  (define mouse-over-current-arrows-key
-                    (vector dx dy
-                            max-width-for-arrow
-                            (hash-copy current-matching-identifiers)
-                            ;; the tacked-hash-table is derived from this
-                            ;; (and from the user tacking arrows)
-                            ;; so it shouldn't be needed
-                            ;(hash-copy arrow-records)
-                            cursor-text
-                            cursor-pos))
-                  (send mouse-over-arrow-drawing handle-arrow-drawing
-                        dc dx dy (unbox wb) (unbox hb)
-                        max-width-for-arrow
-                        this
-                        mouse-over-current-arrows-key
-                        (λ () (determine-the-mouse-over-arrows)))
+                    ;; if anything in this vector changes, then
+                    ;; the tacked arrows will draw differently
+                    (define mouse-over-current-arrows-key
+                      (vector dx dy
+                              max-width-for-arrow
+                              (hash-copy current-matching-identifiers)
+                              ;; the tacked-hash-table is derived from this
+                              ;; (and from the user tacking arrows)
+                              ;; so it shouldn't be needed
+                              ;(hash-copy arrow-records)
+                              cursor-text
+                              cursor-pos))
+                    (send mouse-over-arrow-drawing handle-arrow-drawing
+                          dc dx dy (unbox wb) (unbox hb)
+                          max-width-for-arrow
+                          this
+                          mouse-over-current-arrows-key
+                          (λ () (determine-the-mouse-over-arrows)))
 
-                  ;; if anything in this vector changes, then
-                  ;; the mouse-over arrows will draw differently
-                  (define tacked-over-current-arrows-key
-                    (vector dx dy
-                            max-width-for-arrow
-                            (hash-copy tacked-hash-table)
-                            ;; the current-matching-identifiers is derived from this
-                            ;; so it shouldn't be needed
-                            ;(hash-copy arrow-records)
-                            ;cursor-text
-                            ;cursor-pos
-                            ))
-                  (send tacked-arrow-drawing handle-arrow-drawing
-                        dc dx dy (unbox wb) (unbox hb)
-                        max-width-for-arrow
-                        this
-                        tacked-over-current-arrows-key
-                        (λ () (determine-the-tacked-arrows)))))
+                    ;; if anything in this vector changes, then
+                    ;; the mouse-over arrows will draw differently
+                    (define tacked-over-current-arrows-key
+                      (vector dx dy
+                              max-width-for-arrow
+                              (hash-copy tacked-hash-table)
+                              ;; the current-matching-identifiers is derived from this
+                              ;; so it shouldn't be needed
+                              ;(hash-copy arrow-records)
+                              ;cursor-text
+                              ;cursor-pos
+                              ))
+                    (send tacked-arrow-drawing handle-arrow-drawing
+                          dc dx dy (unbox wb) (unbox hb)
+                          max-width-for-arrow
+                          this
+                          tacked-over-current-arrows-key
+                          (λ () (determine-the-tacked-arrows))))))
               
               ;; do the drawing before calling super so that the arrows don't
               ;; cross the "#lang ..." line, if it is present.
