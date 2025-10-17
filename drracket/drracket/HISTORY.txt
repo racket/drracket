@@ -1,4 +1,14 @@
 ------------------------------
+       Version 9.0
+------------------------------
+
+  . check syntax tracks identifiers that it finds in the origin fields
+    of identifiers that are in the origin fields (before it would not
+    consider the origin field of identifiers that were in the origin field)
+
+  . bug fixes, documentation improvements, and refactorings
+
+------------------------------
        Version 8.18
 ------------------------------
 
