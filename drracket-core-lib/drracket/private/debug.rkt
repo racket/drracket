@@ -408,11 +408,9 @@
           [i (in-naturals)])
       (unless (zero? i) (newline (current-error-port)))
       (cond
-        [(string? x)
-         (display x (current-error-port))]
+        [(string? x) (display x (current-error-port))]
         [(pair? x)
-         (define line (list-ref x 0))
-         (define to-show-later (list-ref x 1))
+         (match-define (list line to-show-later) x)
          (write-string line (current-error-port) 0 (- (string-length line) 4))
          (write-special (new ellipsis-snip% [extra to-show-later]) (current-error-port))
          (display ":" (current-error-port))])))
