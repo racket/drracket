@@ -1185,6 +1185,12 @@ If the namespace does not, they are colored the unbound color.
                   (define max-width-for-arrow (unbox wb))
                   (unless (zero? max-width-for-arrow)
                     (get-view-size wb hb)
+                    (define-values (inset-x inset-y)
+                      (cond
+                        [(get-canvas)
+                         (values (send (get-canvas) horizontal-inset)
+                                 (send (get-canvas) vertical-inset))]
+                        [else (values 0 0)]))
 
                     ;; if anything in this vector changes, then
                     ;; the tacked arrows will draw differently
@@ -1192,14 +1198,10 @@ If the namespace does not, they are colored the unbound color.
                       (vector dx dy
                               max-width-for-arrow
                               (hash-copy current-matching-identifiers)
-                              ;; the tacked-hash-table is derived from this
-                              ;; (and from the user tacking arrows)
-                              ;; so it shouldn't be needed
-                              ;(hash-copy arrow-records)
                               cursor-text
                               cursor-pos))
                     (send mouse-over-arrow-drawing handle-arrow-drawing
-                          dc dx dy (unbox wb) (unbox hb)
+                          dc dx dy inset-x inset-y (unbox wb) (unbox hb)
                           max-width-for-arrow
                           this
                           mouse-over-current-arrows-key
@@ -1210,15 +1212,9 @@ If the namespace does not, they are colored the unbound color.
                     (define tacked-over-current-arrows-key
                       (vector dx dy
                               max-width-for-arrow
-                              (hash-copy tacked-hash-table)
-                              ;; the current-matching-identifiers is derived from this
-                              ;; so it shouldn't be needed
-                              ;(hash-copy arrow-records)
-                              ;cursor-text
-                              ;cursor-pos
-                              ))
+                              (hash-copy tacked-hash-table)))
                     (send tacked-arrow-drawing handle-arrow-drawing
-                          dc dx dy (unbox wb) (unbox hb)
+                          dc dx dy inset-x inset-y (unbox wb) (unbox hb)
                           max-width-for-arrow
                           this
                           tacked-over-current-arrows-key
@@ -2023,13 +2019,13 @@ If the namespace does not, they are colored the unbound color.
         (define arrows-bitmap #f)
 
         ;; determine-the-arrows : -> (listof arrows-and-min-max-width?)
-        (define/public (handle-arrow-drawing dc dx dy width height max-width-for-arrow text current-arrows-key determine-the-arrows)
+        (define/public (handle-arrow-drawing dc dx dy inset-x inset-y width height max-width-for-arrow text current-arrows-key determine-the-arrows)
           (cond
             [(equal? current-arrows-key bitmap-arrows-key)
              (when arrows-bitmap
                ;; we arrive here when we have computed a bitmap
                ;; but when there are no arrows, we have no bitmap
-               (send dc draw-bitmap arrows-bitmap 0 0))]
+               (send dc draw-bitmap arrows-bitmap inset-x inset-y))]
             [(equal? current-arrows-key pending-arrows-key)
              ;; here we have a some callbacks running to build
              ;; the bitmap; when they complete, they'll trigger
@@ -2070,7 +2066,7 @@ If the namespace does not, they are colored the unbound color.
                      ;; here there are more arrows to draw
                      (define bdc (make-object bitmap-dc% arrows-bitmap))
                      (define next-state
-                       (draw-the-arrows bdc dx dy
+                       (draw-the-arrows bdc (- dx inset-x) (- dy inset-y)
                                         max-width-for-arrow
                                         arrows-and-min-max-widths))
                      (send bdc set-bitmap #f)
@@ -2080,7 +2076,7 @@ If the namespace does not, they are colored the unbound color.
                         (set! pending-arrows-key #f)
                         (cond
                           [first-go?
-                           (send dc draw-bitmap arrows-bitmap 0 0)]
+                           (send dc draw-bitmap arrows-bitmap inset-x inset-y)]
                           [else
                            (send text invalidate-bitmap-cache/padding)])]
                        [_
