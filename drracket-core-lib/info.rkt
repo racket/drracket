@@ -7,7 +7,7 @@
 (define deps '(["base" #:version "8.2.0.8"]
                "data-lib"
                "compiler-lib"
-               ["draw-lib" #:version "1.7"]
+               ["draw-lib" #:version "1.23"]
                ["drracket-plugin-lib" #:version "1.1"]
                "drracket-tool-lib"
                "drracket-tool-text-lib"

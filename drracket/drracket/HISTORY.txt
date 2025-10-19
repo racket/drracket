@@ -1,4 +1,27 @@
 ------------------------------
+       Version 9.1
+------------------------------
+
+  . improve the interactivity of on-paint when there are a lot of
+    check-syntax arrows by caching the arrow drawing in a bitmap
+    and computing the bitmap on multiple events
+
+  . make check syntax arrows curve. The amount and direction of the
+    curve is controlled by the x-coordinates of the position of the
+    references; if a reference is relatively to the left, then the
+    angle that the arrow makes as it leaves the binding occurrence is
+    relatively more horizontal (and ditto for references that are more
+    to the right).
+
+    Because the references are evenly spaced and all go rightwards, a
+    program like this makes a pretty-looking picture:
+
+    #lang racket
+
+    (define (g x)
+               x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x)
+
+------------------------------
        Version 9.0
 ------------------------------
 
