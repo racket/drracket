@@ -224,12 +224,12 @@
   interesting-editor-editions)
 
 (define (add-editions-to-interesting-editors editions interesting-editor-editions)
-  (for ([edition (in-list editions)])
-    (when edition
-      (match-define (cons wb edition-number) edition)
-      (define ed (weak-box-value wb))
-      (when ed
-        (hash-set! interesting-editor-editions ed edition)))))
+  (for ([edition (in-list editions)]
+        #:when edition)
+    (match-define (cons wb edition-number) edition)
+    (define ed (weak-box-value wb))
+    (when ed
+      (hash-set! interesting-editor-editions ed edition))))
 
 (define (empty-viewable-stack? a-viewable-stack)
   (match-define (viewable-stack stack-items _ _ _ _)
