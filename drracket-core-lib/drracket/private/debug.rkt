@@ -470,7 +470,7 @@
                      [(null? (cdr planet-version))
                       (format "~s" `(,(car planet-version) ?))]
                      [else
-                      (format "~s" `(,(car planet-version) ,(cadr planet-version)))]))
+                      (format "~s" (list (car planet-version) (cadr planet-version)))]))
              (cons 'description (exn->trace exn)))]
       [else #f]))
   
