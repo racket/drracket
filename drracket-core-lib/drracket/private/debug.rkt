@@ -553,14 +553,13 @@
       (define src-to-display (car srcs-to-display))
       (match-define (srcloc src line col pos _span) src-to-display)
       (define (do-icon)
-        (when file-note%
-          (when (port-writes-special? (current-error-port))
-            (define note (new file-note%))
-            (send note set-srclocs srcs-to-display)
-            (send note set-callback 
-                  (λ (snp) (open-and-highlight-in-file srcs-to-display a-viewable-stack)))
-            (write-special note (current-error-port))
-            (display #\space (current-error-port)))))
+        (when (and file-note% (port-writes-special? (current-error-port)))
+          (define note (new file-note%))
+          (send note set-srclocs srcs-to-display)
+          (send note set-callback
+                (λ (snp) (open-and-highlight-in-file srcs-to-display a-viewable-stack)))
+          (write-special note (current-error-port))
+          (display #\space (current-error-port))))
       (define (do-src)
         (cond
           [(path? src)
