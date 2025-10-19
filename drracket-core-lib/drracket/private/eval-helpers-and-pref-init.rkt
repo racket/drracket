@@ -37,8 +37,8 @@
 (define (get-init-dir path/f)
   (cond
     [path/f
-     (let-values ([(base name dir?) (split-path path/f)])
-       base)]
+     (define-values (base name dir?) (split-path path/f))
+     base]
     [else
      (find-system-path 'home-dir)]))
 
@@ -128,11 +128,11 @@
                        (if sd (list sd) null))])
         (λ (p)
           (define skip-in-paths? (file-stamp-in-paths p no-dirs))
+          (define pkg (path->pkg p #:cache path->pkg-cache))
           (define skip-pkgs?
-            (let ([pkg (path->pkg p #:cache path->pkg-cache)])
-              (and pkg
-                   (not (set-member? open-pkgs pkg))
-                   (file-stamp-in-paths p (list (pkg-directory/use-cache pkg))))))
+            (and pkg
+                 (not (set-member? open-pkgs pkg))
+                 (file-stamp-in-paths p (list (pkg-directory/use-cache pkg)))))
           (log-drracket/cm-info "~a; skip? ~a ~a thd ~a"
                                 p
                                 (and skip-in-paths? #t)
