@@ -112,14 +112,14 @@
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
         (super draw dc x y left top right bottom dx dy draw-caret)
         (when (and in-bounds? grabbed?)
-          (let ([brush (send dc get-brush)]
-                [pen (send dc get-pen)])
-            (let-values ([(w h) (get-w/h dc)])
-              (send dc set-brush (send the-brush-list find-or-create-brush "black" 'hilite))
-              (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
-              (send dc draw-rectangle x y w h)
-              (send dc set-pen pen)
-              (send dc set-brush brush)))))
+          (define brush (send dc get-brush))
+          (define pen (send dc get-pen))
+          (define-values (w h) (get-w/h dc))
+          (send dc set-brush (send the-brush-list find-or-create-brush "black" 'hilite))
+          (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
+          (send dc draw-rectangle x y w h)
+          (send dc set-pen pen)
+          (send dc set-brush brush)))
       
       (define/override (on-event dc x y editorx editory evt)
         (define-values (w h) (get-w/h dc))
@@ -139,19 +139,18 @@
            (set-clicked grabbed? in-bounds? dc)]))
       
       (define/private (invalidate dc)
-        (let ([admin (get-admin)])
-          (when admin
-            (let-values ([(w h) (get-w/h dc)])
-              (send admin needs-update this 0 0 w h)))))
+        (define admin (get-admin))
+        (when admin
+          (let-values ([(w h) (get-w/h dc)])
+            (send admin needs-update this 0 0 w h))))
       
       (define/private (get-w/h dc)
-        (let ([wb (box 0)]
-              [hb (box 0)])
-          ;; know that the snip is the same size everywhere, 
-          ;; so just use (0,0) for its position
-          (get-extent dc 0 0 wb hb #f #f #f #f)
-          (values (unbox wb)
-                  (unbox hb))))
+        (define wb (box 0))
+        (define hb (box 0))
+        ;; know that the snip is the same size everywhere,
+        ;; so just use (0,0) for its position
+        (get-extent dc 0 0 wb hb #f #f #f #f)
+        (values (unbox wb) (unbox hb)))
       
       (define/override (adjust-cursor dc x y editorx editory event)
         arrow-cursor)
@@ -188,9 +187,9 @@
       (inherit get-callback set-callback)
       (init-field str)
       (define/override (copy)
-        (let ([n (new clickable-string-snip% [str str])])
-          (send n set-callback (get-callback))
-          n))
+        (define n (new clickable-string-snip% [str str]))
+        (send n set-callback (get-callback))
+        n)
       (define/override (write f)
         (define bts (string->bytes/utf-8 str))
         (send f put (bytes-length bts) bts))
@@ -228,12 +227,12 @@
                      (define/public (set-srclocs s)
                        (set! srclocs s))
                      (define/public (get-srclocs) srclocs)
-                     (define/override (copy) 
-                       (let ([n (new note%)])
-                         (send n set-callback (get-callback))
-                         (send n set-stacks stack1 stack2)
-                         (send n set-srclocs srclocs)
-                         n))
+                     (define/override (copy)
+                       (define n (new note%))
+                       (send n set-callback (get-callback))
+                       (send n set-stacks stack1 stack2)
+                       (send n set-srclocs srclocs)
+                       n)
                      (super-make-object bitmap))])
            note%)))
   
@@ -248,10 +247,10 @@
   (define install-note% 
     (class clickable-image-snip%
       (inherit get-callback)
-      (define/override (copy) 
-        (let ([n (new install-note%)])
-          (send n set-callback (get-callback))
-          n))
+      (define/override (copy)
+        (define n (new install-note%))
+        (send n set-callback (get-callback))
+        n)
       (super-new)))
   
   ;; display-stats : (syntax -> syntax)
@@ -277,43 +276,38 @@
   ;; make-debug-eval-handler : (sexp -> value) -> sexp -> value
   ;; adds debugging information to `sexp' and calls `oe'
   (define (make-debug-eval-handler oe)
-    (let ([debug-tool-eval-handler
-           (λ (orig-exp)
-             (if (compiled-expression? (if (syntax? orig-exp)  
-                                           (syntax-e orig-exp)  
-                                           orig-exp))
-                 (oe orig-exp)
-                 (let loop ([exp (if (syntax? orig-exp)
-                                     orig-exp
-                                     (namespace-syntax-introduce
-                                      (datum->syntax #f orig-exp)))])
-                   (let ([top-e (expand-syntax-to-top-form exp)]) 
-                     (syntax-case top-e (begin) 
-                       [(begin expr ...)
-                        ;; Found a `begin', so expand/eval each contained 
-                        ;; expression one at a time 
-                        (let i-loop ([exprs (syntax->list #'(expr ...))]
-                                     [last-one (list (void))])
-                          (cond
-                            [(null? exprs) 
-                             (apply values last-one)]
-                            [else 
-                             (i-loop (cdr exprs)
-                                     (call-with-values 
-                                      (λ () 
-                                        (call-with-continuation-prompt
-                                         (λ () (loop (car exprs)))
-                                         (default-continuation-prompt-tag)
-                                         (λ args
-                                           (apply
-                                            abort-current-continuation 
-                                            (default-continuation-prompt-tag)
-                                            args))))
-                                      list))]))]
-                       [_else 
-                        ;; Not `begin', so proceed with normal expand and eval 
-                        (oe (errortrace-annotate top-e #f))])))))])
-      debug-tool-eval-handler))
+    (define (debug-tool-eval-handler orig-exp)
+      (if (compiled-expression? (if (syntax? orig-exp)
+                                    (syntax-e orig-exp)
+                                    orig-exp))
+          (oe orig-exp)
+          (let loop ([exp (if (syntax? orig-exp)
+                              orig-exp
+                              (namespace-syntax-introduce (datum->syntax #f orig-exp)))])
+            (let ([top-e (expand-syntax-to-top-form exp)])
+              (syntax-case top-e (begin)
+                [(begin
+                   expr ...)
+                 ;; Found a `begin', so expand/eval each contained
+                 ;; expression one at a time
+                 (let i-loop ([exprs (syntax->list #'(expr ...))]
+                              [last-one (list (void))])
+                   (cond
+                     [(null? exprs) (apply values last-one)]
+                     [else
+                      (i-loop (cdr exprs)
+                              (call-with-values (λ ()
+                                                  (call-with-continuation-prompt
+                                                   (λ () (loop (car exprs)))
+                                                   (default-continuation-prompt-tag)
+                                                   (λ args
+                                                     (apply abort-current-continuation
+                                                            (default-continuation-prompt-tag)
+                                                            args))))
+                                                list))]))]
+                ;; Not `begin', so proceed with normal expand and eval
+                [_else (oe (errortrace-annotate top-e #f))])))))
+    debug-tool-eval-handler)
 
   (define (make-debug-compile-handler orig)
     (make-debug-compile-handler/errortrace-annotate orig errortrace-annotate))
@@ -332,12 +326,10 @@
              (printf "  ~s\n" e)))
          exn)
        (λ ()
-         (let ([rep (drracket:rep:current-rep)])
-           (cond
-             [rep
-              (error-display-handler/stacktrace msg exn)]
-             [else 
-              (orig-error-display-handler msg exn)])))))
+         (define rep (drracket:rep:current-rep))
+         (cond
+           [rep (error-display-handler/stacktrace msg exn)]
+           [else (orig-error-display-handler msg exn)]))))
     debug-error-display-handler)
   
   ;; error-display-handler/stacktrace : string any (or/c #f viewable-stack? (listof srcloc)) -> void
@@ -435,24 +427,21 @@
   ;; =User=
   (define (print-planet-icon-to-stderr exn)
     (when (exn:fail:contract:blame? exn)
-      (let ([table (parse-gp exn
-                             (blame-positive
-                              (exn:fail:contract:blame-object exn)))])
-        (when table
-          (let ([gp-url (bug-info->ticket-url table)])
-            (when planet-note%
-              (when (port-writes-special? (current-error-port))
-                (let ([note (new planet-note%)])
-                  (send note set-callback (λ (snp) 
-                                            ;; =Kernel= =Handler=
-                                            (drracket:unit:forget-saved-bug-report table)
-                                            (send-url (url->string gp-url))))
-                  (parameterize ([current-eventspace drracket:init:system-eventspace])
-                    (queue-callback
-                     (λ ()
-                       (drracket:unit:record-saved-bug-report table))))
-                  (write-special note (current-error-port))
-                  (display #\space (current-error-port))))))))))
+      (define table (parse-gp exn (blame-positive (exn:fail:contract:blame-object exn))))
+      (when table
+        (let ([gp-url (bug-info->ticket-url table)])
+          (when planet-note%
+            (when (port-writes-special? (current-error-port))
+              (let ([note (new planet-note%)])
+                (send note set-callback
+                      (λ (snp)
+                        ;; =Kernel= =Handler=
+                        (drracket:unit:forget-saved-bug-report table)
+                        (send-url (url->string gp-url))))
+                (parameterize ([current-eventspace drracket:init:system-eventspace])
+                  (queue-callback (λ () (drracket:unit:record-saved-bug-report table))))
+                (write-special note (current-error-port))
+                (display #\space (current-error-port)))))))))
   
   
   ;; =Kernel= =User=
@@ -529,10 +518,10 @@
   
   ;; =User=
   (define (exn->trace exn)
-    (let ([sp (open-output-string)])
-      (parameterize ([current-error-port sp])
-        (drracket:init:original-error-display-handler (exn-message exn) exn))
-      (get-output-string sp)))
+    (define sp (open-output-string))
+    (parameterize ([current-error-port sp])
+      (drracket:init:original-error-display-handler (exn-message exn) exn))
+    (get-output-string sp))
   
   ;; =User=
   (define (print-bug-to-stderr msg viewable-stack1 viewable-stack2)
@@ -635,69 +624,69 @@
   ;; show-syntax-error-context : 
   ;; display the source information associated with a syntax error (if present)
   (define (show-syntax-error-context port exn)
-    (let ([error-text-style-delta (make-object style-delta%)]
-          [send-out
-           (λ (msg f) 
-             (if (port-writes-special? (current-error-port))
-                 (let loop ([msg msg])
-                   (cond
-                     [(equal? msg "") (void)]
-                     [(regexp-match-positions #rx"\n" msg)
-                      => (lambda (m)
-                           (loop (substring msg 0 (caar m)))
-                           (display "\n  " (current-error-port))
-                           (loop (substring msg (cdar m))))]
-                     [else
-                      (define snp (make-object string-snip% msg))
-                      (f snp)
-                      (write-special snp (current-error-port))]))
-                 (display msg (current-error-port))))])
-      (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
-      (define (show-one str)
-        (display " " (current-error-port))
-        (send-out str
-                  (λ (snp)
-                    (send snp set-style
-                          (send (editor:get-standard-style-list) find-or-create-style
-                                (send (editor:get-standard-style-list) find-named-style "Standard")
-                                error-text-style-delta)))))
-      (define exprs (exn:fail:syntax-exprs exn))
-      (define strs (for/list ([expr (in-list exprs)])
-                     ((error-syntax->string-handler) expr #f)))
-      (define (show-in)
-        (send-out " in:"
-                  (λ (snp)
-                    (send snp set-style
-                          (send (editor:get-standard-style-list) find-named-style
-                                (editor:get-default-color-style-name))))))
-      (cond
-        [(null? strs) (void)]
-        [(and (null? (cdr strs))
-              (not (regexp-match? #rx"\n" (car strs))))
-         (show-in)
-         (show-one (car strs))]
-        [else
-         (show-in)
-         (for-each (λ (str)
-                     (display "\n " (current-error-port))
-                     (show-one str))
-                   strs)])))
+    (define error-text-style-delta (make-object style-delta%))
+    (define (send-out msg f)
+      (if (port-writes-special? (current-error-port))
+          (let loop ([msg msg])
+            (cond
+              [(equal? msg "") (void)]
+              [(regexp-match-positions #rx"\n" msg)
+               =>
+               (lambda (m)
+                 (loop (substring msg 0 (caar m)))
+                 (display "\n  " (current-error-port))
+                 (loop (substring msg (cdar m))))]
+              [else
+               (define snp (make-object string-snip% msg))
+               (f snp)
+               (write-special snp (current-error-port))]))
+          (display msg (current-error-port))))
+    (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
+    (define (show-one str)
+      (display " " (current-error-port))
+      (send-out str
+                (λ (snp)
+                  (send snp set-style
+                        (send (editor:get-standard-style-list) find-or-create-style
+                              (send (editor:get-standard-style-list) find-named-style "Standard")
+                              error-text-style-delta)))))
+    (define exprs (exn:fail:syntax-exprs exn))
+    (define strs
+      (for/list ([expr (in-list exprs)])
+        ((error-syntax->string-handler) expr #f)))
+    (define (show-in)
+      (send-out " in:"
+                (λ (snp)
+                  (send snp set-style
+                        (send (editor:get-standard-style-list) find-named-style
+                              (editor:get-default-color-style-name))))))
+    (cond
+      [(null? strs) (void)]
+      [(and (null? (cdr strs)) (not (regexp-match? #rx"\n" (car strs))))
+       (show-in)
+       (show-one (car strs))]
+      [else
+       (show-in)
+       (for-each (λ (str)
+                   (display "\n " (current-error-port))
+                   (show-one str))
+                 strs)]))
   
   
   ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
   ;; inserts `note' and a space at the end of `rep'
   ;; also sets a clickback on the inserted `note' (but not the space).
   (define (insert/clickback rep note clickback)
-    (let ([before (send rep last-position)])
-      (send rep insert (if (string? note)
-                           note
-                           (send note copy))
-            before before)
-      (let ([after (send rep last-position)])
-        (send rep insert #\space after after)
-        (send rep set-clickback before after
-              (λ (txt start end)
-                (clickback))))))
+    (define before (send rep last-position))
+    (send rep insert
+          (if (string? note)
+              note
+              (send note copy))
+          before
+          before)
+    (define after (send rep last-position))
+    (send rep insert #\space after after)
+    (send rep set-clickback before after (λ (txt start end) (clickback))))
   
   ;; Note that this is not necessarily the same format used by `make-st-mark`
   ;; which is unspecified.
