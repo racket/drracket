@@ -591,15 +591,15 @@
            (display name (current-error-port))]))
       (define (do-line/col) (eprintf ":~a:~a" line col))
       (define (do-pos) (eprintf "::~a" pos))
+      (define rep (drracket:rep:current-rep))
       (define src-loc-in-defs/ints?
-        (let ([rep (drracket:rep:current-rep)])
-          (and rep
-               (is-a? rep drracket:rep:text<%>)
-               (let ([defs (send rep get-definitions-text)])
-                 (or (send rep port-name-matches? src)
-                     (eq? rep src)
-                     (send defs port-name-matches? src)
-                     (eq? defs src))))))
+        (and rep
+             (is-a? rep drracket:rep:text<%>)
+             (let ([defs (send rep get-definitions-text)])
+               (or (send rep port-name-matches? src)
+                   (eq? rep src)
+                   (send defs port-name-matches? src)
+                   (eq? defs src)))))
       (cond
         [(and src line col)
          (do-icon)
