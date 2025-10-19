@@ -2184,8 +2184,17 @@ If the namespace does not, they are colored the unbound color.
                   var-arrow-end-x-min
                   var-arrow-end-x-max)
              (define base-%age
-               (/ (- end-x var-arrow-end-x-min)
-                  (- var-arrow-end-x-max var-arrow-end-x-min)))
+               (cond
+                 ;; it can be that we have only a single arrow
+                 ;; and they might be directly above each other,
+                 ;; which will end up with var-arrow-end-x-max and
+                 ;; var-arrow-end-x-min equal to each other; in
+                 ;; that case we want a straight up/down arrow
+                 ;; (instead of the nan from the arithmetic below)
+                 [(= var-arrow-end-x-max var-arrow-end-x-min) 0]
+                 [else
+                  (/ (- end-x var-arrow-end-x-min)
+                     (- var-arrow-end-x-max var-arrow-end-x-min))]))
              (if (< (var-arrow-start-pos-left arrow)
                     (var-arrow-end-pos-left arrow))
                  base-%age
