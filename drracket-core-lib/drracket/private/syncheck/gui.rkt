@@ -2043,7 +2043,6 @@ If the namespace does not, they are colored the unbound color.
                 (unless (and arrows-bitmap
                              (= (send arrows-bitmap get-width) width)
                              (= (send arrows-bitmap get-height) height))
-;                  (message-box "making bitmap" (format "~s ~s" width height))
                   (set! arrows-bitmap (send canvas make-bitmap width height)))
 
                 (define bdc (make-object bitmap-dc% arrows-bitmap))
