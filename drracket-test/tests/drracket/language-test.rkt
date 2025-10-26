@@ -1812,8 +1812,7 @@ the settings above should match r5rs
                   (loop child))]
                [(is-a? gui-thing radio-box%)
                 (k gui-thing)])))]))
-    (error 'find-output-radio-box "could not find `~a' radio box"
-           label)))
+    (raise-arguments-error 'find-output-radio-box "could not find `' radio box" "label" label)))
 
 (define re:out-of-sync
   (regexp
