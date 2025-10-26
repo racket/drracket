@@ -243,11 +243,11 @@
     (common-signatures-sdp)))
 
 (define (prepare-for-test-expression)
-  (let ([drs (wait-for-drracket-frame)])
-    (clear-definitions drs)
-    (set-language #t)
-    (sleep 1) ;; this shouldn't be neccessary....
-    (do-execute drs)))
+  (define drs (wait-for-drracket-frame))
+  (clear-definitions drs)
+  (set-language #t)
+  (sleep 1) ;; this shouldn't be neccessary....
+  (do-execute drs))
 
 ;; test-setting : (-> void) string string string -> void
 ;; opens the language dialog, runs `set-setting'
@@ -262,15 +262,19 @@
   (let ([f (test:get-active-top-level-window)])
     (fw:test:button-push "OK")
     (wait-for-new-frame f))
-  (let* ([drs (test:get-active-top-level-window)]
-         [interactions (send drs get-interactions-text)])
-    (clear-definitions drs)
-    (insert-in-definitions drs expression)
-    (do-execute drs)
-    (let ([got (fetch-output/should-be-tested drs)])
-      (unless (string=? result got)
-        (eprintf "FAILED: ~s ~s ~s test\n expected: ~s\n      got: ~s\n"
-                 (language) setting-name expression result got)))))
+  (define drs (test:get-active-top-level-window))
+  (send drs get-interactions-text)
+  (clear-definitions drs)
+  (insert-in-definitions drs expression)
+  (do-execute drs)
+  (define got (fetch-output/should-be-tested drs))
+  (unless (string=? result got)
+    (eprintf "FAILED: ~s ~s ~s test\n expected: ~s\n      got: ~s\n"
+             (language)
+             setting-name
+             expression
+             result
+             got)))
 
 (define (fetch-output/should-be-tested . args)
   (regexp-replace (regexp
@@ -297,11 +301,11 @@
     ((regexp-match #rx"^Ran ([NoOneTwo0-9]+) tests?.\n([NoOneTwo0-9]+) tests? passed.\n(([NoOneTwo0-9]+) signature violations?.)?"
                           txt)
      => (lambda (match)
-          (let-values (((_ test-count-text test-passed-count-text __ signature-violations-count-text)
-                        (apply values match)))
-            (values (parse-number test-count-text)
-                    (parse-number test-passed-count-text)
-                    (parse-number signature-violations-count-text)))))
+          (define-values (_ test-count-text test-passed-count-text __ signature-violations-count-text)
+            (apply values match))
+          (values (parse-number test-count-text)
+                  (parse-number test-passed-count-text)
+                  (parse-number signature-violations-count-text))))
     ((regexp-match #rx"^This program must be tested!\n(([NoOneTwo0-9]+) signature violations?.)?" txt)
      => (lambda (match)
           (values 0 0 (parse-number (caddr match)))))
@@ -309,23 +313,25 @@
      (error 'parse-test-failure-header "bad test failure header" txt))))
 
 (define (parse-test-failures txt)
-  (let-values (((test-count test-passed-count signature-violations-count)
-                (parse-test-failure-header txt)))
-    (let ((check-failures
-           (cond
-             ((regexp-match #rx"Check failures:\n(.*)" txt)
-              => (lambda (res)
-                   (parse-check-failures (cadr res))))
-             (else '())))
-          (signature-violations
-           (cond
-             ((regexp-match #rx"Signature violations:\n(.*)" txt)
-              => (lambda (res)
-                   (parse-signature-violations (cadr res))))
-             (else '()))))
-      (values test-count test-passed-count signature-violations-count
-              check-failures
-              signature-violations))))
+  (define-values (test-count test-passed-count signature-violations-count)
+    (parse-test-failure-header txt))
+  (define check-failures
+    (cond
+      [(regexp-match #rx"Check failures:\n(.*)" txt)
+       =>
+       (lambda (res) (parse-check-failures (cadr res)))]
+      [else '()]))
+  (define signature-violations
+    (cond
+      [(regexp-match #rx"Signature violations:\n(.*)" txt)
+       =>
+       (lambda (res) (parse-signature-violations (cadr res)))]
+      [else '()]))
+  (values test-count
+          test-passed-count
+          signature-violations-count
+          check-failures
+          signature-violations))
 
 (define-struct check-expect-failure
   (actual expected line column)
@@ -431,34 +437,48 @@
                (expected got)]))]
 	 [check-failures
 	  (lambda (where signature-violations-expected check-failures-expected)
-	    (let ((text
-		   (cond
-		    ((send (send definitions-text get-tab) get-test-editor)
-		     => (lambda (test-editor)
-			  (let ((text (send test-editor get-text 0 'eof #t)))
-			    (if (string=? text "")
-				#f
-				text))))
-		    (else #f))))
-	   
-	      (cond
-	       ((and (null? signature-violations-expected)
-		     (null? check-failures-expected))
-		(when text
-		  (eprintf "FAILED: ~s ~s expected ~s to produce no check failures or signature violations:\ngot:\n~a\ninstead\n"
-			   where (language) expression text)))
-	       (text
-		(let-values (((test-count test-passed-count signature-violation-count check-failures signature-violations)
-			      (parse-test-failures text)))
-		  (when (not (equal? check-failures check-failures-expected))
-		    (eprintf "FAILED: ~s ~s expected ~s to produce check failures:\n~s\ngot:\n~s\ninstead\n"
-			     where (language) expression check-failures-expected check-failures))
-		  (when (not (equal? signature-violations signature-violations-expected))
-		    (eprintf "FAILED: ~s ~s expected ~s to produce signature violations:\n~s\ngot:\n~s\ninstead\n"
-			     where (language) expression signature-violations-expected signature-violations))))
-	       (else
-		(eprintf "expected ~a check failures and ~a signature violations but got none"
-			 (length check-failures-expected) (length signature-violations-expected))))))]
+     (define text
+       (cond
+         [(send (send definitions-text get-tab) get-test-editor)
+          =>
+          (lambda (test-editor)
+            (let ([text (send test-editor get-text 0 'eof #t)]) (if (string=? text "") #f text)))]
+         [else #f]))
+   
+     (cond
+       [(and (null? signature-violations-expected) (null? check-failures-expected))
+        (when text
+          (eprintf
+           "FAILED: ~s ~s expected ~s to produce no check failures or signature violations:\ngot:\n~a\ninstead\n"
+           where
+           (language)
+           expression
+           text))]
+       [text
+        (let-values ([(test-count test-passed-count
+                                  signature-violation-count
+                                  check-failures
+                                  signature-violations)
+                      (parse-test-failures text)])
+          (when (not (equal? check-failures check-failures-expected))
+            (eprintf "FAILED: ~s ~s expected ~s to produce check failures:\n~s\ngot:\n~s\ninstead\n"
+                     where
+                     (language)
+                     expression
+                     check-failures-expected
+                     check-failures))
+          (when (not (equal? signature-violations signature-violations-expected))
+            (eprintf
+             "FAILED: ~s ~s expected ~s to produce signature violations:\n~s\ngot:\n~s\ninstead\n"
+             where
+             (language)
+             expression
+             signature-violations-expected
+             signature-violations)))]
+       [else
+        (eprintf "expected ~a check failures and ~a signature violations but got none"
+                 (length check-failures-expected)
+                 (length signature-violations-expected))]))]
 
          [make-err-msg
           (lambda (expected)
