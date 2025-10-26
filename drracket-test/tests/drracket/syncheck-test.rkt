@@ -1813,63 +1813,62 @@
     (clear-definitions drs)
     (cond
       [(test? test)
-       (let ([pre-input (test-input test)]
-             [expected (test-expected test)]
-             [arrows (test-arrows test)]
-             [tooltips (test-tooltips test)]
-             [relative "list.rkt"]
-             [setup (test-setup test)]
-             [teardown (test-teardown test)]
-             [extra-files (test-extra-files test)]
-             [extra-info? (test-extra-info? test)])
-         (define extra-file-paths
-           (for/list ([(name contents) (in-hash extra-files)])
-             (define path (build-path save-dir name))
-             (display-to-file contents path #:mode 'text)
-             path))
-    
-         (define setup-result (setup))
-         (define input
-           (if (procedure? pre-input)
-               (pre-input setup-result)
-               pre-input))
-         (cond
-           [(dir-test? test)
-            (insert-in-definitions drs (format input (path->require-string relative)))]
-           [else (insert-in-definitions drs input)])
-         (click-check-syntax-and-check-errors drs test extra-info?)
-    
-         ;; need to check for syntax error here
-         (let ([got (get-annotated-output drs)]
-               [got-arrows (queue-callback/res (λ () (send defs syncheck:get-bindings-table)))])
-           (when extra-info?
-             (printf "got-arrows\n")
-             (pretty-print got-arrows)
-             (newline)
-    
-             (printf "'drracket:syncheck:show-arrows? ~s\n"
-                     (preferences:get 'drracket:syncheck:show-arrows?)))
-           (compare-output (cond
-                             [(dir-test? test)
-                              (map (lambda (x)
-                                     (list (if (eq? (car x) 'relative-path)
-                                               (path->require-string relative)
-                                               (car x))
-                                           (cadr x)))
-                                   expected)]
-                             [else expected])
-                           got
-                           arrows
-                           got-arrows
-                           input
+       (define pre-input (test-input test))
+       (define expected (test-expected test))
+       (define arrows (test-arrows test))
+       (define tooltips (test-tooltips test))
+       (define relative "list.rkt")
+       (define setup (test-setup test))
+       (define teardown (test-teardown test))
+       (define extra-files (test-extra-files test))
+       (define extra-info? (test-extra-info? test))
+       (define extra-file-paths
+         (for/list ([(name contents) (in-hash extra-files)])
+           (define path (build-path save-dir name))
+           (display-to-file contents path #:mode 'text)
+           path))
+       
+       (define setup-result (setup))
+       (define input
+         (if (procedure? pre-input)
+             (pre-input setup-result)
+             pre-input))
+       (cond
+         [(dir-test? test) (insert-in-definitions drs (format input (path->require-string relative)))]
+         [else (insert-in-definitions drs input)])
+       (click-check-syntax-and-check-errors drs test extra-info?)
+       
+       ;; need to check for syntax error here
+       (let ([got (get-annotated-output drs)]
+             [got-arrows (queue-callback/res (λ () (send defs syncheck:get-bindings-table)))])
+         (when extra-info?
+           (printf "got-arrows\n")
+           (pretty-print got-arrows)
+           (newline)
+       
+           (printf "'drracket:syncheck:show-arrows? ~s\n"
+                   (preferences:get 'drracket:syncheck:show-arrows?)))
+         (compare-output (cond
+                           [(dir-test? test)
+                            (map (lambda (x)
+                                   (list (if (eq? (car x) 'relative-path)
+                                             (path->require-string relative)
+                                             (car x))
+                                         (cadr x)))
+                                 expected)]
+                           [else expected])
+                         got
+                         arrows
+                         got-arrows
+                         input
+                         (test-line test)))
+       (when tooltips
+         (compare-tooltips (queue-callback/res (λ () (send defs syncheck:get-bindings-table #t)))
+                           tooltips
                            (test-line test)))
-         (when tooltips
-           (compare-tooltips (queue-callback/res (λ () (send defs syncheck:get-bindings-table #t)))
-                             tooltips
-                             (test-line test)))
-    
-         (teardown setup-result)
-         (for-each delete-directory/files extra-file-paths))]
+       
+       (teardown setup-result)
+       (for-each delete-directory/files extra-file-paths)]
       [(rename-test? test)
        (insert-in-definitions drs (rename-test-input test))
        (click-check-syntax-and-check-errors drs test #f)
