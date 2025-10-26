@@ -1983,14 +1983,13 @@
   
   (define (collapse-and-rename expected)
     (define renamed
-      (map (lambda (ent)
-             (let* ([str (car ent)]
-                    [id (cadr ent)]
-                    [matches (assoc id remappings)])
-               (if matches
-                   (list str (cadr matches))
-                   ent)))
-           expected))
+      (for/list ([ent (in-list expected)])
+        (define str (car ent))
+        (define id (cadr ent))
+        (define matches (assoc id remappings))
+        (if matches
+            (list str (cadr matches))
+            ent)))
     (let loop ([ids renamed])
       (cond
         [(null? ids) null]
