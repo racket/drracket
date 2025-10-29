@@ -412,7 +412,7 @@ If the namespace does not, they are colored the unbound color.
                      paragraph-end-position first-line-currently-drawn-specially?
                      line-end-position position-line
                      syncheck:add-docs-range syncheck:add-require-candidate get-padding
-                     get-extent get-view-size)
+                     get-extent get-view-size is-printing?)
             
             ;; arrow-records : (U #f hash[text% => arrow-record])
             ;; arrow-record = interval-map[(listof arrow-entry)]
@@ -1179,7 +1179,7 @@ If the namespace does not, they are colored the unbound color.
                     (start-arrow-draw-timer syncheck-arrow-delay)))
 
                 (define canvas (get-canvas))
-                (when (and canvas admin)
+                (when (and canvas admin (not (is-printing?)))
                   (define hb (box 0))
                   (define wb (box 0))
                   (get-extent wb #f)
