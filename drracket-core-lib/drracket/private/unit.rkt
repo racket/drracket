@@ -4722,16 +4722,25 @@
                  #t)]
               [insert-large-semicolon-letters
                (λ ()
-                 (let ([edit (get-edit-target-object)])
-                   (when edit
-                     (define language-settings (send definitions-text get-next-settings))
-                     (define-values(comment-prefix comment-character)
-                       (if language-settings
-                           (send (drracket:language-configuration:language-settings-language
-                                  language-settings)
-                                 get-comment-character)
-                           (values ";" #\;)))
-                     (insert-large-letters comment-prefix comment-character edit this))))]
+                 (define edit (get-edit-target-object))
+                 (when edit
+                   (define language-settings (send definitions-text get-next-settings))
+                   (define-values (comment-prefix comment-character)
+                     (cond
+                       [language-settings
+                        (define lang (drracket:language-configuration:language-settings-language
+                                      language-settings))
+                        (cond
+                          [(object-method-arity-includes? lang 'get-comment-character 1)
+                           (define cap-val
+                             (call-read-language (send definitions-text get-irl)
+                                                 'drracket:comment-delimiters
+                                                 '()))
+                           (send lang get-comment-character cap-val)]
+                          [else (send lang get-comment-character)])]
+                       [else
+                        (values ";" #\;)]))
+                   (insert-large-letters comment-prefix comment-character edit this)))]
               [c% (get-menu-item%)])
           
           (frame:add-snip-menu-items 

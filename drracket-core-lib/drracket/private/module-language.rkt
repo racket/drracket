@@ -544,7 +544,21 @@
           (print value port))
         (newline port))
     
-
+      (define/override (get-comment-character [comment-delimiters '()])
+        (define start+char
+          (for/or ([comment-delimiter (in-list comment-delimiters)])
+            (match comment-delimiter
+              [(list 'line start padding)
+               (define beginning (string-append start padding))
+               (define no-spaces (regexp-replace #rx"^ *" beginning ""))
+               (cond
+                 [(equal? no-spaces "") #f]
+                 [else
+                  (cons beginning (string-ref no-spaces 0))])]
+              [_ #f])))
+        (cond
+          [start+char (values (car start+char) (cdr start+char))]
+          [else (super get-comment-character)]))
       
       ;; printer settings are just ignored here.
       (define/override (create-executable setting parent program-filename)
