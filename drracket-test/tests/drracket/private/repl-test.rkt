@@ -18,7 +18,7 @@ This produces an ACK message
          mred
          framework)
 
-(provide/contract [run-test (-> (listof (or/c 'raw 'debug 'debug/profile 'misc)) any)])
+(provide (contract-out [run-test (-> (listof (or/c 'raw 'debug 'debug/profile 'misc)) any)]))
 
 (define-struct loc (line col offset))
 ;; loc = (make-loc number number number)
