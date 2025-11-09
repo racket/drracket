@@ -1088,16 +1088,15 @@ This produces an ACK message
       [(string? program) (insert-in-definitions/newlines drr-frame program)]
       [(eq? program 'fraction-sum) (setup-fraction-sum-interactions)]
       [(list? program)
-       (for-each (lambda (item)
-                   (cond
-                     [(string? item) (insert-in-definitions/newlines drr-frame item)]
-                     [(eq? item 'left)
-                      (queue-callback/res (λ ()
-                                            (send defs-text set-position
-                                                  (- (send defs-text get-start-position) 1)
-                                                  (- (send defs-text get-start-position) 1))))]
-                     [(pair? item) (apply test:menu-select item)]))
-                 program)]
+       (for ([item (in-list program)])
+         (cond
+           [(string? item) (insert-in-definitions/newlines drr-frame item)]
+           [(eq? item 'left)
+            (queue-callback/res (λ ()
+                                  (send defs-text set-position
+                                        (- (send defs-text get-start-position) 1)
+                                        (- (send defs-text get-start-position) 1))))]
+           [(pair? item) (apply test:menu-select item)]))]
       [else (void)])
   
     (do-execute drr-frame #f)
