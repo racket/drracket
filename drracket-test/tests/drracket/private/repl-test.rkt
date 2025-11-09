@@ -1193,21 +1193,21 @@ This produces an ACK message
         (test:run-one (λ () (send (send drr-frame get-break-button) command))))
       (wait-for-drr-frame-computation)
   
-      (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
-             [received-load (fetch-output drr-frame load-text-start load-text-end)])
-  
-        ;; check load text
-        (next-test)
-        (unless (cond
-                  [(string? load-answer) (string=? load-answer received-load)]
-                  [(regexp? load-answer) (regexp-match load-answer received-load)]
-                  [else #f])
-          (failure)
-          (eprintf "FAILED load test ~a for ~s\n  expected: ~s\n       got: ~s\n"
-                   short-filename
-                   program
-                   load-answer
-                   received-load))))
+      (define load-text-end (- (get-int-pos) 1)) ;; subtract one to eliminate newline
+      (define received-load (fetch-output drr-frame load-text-start load-text-end))
+      
+      ;; check load text
+      (next-test)
+      (unless (cond
+                [(string? load-answer) (string=? load-answer received-load)]
+                [(regexp? load-answer) (regexp-match load-answer received-load)]
+                [else #f])
+        (failure)
+        (eprintf "FAILED load test ~a for ~s\n  expected: ~s\n       got: ~s\n"
+                 short-filename
+                 program
+                 load-answer
+                 received-load)))
     (load-test tmp-load-short-filename (make-load-answer in-vector language-cust #f))
     (when (file-exists? tmp-load3-filename)
       (delete-file tmp-load3-filename))
