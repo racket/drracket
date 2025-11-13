@@ -2016,6 +2016,20 @@ If the namespace does not, they are colored the unbound color.
         (define pending-arrows-key #f)
         (define arrows-bitmap #f)
 
+        (define use-make-bitmap? #f)
+        (define/private (make-a-bitmap canvas w h)
+          (cond
+            [use-make-bitmap?
+             (make-bitmap w h)]
+            [else
+             (define candidate (send canvas make-bitmap w h))
+             (cond
+               [(send candidate has-alpha-channel?)
+                candidate]
+               [else
+                (set! use-make-bitmap? #t)
+                (make-bitmap w h)])]))
+
         ;; determine-the-arrows : -> (listof arrows-and-min-max-width?)
         (define/public (handle-arrow-drawing canvas dc dx dy inset-x inset-y width height
                                              max-width-for-arrow text current-arrows-key
@@ -2043,7 +2057,7 @@ If the namespace does not, they are colored the unbound color.
                 (unless (and arrows-bitmap
                              (= (send arrows-bitmap get-width) width)
                              (= (send arrows-bitmap get-height) height))
-                  (set! arrows-bitmap (send canvas make-bitmap width height)))
+                  (set! arrows-bitmap (make-a-bitmap canvas width height)))
 
                 (define bdc (make-object bitmap-dc% arrows-bitmap))
                 (send bdc erase)
