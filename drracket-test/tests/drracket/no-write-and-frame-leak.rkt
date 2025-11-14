@@ -139,13 +139,11 @@ This test checks:
           (process-container item)))))
   
   (define (record-shortcut item)
-    (when (is-a? item selectable-menu-item<%>)
-      (when (send item get-shortcut)
-        (define k (append (sort (send item get-shortcut-prefix)
-                                string<=?
-                                #:key symbol->string)
-                          (list (send item get-shortcut))))
-        (hash-update! shortcuts k (λ (v) (cons (send item get-label) v)) '()))))
+    (when (and (is-a? item selectable-menu-item<%>) (send item get-shortcut))
+      (define k
+        (append (sort (send item get-shortcut-prefix) string<=? #:key symbol->string)
+                (list (send item get-shortcut))))
+      (hash-update! shortcuts k (λ (v) (cons (send item get-label) v)) '())))
   
   (define (get-lab item)
     (cond
