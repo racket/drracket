@@ -1182,8 +1182,9 @@ If the namespace does not, they are colored the unbound color.
                 (when (and canvas admin (not (is-printing?)))
                   (define hb (box 0))
                   (define wb (box 0))
-                  (get-extent wb #f)
+                  (get-extent wb hb)
                   (define max-width-for-arrow (unbox wb))
+                  (define max-height-for-arrow (unbox hb))
                   (unless (zero? max-width-for-arrow)
                     (get-view-size wb hb)
                     (define-values (inset-x inset-y)
@@ -1194,13 +1195,13 @@ If the namespace does not, they are colored the unbound color.
                     ;; the tacked arrows will draw differently
                     (define mouse-over-current-arrows-key
                       (vector dx dy
-                              max-width-for-arrow
+                              max-width-for-arrow max-height-for-arrow
                               (hash-copy current-matching-identifiers)
                               cursor-text
                               cursor-pos))
                     (send mouse-over-arrow-drawing handle-arrow-drawing
                           canvas dc dx dy inset-x inset-y (unbox wb) (unbox hb)
-                          max-width-for-arrow
+                          max-width-for-arrow max-height-for-arrow
                           this
                           mouse-over-current-arrows-key
                           (λ () (determine-the-mouse-over-arrows)))
@@ -1209,11 +1210,11 @@ If the namespace does not, they are colored the unbound color.
                     ;; the mouse-over arrows will draw differently
                     (define tacked-over-current-arrows-key
                       (vector dx dy
-                              max-width-for-arrow
+                              max-width-for-arrow max-height-for-arrow
                               (hash-copy tacked-hash-table)))
                     (send tacked-arrow-drawing handle-arrow-drawing
                           canvas dc dx dy inset-x inset-y (unbox wb) (unbox hb)
-                          max-width-for-arrow
+                          max-width-for-arrow max-height-for-arrow
                           this
                           tacked-over-current-arrows-key
                           (λ () (determine-the-tacked-arrows))))))
@@ -2032,7 +2033,8 @@ If the namespace does not, they are colored the unbound color.
 
         ;; determine-the-arrows : -> (listof arrows-and-min-max-width?)
         (define/public (handle-arrow-drawing canvas dc dx dy inset-x inset-y width height
-                                             max-width-for-arrow text current-arrows-key
+                                             max-width-for-arrow max-height-for-arrow
+                                             text current-arrows-key
                                              determine-the-arrows)
           (cond
             [(equal? current-arrows-key bitmap-arrows-key)
@@ -2081,7 +2083,7 @@ If the namespace does not, they are colored the unbound color.
                      (define bdc (make-object bitmap-dc% arrows-bitmap))
                      (define next-state
                        (draw-the-arrows bdc (- dx inset-x) (- dy inset-y)
-                                        max-width-for-arrow
+                                        max-width-for-arrow max-height-for-arrow
                                         arrows-and-min-max-widths))
                      (send bdc set-bitmap #f)
                      (match next-state
@@ -2105,7 +2107,7 @@ If the namespace does not, they are colored the unbound color.
         ;; if the result is done, all arrows are drawn without the time budget expiring
         ;; if the result is a list, it contains the arrows that
         ;;   remain to be drawn; also, the time budget has expired
-        (define/private (draw-the-arrows dc dx dy max-width-for-arrow arrows-and-min-max-widths)
+        (define/private (draw-the-arrows dc dx dy max-width-for-arrow max-height-for-arrow arrows-and-min-max-widths)
           (define old-brush (send dc get-brush))
           (define old-pen   (send dc get-pen))
           (define old-font  (send dc get-font))
@@ -2134,7 +2136,7 @@ If the namespace does not, they are colored the unbound color.
                    (send dc set-pen (get-tail-pen))
                    (send dc set-brush (if tacked? (get-tacked-tail-brush) (get-untacked-brush)))])
             (draw-arrow2 ele
-                         max-width-for-arrow dc dx dy
+                         max-width-for-arrow max-height-for-arrow dc dx dy
                          #:x-min var-arrow-end-x-min
                          #:x-max var-arrow-end-x-max))
 
@@ -2186,7 +2188,7 @@ If the namespace does not, they are colored the unbound color.
 
     (struct arrows-and-min-max-width (arrows var-arrow-end-x-min var-arrow-end-x-max tacked?))
 
-    (define (draw-arrow2 arrow max-width-for-arrow dc dx dy
+    (define (draw-arrow2 arrow max-width-for-arrow max-height-for-arrow dc dx dy
                          #:x-min [var-arrow-end-x-min #f]
                          #:x-max [var-arrow-end-x-max #f])
       (define-values (start-x start-y end-x end-y) (get-arrow-poss arrow))
@@ -2230,9 +2232,9 @@ If the namespace does not, they are colored the unbound color.
                                    ;; just give up on the curved arrows in that case.
                                    #:%age (if (and (number? %age) (not (<= -1 %age 1))) #f %age)
                                    #:bb (list 0
-                                              #f
+                                              0
                                               max-width-for-arrow
-                                              #f))
+                                              max-height-for-arrow))
         (when (and (var-arrow? arrow) (not (var-arrow-actual? arrow)))
           (define old-font (send dc get-font))
           (send dc set-font
