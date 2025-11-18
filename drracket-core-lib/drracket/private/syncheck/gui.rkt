@@ -2225,7 +2225,10 @@ If the namespace does not, they are colored the unbound color.
             [else "leftup"]))
         (drracket:arrow:draw-arrow dc start-x start-y end-x end-y dx dy
                                    #:pen-width 2
-                                   #:%age %age
+                                   ;; with especially strange macros, the calculations above
+                                   ;; might produce numbers that are out of range, so we
+                                   ;; just give up on the curved arrows in that case.
+                                   #:%age (if (and (number? %age) (not (<= -1 %age 1))) #f %age)
                                    #:bb (list 0
                                               #f
                                               max-width-for-arrow
