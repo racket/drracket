@@ -1226,19 +1226,7 @@ If the namespace does not, they are colored the unbound color.
             (define tacked-arrow-drawing (new arrow-drawing% [who "tacked arrows"]))
             (define mouse-over-arrow-drawing (new arrow-drawing% [who "mouse-over arrows"]))
 
-            (define/private (get-var-arrow-end-x-min-and-max matching-identifiers)
-              (for/fold ([x-min #f]
-                         [x-max #f])
-                        ([(ele _) (in-hash matching-identifiers)])
-                (match-define (list end-text pos-left pos-right) ele)
-                (define-values (end-x end-y)
-                  (find-poss end-text pos-left pos-right 1/2 1/2))
-                (values (if x-min (min x-min end-x) end-x)
-                        (if x-max (max x-max end-x) end-x))))
-
             (define/private (determine-the-mouse-over-arrows)
-              (define-values (var-arrow-end-x-min var-arrow-end-x-max)
-                (get-var-arrow-end-x-min-and-max current-matching-identifiers))
               (define arrow-records-at-cursor
                 (and cursor-text cursor-pos (fetch-arrow-records cursor-text cursor-pos)))
 
@@ -1257,11 +1245,9 @@ If the namespace does not, they are colored the unbound color.
                  (λ (arr)
                    (set! arrows-to-draw (cons arr arrows-to-draw)))
                  tail-arrows arrow-records))
-              (list (arrows-and-min-max-width arrows-to-draw var-arrow-end-x-min var-arrow-end-x-max #f)))
+              (list (arrows-and-min-max-width arrows-to-draw #f)))
 
             (define/private (determine-the-tacked-arrows)
-              (define tacked-arrows-to-draw '())
-              (define arrow->matching-identifiers-hash (make-hash))
               (define table (make-hash))
 
               (for ([(arrow v) (in-hash tacked-hash-table)])
@@ -1279,9 +1265,7 @@ If the namespace does not, they are colored the unbound color.
                 (define-values (_binders make-identifiers-hash)
                   (position->matching-identifiers-hash arrow-text arrow-pos arrow-pos
                                                        #:also-look-backward-one? #f))
-                (define-values (var-arrow-end-x-min var-arrow-end-x-max)
-                  (get-var-arrow-end-x-min-and-max (make-identifiers-hash)))
-                (arrows-and-min-max-width arrows var-arrow-end-x-min var-arrow-end-x-max #t)))
+                (arrows-and-min-max-width arrows #t)))
             
             ;; for-each-tail-arrows : (tail-arrow -> void) tail-arrow -> void
             (define/private (for-each-tail-arrows f tail-arrows)
@@ -2125,7 +2109,7 @@ If the namespace does not, they are colored the unbound color.
                 (color-prefs:lookup-in-color-scheme 'drracket:syncheck:template-arrow))
           (send dc set-alpha 0.5)
 
-          (define (draw-an-arrow tacked? ele var-arrow-end-x-min var-arrow-end-x-max)
+          (define (draw-an-arrow tacked? ele)
             (cond [(var-arrow? ele)
                    (if (var-arrow-actual? ele)
                        (begin (send dc set-pen (get-var-pen))
@@ -2135,46 +2119,37 @@ If the namespace does not, they are colored the unbound color.
                   [(tail-arrow? ele)
                    (send dc set-pen (get-tail-pen))
                    (send dc set-brush (if tacked? (get-tacked-tail-brush) (get-untacked-brush)))])
-            (draw-arrow2 ele
-                         max-width-for-arrow max-height-for-arrow dc dx dy
-                         #:x-min var-arrow-end-x-min
-                         #:x-max var-arrow-end-x-max))
+            (draw-arrow2 ele max-width-for-arrow max-height-for-arrow dc dx dy))
 
           (define start-time (current-inexact-monotonic-milliseconds))
           (define timeout-in-milliseconds 15)
           (define result
             (let loop ([arrows-and-min-max-widths arrows-and-min-max-widths]
                        [arrows #f]
-                       [var-arrow-end-x-min #f]
-                       [var-arrow-end-x-max #f]
                        [tacked? #f]
                        [drew-at-least-one-arrow? #f])
               (cond
                 [(and drew-at-least-one-arrow? (>= (current-inexact-monotonic-milliseconds)
                                                    (+ start-time timeout-in-milliseconds)))
                  (if arrows
-                     (cons (arrows-and-min-max-width arrows var-arrow-end-x-min var-arrow-end-x-max tacked?)
+                     (cons (arrows-and-min-max-width arrows tacked?)
                            arrows-and-min-max-widths)
                      arrows-and-min-max-widths)]
                 [(and (not arrows) (null? arrows-and-min-max-widths))
                  "done"]
                 [(not arrows)
-                 (match-define (arrows-and-min-max-width arrows var-arrow-end-x-min var-arrow-end-x-max tacked?)
+                 (match-define (arrows-and-min-max-width arrows tacked?)
                    (car arrows-and-min-max-widths))
                  (loop (cdr arrows-and-min-max-widths)
                        arrows
-                       var-arrow-end-x-min
-                       var-arrow-end-x-max
                        tacked?
                        drew-at-least-one-arrow?)]
                 [(null? arrows)
-                 (loop arrows-and-min-max-widths #f #f #f #f drew-at-least-one-arrow?)]
+                 (loop arrows-and-min-max-widths #f #f drew-at-least-one-arrow?)]
                 [else
-                 (draw-an-arrow tacked? (car arrows) var-arrow-end-x-min var-arrow-end-x-max)
+                 (draw-an-arrow tacked? (car arrows))
                  (loop arrows-and-min-max-widths
                        (cdr arrows)
-                       var-arrow-end-x-min
-                       var-arrow-end-x-max
                        tacked?
                        #t)])))
         
@@ -2186,39 +2161,15 @@ If the namespace does not, they are colored the unbound color.
           (send dc set-alpha old-alpha)
           result)))
 
-    (struct arrows-and-min-max-width (arrows var-arrow-end-x-min var-arrow-end-x-max tacked?))
+    (struct arrows-and-min-max-width (arrows tacked?))
 
-    (define (draw-arrow2 arrow max-width-for-arrow max-height-for-arrow dc dx dy
-                         #:x-min [var-arrow-end-x-min #f]
-                         #:x-max [var-arrow-end-x-max #f])
+    (define (draw-arrow2 arrow max-width-for-arrow max-height-for-arrow dc dx dy)
       (define-values (start-x start-y end-x end-y) (get-arrow-poss arrow))
       (unless (and (= start-x end-x)
                    (= start-y end-y))
         (define %age
           (cond
-            [(and (var-arrow? arrow)
-                  var-arrow-end-x-min
-                  var-arrow-end-x-max)
-             (define base-%age
-               (cond
-                 ;; it can be that we have only a single arrow
-                 ;; and they might be directly above each other,
-                 ;; which will end up with var-arrow-end-x-max and
-                 ;; var-arrow-end-x-min equal to each other; in
-                 ;; that case we want a straight up/down arrow
-                 ;; (instead of the nan from the arithmetic below)
-                 [(= var-arrow-end-x-max var-arrow-end-x-min) 0]
-                 [else
-                  (/ (- end-x var-arrow-end-x-min)
-                     (- var-arrow-end-x-max var-arrow-end-x-min))]))
-             (if (< (var-arrow-start-pos-left arrow)
-                    (var-arrow-end-pos-left arrow))
-                 base-%age
-                 (- base-%age))]
             [(var-arrow? arrow)
-             ;; when we don't have `var-arrow-end-x-min` and `var-arrow-end-x-max`
-             ;; then this is a require arrow so we use the entire width
-             ;; to determine the curvature of the arrow
              (define base-%age (/ end-x max-width-for-arrow))
              (if (< (var-arrow-start-pos-left arrow)
                     (var-arrow-end-pos-left arrow))
