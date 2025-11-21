@@ -21,6 +21,10 @@
     (define (g x)
                x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x)
 
+  . the contour window (via the menu-shortcut keystroke "u") shrinks
+    when the widest line in the window got smaller
+
+
 ------------------------------
        Version 9.0
 ------------------------------
