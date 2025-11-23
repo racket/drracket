@@ -439,9 +439,8 @@ Will not work with the definitions text surrogate interposition that
             [(and (equal? p1 #\|)
                   (equal? (peek-char-or-special port 1) #\#))
              (get-it "|#")
-             (cond
-               [(= depth 0) (void)]
-               [else (loop (- depth 1))])]
+             (unless (= depth 0)
+               (loop (- depth 1)))]
             [(and (equal? p1 #\#)
                   (equal? (peek-char-or-special port 1) #\|))
              (get-it "#|")
