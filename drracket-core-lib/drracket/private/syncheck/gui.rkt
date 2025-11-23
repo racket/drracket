@@ -1463,11 +1463,11 @@ If the namespace does not, they are colored the unbound color.
                          end-selection))))
                   
                   (new menu-item%
-                       [label "Add Require Prefix"]
+                       [label (string-constant cs-add-require-prefix)]
                        [parent menu]
                        [callback (λ (item evt) (add-prefix-for-require text pos))])
                   (new menu-item%
-                       [label "Remove Unused Requires"]
+                       [label (string-constant cs-remove-unused-requires)]
                        [parent menu]
                        [callback (λ (item evt) (remove-unused-requires text pos))])
                   (for ([f (in-list add-menus)])
