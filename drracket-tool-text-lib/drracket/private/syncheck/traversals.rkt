@@ -704,10 +704,12 @@
        (loop (car prop))
        (loop (cdr prop))]
       [(mouse-over-tooltip-prop? prop)
-       (add-mouse-over/loc (find-source-editor (vector-ref prop 0))
-                           (vector-ref prop 1)
-                           (vector-ref prop 2)
-                           (vector-ref prop 3))])))
+       (define src (find-source-editor (vector-ref prop 0)))
+       (when src
+         (add-mouse-over/loc src
+                             (vector-ref prop 1)
+                             (vector-ref prop 2)
+                             (vector-ref prop 3)))])))
 
 ;; add-disappeared-bindings : syntax id-set integer -> void
 (define (add-disappeared-bindings stx
@@ -1208,7 +1210,7 @@
     (define source (find-source-editor binder))
     (define pos (syntax-position binder))
     (define span (syntax-span binder))
-    (when (and pos span)
+    (when (and source pos span)
       (define pos-left (sub1 pos))
       (define pos-right (+ pos-left span))
       (define connections-start
@@ -1344,14 +1346,14 @@
               [_ #f]))
           (when prefix
             (define prefix-source (find-source-editor prefix))
-            (define prefix-start (and prefix-source
-                                      (syntax-position prefix)
-                                      (- (syntax-position prefix) 1)))
-            (define prefix-end (and prefix-start
-                                    (syntax-span prefix)
-                                    (+ prefix-start (syntax-span prefix))))
-            (send defs-text syncheck:add-prefixed-require-reference req-source start end
-                  (syntax-e prefix) prefix-source prefix-start prefix-end)))))))
+            (when prefix-source
+              (define prefix-start (and (syntax-position prefix)
+                                        (- (syntax-position prefix) 1)))
+              (define prefix-end (and prefix-start
+                                      (syntax-span prefix)
+                                      (+ prefix-start (syntax-span prefix))))
+              (send defs-text syncheck:add-prefixed-require-reference req-source start end
+                    (syntax-e prefix) prefix-source prefix-start prefix-end))))))))
 
 ;; get-require-filename : sexp-or-module-path-index namespace string[directory] -> filename or #f
 ;; finds the filename corresponding to the require in stx
