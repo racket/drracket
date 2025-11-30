@@ -291,18 +291,15 @@
   (define (menu-item->prefix-string item)
     (apply
      string-append
-     (map (λ (prefix)
-            (case prefix
-              [(alt) (if (eq? (system-type) 'windows)
-                         "m:"
-                         "a:")]
-              [(cmd) "d:"]
-              [(meta) "m:"]
-              [(ctl) "c:"]
-              [(shift) "s:"]
-              [(opt option) "a:"]
-              [else (error 'menu-item->prefix-string "unknown prefix ~s\n" prefix)]))
-          (send item get-shortcut-prefix)))))
+     (for/list ([prefix (in-list (send item get-shortcut-prefix))])
+       (case prefix
+         [(alt) (if (eq? (system-type) 'windows) "m:" "a:")]
+         [(cmd) "d:"]
+         [(meta) "m:"]
+         [(ctl) "c:"]
+         [(shift) "s:"]
+         [(opt option) "a:"]
+         [else (error 'menu-item->prefix-string "unknown prefix ~s\n" prefix)])))))
 
 (require string-constants
          racket/match
