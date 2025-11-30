@@ -183,14 +183,14 @@
     (send dc set-brush "black" 'transparent)
     (draw-points points dc factor dx dy)
       
-    (let* ([head (assoc 'head points)]
-           [hx (list-ref head 1)]
-           [hy (list-ref head 2)])
-      (send dc draw-ellipse 
-            (+ dx (* factor (- hx (/ head-size 2))))
-            (+ dy (* factor (- hy (/ head-size 2))))
-            (* factor head-size)
-            (* factor head-size)))))
+    (define head (assoc 'head points))
+    (define hx (list-ref head 1))
+    (define hy (list-ref head 2))
+    (send dc draw-ellipse
+          (+ dx (* factor (- hx (/ head-size 2))))
+          (+ dy (* factor (- hy (/ head-size 2))))
+          (* factor head-size)
+          (* factor head-size))))
   
 (define (draw-points points dc factor dx dy)
   (connect 'neck 'shoulders points dc factor dx dy)
