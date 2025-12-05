@@ -1812,8 +1812,7 @@ the settings above should match r5rs
                   (loop child))]
                [(is-a? gui-thing radio-box%)
                 (k gui-thing)])))]))
-    (error 'find-output-radio-box "could not find `~a' radio box"
-           label)))
+    (raise-arguments-error 'find-output-radio-box "could not find `' radio box" "label" label)))
 
 (define re:out-of-sync
   (regexp
@@ -1933,16 +1932,22 @@ the settings above should match r5rs
 (define (test-undefined-var id #:icon+in? [icon+in? #f])
   (test-expression
    id
-   (string-append (if icon+in? "{stop-22x22.png} " "")
-                  (format "~a: this variable is not defined" id)
-                  (if icon+in? (format " in: ~a " id) ""))))
+   (format "~a~a: this variable is not defined~a"
+           (if icon+in? "{stop-22x22.png} " "")
+           id
+           (if icon+in?
+               (format " in: ~a " id)
+               ""))))
 
 (define (test-undefined-fn exp id #:icon+in? [icon+in? #f])
   (test-expression
    exp
-   (string-append (if icon+in? "{stop-22x22.png} " "")
-                  (format "~a: this function is not defined" id)
-                  (if icon+in? (format " in: ~a " id) ""))))
+   (format "~a~a: this function is not defined~a"
+           (if icon+in? "{stop-22x22.png} " "")
+           id
+           (if icon+in?
+               (format " in: ~a " id)
+               ""))))
 
 (define-syntax (go stx)
   (syntax-case stx ()
