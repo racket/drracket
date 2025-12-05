@@ -59,23 +59,19 @@
                                body)))))])))))))]
       [(_ (name type type-names strs ...) ...)
        (begin
-         (for-each
-          (λ (str-stx)
-            (when (string? (syntax->datum str-stx))
-              (raise-syntax-error 'tool-contract-language.rkt "expected type name specification"
-                                  stx
-                                  str-stx)))
-          (syntax->list (syntax (type-names ...))))
-         (for-each
-          (λ (name)
-            (unless (identifier? name)
-              (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
-          (syntax->list (syntax (name ...))))
-         (for-each
-          (λ (str)
-            (unless (string? (syntax->datum str))
-              (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))
-          (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))]))
+         (for ([str-stx (in-list (syntax->list (syntax (type-names ...))))])
+           (when (string? (syntax->datum str-stx))
+             (raise-syntax-error 'tool-contract-language.rkt
+                                 "expected type name specification"
+                                 stx
+                                 str-stx)))
+         (for ([name (in-list (syntax->list (syntax (name ...))))])
+           (unless (identifier? name)
+             (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
+         (for ([str (in-list (apply append
+                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))])
+           (unless (string? (syntax->datum str))
+             (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str))))]))
   
   (define-syntax (-#%module-begin2 stx)
     (syntax-case stx ()
@@ -116,20 +112,16 @@
                          body)))]))))))]
       [(_ (name type type-names strs ...) ...)
        (begin
-         (for-each
-          (λ (str-stx)
-            (when (string? (syntax->datum str-stx))
-              (raise-syntax-error 'tool-contract-language.rkt "expected type name specification"
-                                  stx
-                                  str-stx)))
-          (syntax->list (syntax (type-names ...))))
-         (for-each
-          (λ (name)
-            (unless (identifier? name)
-              (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
-          (syntax->list (syntax (name ...))))
-         (for-each
-          (λ (str)
-            (unless (string? (syntax->datum str))
-              (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))
-          (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))]))
+         (for ([str-stx (in-list (syntax->list (syntax (type-names ...))))])
+           (when (string? (syntax->datum str-stx))
+             (raise-syntax-error 'tool-contract-language.rkt
+                                 "expected type name specification"
+                                 stx
+                                 str-stx)))
+         (for ([name (in-list (syntax->list (syntax (name ...))))])
+           (unless (identifier? name)
+             (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
+         (for ([str (in-list (apply append
+                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))])
+           (unless (string? (syntax->datum str))
+             (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str))))]))
