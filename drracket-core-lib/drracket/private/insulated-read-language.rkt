@@ -266,8 +266,7 @@ Will not work with the definitions text surrogate interposition that
              (λ () (val text start-position limit-position direction)))))]
     [(drracket:keystrokes)
      (for/list ([pr (in-list val)])
-       (define key (list-ref pr 0))
-       (define proc (list-ref pr 1))
+       (match-define (list key proc) pr)
        (list key (procedure-rename
                   (λ (txt evt)
                     (call-in-irl-context/abort
@@ -440,9 +439,8 @@ Will not work with the definitions text surrogate interposition that
             [(and (equal? p1 #\|)
                   (equal? (peek-char-or-special port 1) #\#))
              (get-it "|#")
-             (cond
-               [(= depth 0) (void)]
-               [else (loop (- depth 1))])]
+             (unless (= depth 0)
+               (loop (- depth 1)))]
             [(and (equal? p1 #\#)
                   (equal? (peek-char-or-special port 1) #\|))
              (get-it "#|")

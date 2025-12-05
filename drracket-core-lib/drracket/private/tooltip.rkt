@@ -73,8 +73,7 @@
       (define-values (w h)
         (for/fold ([w #;#;: Nonnegative-Real 0] [h #;#;: Nonnegative-Real 0])
                   ([space+label (in-list labels)])
-          (define space (list-ref space+label 0))
-          (define label (list-ref space+label 1))
+          (match-define (list space label) space+label)
           (define-values (space-w _1 _2 _3) (send dc get-text-extent space))
           (define-values (this-w this-h _4 _5) (send dc get-text-extent label))
           (values (max (+ space-w this-w) w)
@@ -103,8 +102,7 @@
       (send dc draw-rectangle 0 0 w h)
       (for ([space+label (in-list labels)]
             [i (in-naturals)])
-        (define space (list-ref space+label 0))
-        (define label (list-ref space+label 1))
+        (match-define (list space label) space+label)
         (define-values (space-w _1 _2 _3) (send dc get-text-extent space #f 'grapheme))
         (send dc draw-text label (+ 2 space-w) (+ 2 (* i th)) 'grapheme)))
     (super-new [stretchable-width #f] [stretchable-height #f])))
@@ -116,14 +114,13 @@
     (init-field [frame-to-track #;#;: (Option (Instance Window<%>)) #f])
     (: timer (Option (Instance Timer%)))
     (define timer
-      (let ([frame-to-track frame-to-track])
-        (and frame-to-track
-             (new timer%
-                  [notify-callback
-                   (λ ()
-                     (unless (send frame-to-track is-shown?)
-                       (show #f)
-                       (send (assert timer) stop)))]))))
+      (and frame-to-track
+           (new timer%
+                [notify-callback
+                 (λ ()
+                   (unless (send frame-to-track is-shown?)
+                     (show #f)
+                     (send (assert timer) stop)))])))
     
     
     (define/override (on-subwindow-event r evt)
