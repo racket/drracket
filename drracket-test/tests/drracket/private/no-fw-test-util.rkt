@@ -105,32 +105,35 @@
   (not-on-eventspace-handler-thread
    'queue-callback/res
    #:more (λ () (format "\n  thunk: ~e" thunk)))
-  (let ([c (make-channel)])
-    (queue-callback (λ () (channel-put c (with-handlers ((exn:fail? values))
-                                           (call-with-values thunk list))))
-                    #f)
-    (define res (channel-get c))
-    (when (exn? res) (raise res))
-    (apply values res)))
+  (define c (make-channel))
+  (queue-callback (λ ()
+                    (channel-put c
+                                 (with-handlers ([exn:fail? values])
+                                   (call-with-values thunk list))))
+                  #f)
+  (define res (channel-get c))
+  (when (exn? res)
+    (raise res))
+  (apply values res))
 
 ;; poll-until : (-> alpha) number (-> alpha) -> alpha
 ;; waits until pred return a true value and returns that.
 ;; if that doesn't happen by `secs', calls fail and returns that.
-(define (poll-until pred
-                    [secs 10]
-                    [fail (lambda ()
-                            (error 'poll-until 
-                                   "timeout after ~e secs, ~e never returned a true value"
-                                   secs pred))])
-  (let ([step 1/20])
-    (let loop ([counter secs])
-      (if (<= counter 0)
-          (fail)
-          (let ([result (pred)])
-            (or result
-                (begin
-                  (sleep step)
-                  (loop (- counter step)))))))))
+(define (poll-until
+         pred
+         [secs 10]
+         [fail
+          (lambda ()
+            (error 'poll-until "timeout after ~e secs, ~e never returned a true value" secs pred))])
+  (define step 1/20)
+  (let loop ([counter secs])
+    (if (<= counter 0)
+        (fail)
+        (let ([result (pred)])
+          (or result
+              (begin
+                (sleep step)
+                (loop (- counter step))))))))
 
 (define (wait-for-events-in-frame-eventspace fr)
   (define sema (make-semaphore 0))
