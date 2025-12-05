@@ -154,10 +154,8 @@
   
 (define (normalize points)
   (define-values (min-x min-y) (get-max/min-x/y min points))
-  (map (λ (x) (list (car x) 
-                    (- (list-ref x 1) min-x)
-                    (- (list-ref x 2) min-y)))
-       points))
+  (for/list ([x (in-list points)])
+    (list (car x) (- (list-ref x 1) min-x) (- (list-ref x 2) min-y))))
   
 (define (get-max/min-x/y choose points)
   (values (apply choose
@@ -185,14 +183,14 @@
     (send dc set-brush "black" 'transparent)
     (draw-points points dc factor dx dy)
       
-    (let* ([head (assoc 'head points)]
-           [hx (list-ref head 1)]
-           [hy (list-ref head 2)])
-      (send dc draw-ellipse 
-            (+ dx (* factor (- hx (/ head-size 2))))
-            (+ dy (* factor (- hy (/ head-size 2))))
-            (* factor head-size)
-            (* factor head-size)))))
+    (define head (assoc 'head points))
+    (define hx (list-ref head 1))
+    (define hy (list-ref head 2))
+    (send dc draw-ellipse
+          (+ dx (* factor (- hx (/ head-size 2))))
+          (+ dy (* factor (- hy (/ head-size 2))))
+          (* factor head-size)
+          (* factor head-size))))
   
 (define (draw-points points dc factor dx dy)
   (connect 'neck 'shoulders points dc factor dx dy)
@@ -250,13 +248,12 @@
              (set! orig-y (list-ref orig-point 2)))]
           [(and clicked-point (send evt moving?))
            (set! points 
-                 (map (λ (x)
-                        (if (eq? (car x) clicked-point)
-                            (list (list-ref x 0)
-                                  (+ orig-x (- (send evt get-x) clicked-x))
-                                  (+ orig-y (- (send evt get-y) clicked-y)))
-                            x))
-                      points))
+                 (for/list ([x (in-list points)])
+                   (if (eq? (car x) clicked-point)
+                       (list (list-ref x 0)
+                             (+ orig-x (- (send evt get-x) clicked-x))
+                             (+ orig-y (- (send evt get-y) clicked-y)))
+                       x)))
            (refresh)
            (send csmall refresh)]
           [(send evt button-up? 'left)
