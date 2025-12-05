@@ -648,6 +648,11 @@
                   syntax?
                   exact-nonnegative-integer? exact-nonnegative-integer?
                   (real-in 0 1) (real-in 0 1))))
+(define sub-range-binding-prop?
+  (or/c (vector/c #:flat? #t
+                  exact-nonnegative-integer? exact-nonnegative-integer?)
+        (vector/c #:flat? #t
+                  (real-in 0 1) (real-in 0 1) exact-nonnegative-integer? exact-nonnegative-integer?)))
 
 (define (add-sub-range-binders stx
                                sub-identifier-binding-directives
@@ -880,13 +885,28 @@
       (define varrefs (get-ids all-varrefs binding-id))
       (when varrefs
         (for ([varref (in-list varrefs)])
-          (connect-syntaxes new-binding-id varref #t all-binders
-                            phase-level
-                            connections #f
-                            #:from-start from-start #:from-width from-span
-                            #:from-dx from-dx #:from-dy from-dy
-                            #:to-start to-start #:to-width to-span
-                            #:to-dx to-dx #:to-dy to-dy)))))
+          (define binding-prop (syntax-property varref 'sub-range-binding))
+          (define do-link
+            (cond
+              [(not (sub-range-binding-prop? binding-prop)) 0]
+              [else
+               (define-values (desired-start desired-span desired-dx desired-dy)
+                 (match binding-prop
+                   [(vector start span) (values start span .5 .5)]
+                   [(vector start span dx dy) (values start span dx dy)]))
+               (and (= desired-start to-start)
+                    (= desired-span to-span)
+                    (= desired-dx to-dx)
+                    (= desired-dy to-dy)
+                    desired-start)]))
+          (when do-link
+            (connect-syntaxes new-binding-id varref #t all-binders
+                              phase-level
+                              connections #f
+                              #:from-start from-start #:from-width from-span
+                              #:from-dx from-dx #:from-dy from-dy
+                              #:to-start (- to-start do-link) #:to-width to-span
+                              #:to-dx to-dx #:to-dy to-dy))))))
 
   (annotate-counts connections)
   (flush-index-entry-cache))

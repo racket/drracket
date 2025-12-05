@@ -569,22 +569,43 @@ plugin API. See also @racketmodname[drracket/check-syntax #:indirect].
 @subsection{Syntax Properties that Check Syntax Looks For}
 
 Check Syntax collects the values of the 
-@indexed-racket[syntax-property]s named
-@indexed-racket['disappeared-use],
-@indexed-racket['disappeared-binding],
-@indexed-racket['identifiers-as-disappeared-uses?],
-@indexed-racket['identifier-as-keyword],
-@indexed-racket['sub-range-binders], and
-@indexed-racket['mouse-over-tooltips] and uses them to add
+@racket[syntax-property]s named
+@racket['disappeared-use],
+@racket['disappeared-binding],
+@racket['original-for-check-syntax],
+@racket['identifiers-as-disappeared-uses?],
+@racket['identifier-as-keyword],
+@racket['sub-range-binders],
+@indexed-racket['sub-range-binding], and
+@racket['mouse-over-tooltips] and uses them to add
 control which arrows are added to the program text. These properties are
 intended for use when a macro discards or manufactures identifiers that,
 from the programmers perspective, should be binding each other, or when
 there are identifiers that are intended to be used more in the spirit of keywords,
 and thus should be ignored.
 
-For example, here is program with a macro that discards its arguments, but
-adds properties to the result syntax object so that the two occurrences of @racket[_a]
-are treated as a binding/bound pair by Check Syntax.
+@itemlist[
+ @item{
+Check Syntax draws arrows only between identifiers that are
+@racket[free-identifier=?]. They must be
+@racket[syntax-original?] or have the
+@racket[syntax-property]
+@indexed-racket['original-for-check-syntax] set to
+@racket[#t]. See also
+@racket[current-recorded-disappeared-uses].
+ }
+ @item{The properties
+  @indexed-racket['disappeared-use],
+  @indexed-racket['disappeared-binding], and
+  allow macro authors to inform Check Syntax that
+  an identifier (or what appears to be an identifier
+  to the programmer) does not appear in the output
+  of the macro, but should still have binding arrows.
+
+  For example, here is program with a macro that discards its
+  arguments, but adds properties to the result syntax object
+  so that the two occurrences of @racket[_a] are treated as a
+  binding/bound pair by Check Syntax.
 
 @racketblock[
   (define-syntax (m stx)
@@ -599,15 +620,7 @@ are treated as a binding/bound pair by Check Syntax.
 
   (m a a)]
 
-Check Syntax draws arrows only between identifiers that are
-@racket[free-identifier=?]. They must be
-@racket[syntax-original?] or have the
-@racket[syntax-property]
-@indexed-racket['original-for-check-syntax] set to
-@racket[#t]. See also
-@racket[current-recorded-disappeared-uses].
-
-Another approach for situations where identifiers are discarded by a
+  Another approach for situations where identifiers are discarded by a
 macro is to introduce a @racket[let] expression that doesn't contribute
 to the result of the computation, but does signal to Check Syntax that
 there are some arrows to draw. For example, Check Syntax is unable to
@@ -694,16 +707,19 @@ side and then used at the use side:
 (depth-of my-sexp b)
 (depth-of my-sexp c)
 }
-
+}
+  @item{
 For each syntax object that appears in the fully expanded
 program, DrRacket traverses it looking for identifiers and
 connecting them to likely binding occurrences. When it finds
 such identifiers it draws an arrow with a large question
 mark near the head of the arrow. But, if the syntax object
-has the property @racket['identifiers-as-disappeared-uses?],
+has the property @indexed-racket['identifiers-as-disappeared-uses?],
 then the arrows are the normal arrow color.
+}
 
-The value of the @racket['sub-range-binders] property is expected
+  @item{
+The value of the @indexed-racket['sub-range-binders] property is expected
 to be a tree of @racket[cons] pairs (in any configuration) whose leaves
 are either ignored or are vectors with either of these shapes:
 @racketblock[(or/c (vector/c identifier? natural? natural?
@@ -787,9 +803,26 @@ After putting this code in the DrRacket window, mouse over the words ``big'' and
 on @racket[_big] in the center of the identifiers; the @racket[.5 0] and the
 @racket[.5 1] in the second vector put the arrows at the top and bottom
 center for @racket[_generator].
-
-
-The value of the @racket['mouse-over-tooltips] property is expected to be 
+}
+  @item{
+  The @indexed-racket['sub-range-binding] property is expected
+      to match the contract
+      @racketblock[(or/c (vector/c natural? natural?)
+                         (vector/c natural? natural?
+                                   (real-in 0 1) (real-in 0 1)))]
+      and, if it is attached to an identifier then Check Syntax will draw
+      only one of the arrows that @racket['sub-range-binding] would otherwise
+      indicate should be drawn. Specifically, if the identifier matches the
+      subrange binder (e.g, it is @racket[big-generator] in the previous example)
+      and the @racket['sub-range-binding] property were attached with the vector
+      containing the number 4 (for the start) and 9 (for the span) then Check Syntax
+      will draw only an arrow to the @tt{generator} portion of the identifier.
+      Additionally, the arrow will go to the first 9 characters of the reference,
+      according to its source location.
+ }
+  
+@item{
+The value of the @indexed-racket['mouse-over-tooltips] property is expected to be
 to be a tree of @racket[cons] pairs (in any configuration) whose leaves
 are either ignored or are vectors of the shape
 @racketblock[(vector/c syntax?
@@ -823,11 +856,14 @@ For example, here's a macro that shows the span of itself in a tooltip on mouseo
                (syntax-span stx))))]))
 
 (char-span (+ 1 2))}
+}
 
+@item{
 If the syntax property @racket['identifier-as-keyword] is any value
 except @racket[#f] and appears on an identifier, then Check Syntax
 ignores the identifier, not drawing any arrows to it.
-
+}
+]
 @history[#:changed "1.3" @list{
           Looks for @racket['sub-range-binders]
           on binding identifiers (not just in expression positions).}
