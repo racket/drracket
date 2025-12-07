@@ -1396,9 +1396,7 @@
          (show-status val)
          (loop)]
         [(connect)
-         (define name-original (list-ref val 0))
-         (define path-key (list-ref val 1))
-         (define require-depth (list-ref val 2))
+         (match-define (list name-original path-key require-depth) val)
          (send pasteboard add-connection name-original path-key require-depth)
          (loop)])))
   (send pasteboard end-adding-connections)

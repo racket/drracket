@@ -89,12 +89,9 @@
    (λ (bug-reports)
      (define ids (map saved-report-id bug-reports))
      (define new-id
-       (let loop ([i 0])
-         (cond
-           [(member i ids)
-            (loop (+ i 1))]
-           [else 
-            i])))
+       (for/first ([i (in-naturals 0)]
+                   #:unless (member i ids))
+         i))
      (set! ans (blank-bug-form new-id))
      (cons ans bug-reports)))
   ans)
