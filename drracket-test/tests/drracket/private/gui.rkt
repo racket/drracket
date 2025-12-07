@@ -100,11 +100,11 @@
              window label class))
     (let loop ([window window])
       (cond
-        [(and (or (not class)
-                  (is-a? window class))
-              (let ([win-label (and (is-a? window window<%>)
-                                    (send window get-label))])
-                (equal? label win-label)))
+        [(cond
+           [(or (not class) (is-a? window class))
+            (define win-label (and (is-a? window window<%>) (send window get-label)))
+            (equal? label win-label)]
+           [else #f])
          (list window)]
         [(is-a? window area-container<%>) (apply append (map loop (send window get-children)))]
         [else '()])))
