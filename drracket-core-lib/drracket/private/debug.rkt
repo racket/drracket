@@ -214,7 +214,7 @@
   (define get-editions :get-editions)
   
   ;; make-note% : string -> (union class #f)
-  (define (make-note% filename bitmap)
+  (define (make-note% filename bitmap [str #f])
     (and (send bitmap ok?)
          (letrec ([note%
                    (class* clickable-image-snip% (srclocs-special<%>)
@@ -234,11 +234,19 @@
                          (send n set-stacks stack1 stack2)
                          (send n set-srclocs srclocs)
                          n))
+                     (define/override (get-text offset num flattened?)
+                       (cond
+                         [str
+                          (define end (+ offset num))
+                          (if (and (= offset 0) (= end (string-length str)))
+                              str
+                              (substring str (max offset 0) (min end (string-length str))))]
+                         [else (super get-text offset num flattened?)]))
                      (super-make-object bitmap))])
            note%)))
   
   (define file-note%
-    (make-note% "stop-22x22.png" (compiled-bitmap (stop-sign-icon #:color halt-icon-color))))
+    (make-note% "stop-22x22.png" (compiled-bitmap (stop-sign-icon #:color halt-icon-color)) "🛑"))
   (define bug-note%
     (make-note% "stop-multi.png" (compiled-bitmap (stop-signs-icon #:color halt-icon-color))))
   
