@@ -122,40 +122,36 @@
   ;; build-ht : stx -> hash-table
   ;; the resulting hash-table maps from the each sub-object's to its syntax.
   (define (syntax-object->datum/ht stx)
-    (let ([ht (make-hasheq)])
-      (values (let loop ([stx stx])
-                (let ([obj (syntax-e stx)])
-                  (cond
-                    [(list? obj) 
-                     (let ([res (map loop obj)])
-                       (hash-set! ht res stx)
-                       res)]
-                    [(pair? obj) 
-                     (let ([res (cons (loop (car obj))
-                                      (loop (cdr obj)))])
-                       (hash-set! ht res stx)
-                       res)]
-                    [(vector? obj) 
-                     (let ([res (list->vector (map loop (vector->list obj)))])
-                       (hash-set! ht res stx)
-                       res)]
-                    [else 
-                     (let ([res (syntax->datum stx)])
-                       (hash-set! ht res stx)
-                       res)])))
-              ht)))
+    (define ht (make-hasheq))
+    (values (let loop ([stx stx])
+              (let ([obj (syntax-e stx)])
+                (cond
+                  [(list? obj)
+                   (let ([res (map loop obj)])
+                     (hash-set! ht res stx)
+                     res)]
+                  [(pair? obj)
+                   (let ([res (cons (loop (car obj)) (loop (cdr obj)))])
+                     (hash-set! ht res stx)
+                     res)]
+                  [(vector? obj)
+                   (let ([res (list->vector (map loop (vector->list obj)))])
+                     (hash-set! ht res stx)
+                     res)]
+                  [else
+                   (let ([res (syntax->datum stx)])
+                     (hash-set! ht res stx)
+                     res)])))
+            ht))
   
   ;; make-text-port : text -> port
   ;; builds a port from a text object.  
   (define (make-text-port text)
-    (let-values ([(in out) (make-pipe)])
-      (thread
-       (λ ()
-         (let loop ()
-           (let ([c (read-char in)])
-             (unless (eof-object? c)
-               (send text insert (string c)
-                     (send text last-position)
-                     (send text last-position))
-               (loop))))))
-      out))
+    (define-values (in out) (make-pipe))
+    (thread (λ ()
+              (let loop ()
+                (let ([c (read-char in)])
+                  (unless (eof-object? c)
+                    (send text insert (string c) (send text last-position) (send text last-position))
+                    (loop))))))
+    out)
