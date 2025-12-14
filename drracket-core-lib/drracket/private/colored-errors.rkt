@@ -47,15 +47,16 @@
 ;; of additional source locations. These additional location will also be highlighted in the code,
 ;; even though they do not correspond to any section of the text of the error message.
 (struct colored-error-message (fragments additional-highlights) #:transparent)
-(provide/contract [struct colored-error-message
-                          ([fragments (listof msg-fragment?)]
-                           [additional-highlights additional-highlights/c])]
-                  [struct msg-fragment:str ([str string?])]
-                  [struct msg-fragment:v ([v any/c])]
-                  [struct colored-msg-fragment ([locs srcloc-syntax/c]
-                                                [frags (listof (or/c msg-fragment:str? msg-fragment:v?))]
-                                                [important boolean?]
-                                                [color color/c])])
+(provide (contract-out (struct colored-error-message
+                               ([fragments (listof msg-fragment?)] [additional-highlights
+                                                                    additional-highlights/c]))
+                       (struct msg-fragment:str ([str string?]))
+                       (struct msg-fragment:v ([v any/c]))
+                       (struct colored-msg-fragment
+                               ([locs srcloc-syntax/c]
+                                [frags (listof (or/c msg-fragment:str? msg-fragment:v?))]
+                                [important boolean?]
+                                [color color/c]))))
 
 ;; prop:exn:colored-message : The property of exceptions that contain colored-message information.
 ;;     The property's value is a function that when given an exception, returns the colored-error-message.
@@ -72,7 +73,7 @@
 ;; get-error-message/color : When given an exception, if that exception contains coloring information,
 ;;    returns it, otherwise, returns a colored-error-message that capture the information provided by
 ;;    by field message and the srclocs property (if any) of the exception.
-(provide/contract [get-error-message/color (exn? . -> . colored-error-message?)])
+(provide (contract-out [get-error-message/color (exn? . -> . colored-error-message?)]))
 (define (get-error-message/color exn)
   (cond [(exn:colored-message? exn) ((exn:colored-message-accessor exn) exn)]
         [(exn:srclocs? exn)
@@ -81,11 +82,13 @@
         [else
          (colored-error-message (list (msg-fragment:str (exn-message exn))) empty)]))
 
-(provide/contract [get-error-colored-srclocs (exn? . -> . (listof (list/c srcloc-syntax/c color/c)))])
+(provide (contract-out [get-error-colored-srclocs
+                        (exn? . -> . (listof (list/c srcloc-syntax/c color/c)))]))
 (define (get-error-colored-srclocs exn)
   (get-message-colored-srclocs (get-error-message/color exn)))
 
-(provide/contract [get-message-colored-srclocs (colored-error-message? . -> . (listof (list/c srcloc-syntax/c color/c)))])
+(provide (contract-out [get-message-colored-srclocs
+                        (colored-error-message? . -> . (listof (list/c srcloc-syntax/c color/c)))]))
 (define (get-message-colored-srclocs msg)
   (define (promote srcloc) (if (list? srcloc) srcloc (list srcloc #f)))
   (map promote
@@ -190,7 +193,7 @@
 
 (define colored-format/c (([fmt string?]) (#:additional-highlights [additional-highlights additional-highlights/c]) #:rest [_ any/c]
                                                    . ->i . [_ colored-error-message?]))
-(provide/contract [colored-format colored-format/c])
+(provide (contract-out [colored-format colored-format/c]))
 
 ;; colored-format : Takes a format string and a number of arguments, and produces a string where each
 ;;                  format marker has been replaced by their corresponding argument. This function support 
@@ -279,7 +282,7 @@
 ;;                              The message and srcloc fields of the exception are populated from the information 
 ;;                              in the fmt. additional-highlights specifies srclocs that should be highlighted, in addition
 ;;                              to the highlights used to explicate the correspondance between the text and the piece of codes.
-(provide/contract [raise-colored-syntax-error colored-format/c])
+(provide (contract-out [raise-colored-syntax-error colored-format/c]))
 (define (raise-colored-syntax-error fmt #:additional-highlights [additional-highlights empty] . args)
   (define formatted (apply colored-format fmt #:additional-highlights additional-highlights args))
   (raise (exn:fail:colored:syntax (uncolor-message formatted)
