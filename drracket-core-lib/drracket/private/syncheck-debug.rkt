@@ -50,7 +50,8 @@
   
     (define ranges
       (sort (apply append (hash-map range-ht (λ (k vs) (map (λ (v) (cons k v)) vs))))
-            (λ (x y) (<= (- (car (cdr x)) (cdr (cdr x))) (- (car (cdr y)) (cdr (cdr y)))))))
+            (λ (x y) (<= (- (car (cdr x)) (cdr (cdr x)))
+                         (- (car (cdr y)) (cdr (cdr y)))))))
   
     (define (show-info stx)
       (fprintf
