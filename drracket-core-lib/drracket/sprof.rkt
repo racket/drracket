@@ -16,9 +16,9 @@
               (sleep pause-time)
               (define new-traces
                 (map (λ (t) (continuation-mark-set->context (continuation-marks t))) (get-threads)))
-              (for ([trace (in-list new-traces)])
-                (for ([line (in-list trace)])
-                  (hash-set! traces-table line (cons trace (hash-ref traces-table line '())))))
+              (for* ([trace (in-list new-traces)]
+                     [line (in-list trace)])
+                (hash-set! traces-table line (cons trace (hash-ref traces-table line '()))))
               (cond
                 [(zero? i)
                  (update-gui traces-table)
