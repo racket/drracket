@@ -168,12 +168,12 @@
   (check-arg "~|" args 1)
   (define-values (sub rest-args)
     (let loop ([fragments fragments] [args (rest args)])
-      (if (empty? fragments)
-          (values empty args)
-          (let ()
-            (define-values (f rest-args) (colored-format:str-or-v (first fragments) args))
-            (define-values (rest-fs rest-rest-args) (loop (rest fragments) rest-args))
-            (values (cons f rest-fs) rest-rest-args)))))
+      (cond
+        [(empty? fragments) (values empty args)]
+        [else
+         (define-values (f rest-args) (colored-format:str-or-v (first fragments) args))
+         (define-values (rest-fs rest-rest-args) (loop (rest fragments) rest-args))
+         (values (cons f rest-fs) rest-rest-args)])))
   (define the-arg (first args))
   (match the-arg
     [(list loc imp col other ..1)
