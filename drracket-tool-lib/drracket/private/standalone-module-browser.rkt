@@ -1192,7 +1192,7 @@
       (define snip-width 0)
       (define snip-height 0)
       
-      (define/override (get-extent dc x y wb hb descent space lspace rspace)
+      (define/override (get-extent dc x y [wb #f] [hb #f] [descent #f] [space #f] [lspace #f] [rspace #f])
         (cond
           [(equal? (name->label) "")
            (set! snip-width 15)
