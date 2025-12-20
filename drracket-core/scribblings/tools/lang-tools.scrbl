@@ -1,6 +1,7 @@
 #lang scribble/doc
 @(require "common.rkt"
-          (for-label syntax-color/color-textoid))
+          (for-label syntax-color/color-textoid
+                     help/search))
 
 @title[#:tag "lang-languages-customization"]{
  Tool support for @tt{#lang}-based Languages
@@ -56,6 +57,7 @@ arguments. Other tools may use only a subset.
          @item{@language-info-ref[drracket:submit-predicate]}
          @item{@language-info-ref[drracket:toolbar-buttons]}
          @item{@language-info-ref[drracket:define-popup]}
+         @item{@language-info-ref[documentation-language-family]}
          @item{@language-info-ref[definitions-text-surrogate]}]
 
 @section{Syntax Coloring}
@@ -428,7 +430,8 @@ reading instructions about where to type their programs but might not
 have internalized this particular bit of DrRacket terminology.
 }
 
-@section{Opting Out of Standard Toolbar Buttons}
+@section{Toolbar Buttons}
+@subsection{Opting Out of Standard Toolbar Buttons}
 
 @language-info-def[drracket:opt-out-toolbar-buttons]{
 
@@ -450,7 +453,7 @@ Plugins may add more opt-out buttons via
 @racket[drracket:module-language-tools:add-opt-out-toolbar-button].
 }
 
-@section{Opting In to Language-Specific Toolbar Buttons}
+@subsection{Opting In to Language-Specific Toolbar Buttons}
 
 @language-info-def[drracket:opt-in-toolbar-buttons]{
 
@@ -463,7 +466,7 @@ languages to opt in to buttons that are not enabled by default.
  @history[#:added "1.6"]
 }
 
-@section{Adding New Toolbar Buttons}
+@subsection{Adding New Toolbar Buttons}
 
 @language-info-def[drracket:toolbar-buttons]{
 
@@ -574,6 +577,54 @@ find a prefix and extract the subsequent name:
  @racket[drracket:language:register-capability] using @racket['drscheme:define-popup].
 
  @history[#:added "1.14"]
+}
+
+@section[#:tag "sec:documentation-language-family"]{Documentation Language Family}
+
+@language-info-def[documentation-language-family]{
+
+ When a language's @racket[_get-info] procedure (accessed via @racket[read-language])
+ responds to the @racket['documentation-language-family]
+ key, the information it provides is used to find documentation
+ for the @tech[#:doc '(lib "scribblings/raco/raco.scrbl")]{language family}
+ that the language is a part of. The response to that key should be a
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{hash
+  table} with certain known keys, such that those keys have to
+ have specific kinds of values attached to them, but is
+ allowed to have extra keys that are unconstrained (for
+ better forwards compatibility). This is the contract:
+
+ @racketblock[
+ (hash/dc
+  [key symbol?]
+  [val (key)
+   (case key
+     [(doc-language-name) string?]
+     [(doc-path) path-string?]
+     [(doc-query) (hash/c symbol? string? #:immutable #t)]
+     [else any/c])]
+  #:immutable #t)
+ ]
+
+DrRacket uses the contents of this hash in three ways:
+ @itemlist[
+ @item{
+   When typing “f1” (or right clicking) to search for
+   documentation in DrRacket, DrRacket calls
+   @racket[perform-search] and @racket[send-main-page] to
+   summon browser-based documentation. If
+   hash contains the @racket['doc-query] key, then the value
+   associated with that key is supplied as the
+   @racket[#:query-table] argument.}
+ @item{If the hash maps the
+   @racket['doc-language-name] to a string, then DrRacket uses that
+   string in the first menu item in the @onscreen{Help} menu
+   item, replacing the word “Racket” with the string in the hash.}
+ @item{ When selecting that menu item, DrRacket visits the web
+   page named by the @racket['doc-path] key. Specifically,
+   DrRacket passes @racket['doc-path] as the @racket[#:sub]
+   argument to @racket[send-main-page].
+   }]
 }
 
 @section[#:tag "sec:definitions-text-surrogate"]{Definitions Text Surrogate}

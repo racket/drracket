@@ -52,7 +52,7 @@ TODO
           [prefix drracket:language-configuration: drracket:language-configuration/internal^]
           [prefix drracket:language: drracket:language/int^]
           [prefix drracket:app: drracket:app^]
-          [prefix drracket:frame: drracket:frame^]
+          [prefix drracket:frame: drracket:frame/int^]
           [prefix drracket:unit: drracket:unit^]
           [prefix drracket:text: drracket:text^]
           [prefix drracket:help-desk: drracket:help-desk^]
@@ -185,6 +185,14 @@ TODO
      "search-help-desk"
      (λ (frame)
        (define obj (send frame get-focus-object))
+       (define irl
+         (cond
+           [(is-a? frame drracket:unit:frame%)
+            (send (send (send frame get-current-tab) get-defs) get-irl)]
+           [else
+            (drracket:frame:try-to-find-an-irl)]))
+       (define-values (query-table sub)
+         (drracket:frame:try-to-find-a-query-table-and-sub irl))
        (cond
          [(is-a? obj text%)
           (define start (send obj get-start-position))
@@ -194,7 +202,7 @@ TODO
                           (send obj get-text start end)))
           (cond
             [(or (not str) (equal? "" str))
-             (drracket:help-desk:help-desk)]
+             (drracket:help-desk:help-desk #:query-table query-table #:sub sub)]
             [else
              (let* ([l (send obj get-canvas)]
                     [l (and l (send l get-top-level-window))]
@@ -208,9 +216,12 @@ TODO
                                 'drscheme:help-context-term))]
                     [name (and l (send l get-language-name))])
                (drracket:help-desk:help-desk
-                str (and ctxt (list ctxt name)) frame))])]
+                str (and ctxt (list ctxt name)) frame
+                #:query-table query-table
+                #:sub sub))])]
          [else
-          (drracket:help-desk:help-desk)])))
+          (drracket:help-desk:help-desk #:query-table query-table
+                                        #:sub sub)])))
     
     ;; keep this in case people use it in their keymaps
     (add-drs-function "execute"  (λ (frame) (send frame execute-callback)))

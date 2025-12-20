@@ -496,9 +496,11 @@ brings the corresponding window to the front.
 
 @itemize[
 
- @item{@defmenuitem{Help Desk} Opens the Help Desk. This is the clearing 
- house for all documentation about DrRacket and its language.}
- 
+ @item{@defmenuitem{Documentation} Opens the main
+  documentation page. This is the clearing house for all
+  documentation about the language family of the programming
+  language in the definitions window.}
+
  @item{@defmenuitem{About DrRacket...} Shows the credits for DrRacket.}
 
  @item{@defmenuitem{Check for Updates...} Checks to see if a new version

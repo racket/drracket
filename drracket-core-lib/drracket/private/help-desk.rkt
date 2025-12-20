@@ -148,6 +148,11 @@
      '(default=1)))
   (equal? choice 1))
 
-(define (help-desk [key #f] [context #f] [parent #f])
+(define (help-desk [key #f] [context #f] [parent #f]
+                   #:sub [sub #f]
+                   #:query-table [query-table (hash)])
   (when key (maybe-try-to-materialize-docs parent))
-  (if key (perform-search key context) (send-main-page)))
+  (if key
+      (perform-search key context #:query-table query-table)
+      (send-main-page #:query-table query-table
+                      #:sub (or sub "index.html"))))

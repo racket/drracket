@@ -30,7 +30,7 @@
                ["racket-index" #:version "1.2"]
                "sandbox-lib"
                ["scribble-lib" #:version "1.11"]
-               ["string-constants-lib" #:version "1.53"]
+               ["string-constants-lib" #:version "1.54"]
                ["syntax-color-lib" #:version "1.4"]
                "simple-tree-text-markup-lib"
                "typed-racket-lib"

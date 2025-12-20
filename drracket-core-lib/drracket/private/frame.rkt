@@ -321,6 +321,8 @@
          mrlib/terminal
          browser/external
          (submod "." install-pkg)
+         "local-member-names.rkt"
+         "insulated-read-language.rkt"
          drracket/get-module-path)
 (provide frame@)
 (define-unit frame@  
@@ -356,8 +358,7 @@
             (super on-subwindow-char receiver event)))
       
       (inherit get-edit-target-window get-edit-target-object get-menu-bar)
-      
-            
+
       (define/private (can-show-keybindings?)
         (define edit-object (get-edit-target-object))
         (and edit-object
@@ -375,7 +376,10 @@
             (bell)))
       
       (define/override (help-menu:before-about help-menu)
-        (make-help-desk-menu-item help-menu))
+        (make-help-desk-menu-item help-menu
+                                  (λ ()
+                                    (and (is-a? this drracket:unit:frame<%>)
+                                         (send (send (send this get-current-tab) get-defs) get-irl)))))
       
       (define/override (help-menu:about-callback item evt) (drracket:app:about-drscheme))
       (define/override (help-menu:about-string) (string-constant about-drscheme))
@@ -757,18 +761,35 @@
               (when (exit:user-oks-exit)
                 (exit:exit))
               #t))))
-    (make-help-desk-menu-item help-menu)
+    (make-help-desk-menu-item help-menu (λ () (try-to-find-an-irl)))
     (drracket-help-menu:after-about help-menu #f))
   
-  (define (make-help-desk-menu-item help-menu)
-    (define (docs-menu-item label)
-      (new menu-item%
-           [label label]
-           [parent help-menu]
-           [callback (λ (item evt) (help:help-desk) #t)]))
-    (docs-menu-item (string-constant racket-documentation))
-    (new separator-menu-item% [parent help-menu])
-    (docs-menu-item (string-constant help-desk)))
+  (define (make-help-desk-menu-item help-menu maybe-get-irl)
+    (define (get-menu-item-label)
+      (define irl (maybe-get-irl))
+      (define default-lang-name "Racket")
+      (define lang-name
+        (cond
+          [irl
+           (define ht
+             (call-read-language irl
+                                 'documentation-language-family
+                                 (hash)))
+           (hash-ref ht 'doc-language-name default-lang-name)]
+          [else default-lang-name]))
+      (format (string-constant x-documentation) lang-name))
+    (new menu-item%
+         [label (get-menu-item-label)]
+         [parent help-menu]
+         [demand-callback
+          (λ (menu-item)
+            (send menu-item set-label (get-menu-item-label)))]
+         [callback (λ (item evt)
+                     (define irl (maybe-get-irl))
+                     (define ht (call-read-language irl 'documentation-language-family (hash)))
+                     (help:help-desk #:sub (hash-ref ht 'doc-path "index.html")
+                                     #:query-table (hash-ref ht 'doc-query (hash)))
+                     #t)]))
 
   (define (drracket-help-menu:after-about menu dlg-parent)
     (drracket:app:add-important-urls-to-help-menu menu '())
@@ -788,7 +809,29 @@
               [(1) (send-url "https://lists.racket-lang.org/")]
               [(2) (send-url "https://github.com/racket/racket/issues/new/choose")]))])
     (add-menu-path-item menu)
-    (drracket:app:add-language-items-to-help-menu menu)))
+    (drracket:app:add-language-items-to-help-menu menu))
+
+  ;; this should be called when we're not in the context of a specific frame, but
+  ;; want an IRL. It'll look for a recently used frame and get that one's IRL (if any)
+  (define (try-to-find-an-irl)
+    (define drr-frame
+      (for/or ([frame (in-list (cons (send (group:get-the-frame-group) get-active-frame)
+                                     (send (group:get-the-frame-group) get-frames)))])
+        (and (is-a? frame drracket:unit:frame%)
+             frame)))
+    (and drr-frame
+         (send (send (send drr-frame get-current-tab) get-defs) get-irl)))
+
+  ;; (or/c #f irl) -> (values hash string)
+  (define (try-to-find-a-query-table-and-sub irl)
+    (define ht
+      (if irl
+          (call-read-language irl
+                              'documentation-language-family
+                              (hash))
+          (hash)))
+    (values (hash-ref ht 'doc-query (hash))
+            (hash-ref ht 'doc-path "index.html"))))
 
 
 (require (submod "." add-racket-to-path)

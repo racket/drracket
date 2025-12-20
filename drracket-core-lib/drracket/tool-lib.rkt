@@ -43,7 +43,8 @@ all of the names in the tools library, for use defining keybindings
                              mzlib/pconvert
                              syntax/toplevel
                              drracket/tool-lib
-                             string-constants)))
+                             string-constants
+                             help/search)))
 
 ;; these two declarations produce all of the struct names
 ;; but with "drscheme" in front instead of drracket
@@ -931,15 +932,18 @@ all of the names in the tools library, for use defining keybindings
   (->* ()
        ((or/c #f string?)
         (or/c #f string? (list/c string? string?))
-        (or/c (is-a?/c frame%) (is-a?/c dialog%) #f))
+        (or/c (is-a?/c frame%) (is-a?/c dialog%) #f)
+        #:sub string?)
        any)
   (()
    ((search-key #f)
     (search-context #f)
-    (parent #f)))
+    (parent #f)
+    (sub "index.html")))
   @{if @racket[search-key] is a string, performs a search in the docs with
  @racket[search-key] and @racket[search-context].
- Otherwise, calls @racket[send-main-page] with no arguments.
+ Otherwise, calls @racket[send-main-page] with @racket[sub] as the
+@racket[#:sub] keyword argument.
 
  The search may involve asking the user a question, in which case the
  dialog with the question uses @racket[parent] as its parent.

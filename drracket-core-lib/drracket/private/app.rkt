@@ -10,10 +10,11 @@
          "../acks.rkt"
          "local-member-names.rkt"
          "frame-icon.rkt"
+         "insulated-read-language.rkt"
          pict/snip pict)
 
 (import [prefix drracket:unit: drracket:unit^]
-        [prefix drracket:frame: drracket:frame^]
+        [prefix drracket:frame: drracket:frame/int^]
         [prefix drracket:language-configuration: drracket:language-configuration/internal^]
         [prefix help-desk: drracket:help-desk^]
         [prefix drracket:tools: drracket:tools^])
@@ -244,7 +245,12 @@
   (let* ([docs-button (new button%
                            [label (string-constant help-desk)]
                            [parent button-panel]
-                           [callback (λ (x y) (help-desk:help-desk))])])
+                           [callback (λ (x y)
+                                       (define-values (query-table sub)
+                                         (drracket:frame:try-to-find-a-query-table-and-sub
+                                          (drracket:frame:try-to-find-an-irl)))
+                                       (help-desk:help-desk #:query-table query-table
+                                                            #:sub sub))])])
     (send docs-button focus))
   (send button-panel stretchable-height #f)
   (send button-panel set-alignment 'center 'center)

@@ -107,7 +107,7 @@
 (define-unit unit@
   (import [prefix help-desk: drracket:help-desk^]
           [prefix drracket:app: drracket:app^]
-          [prefix drracket:frame: drracket:frame^]
+          [prefix drracket:frame: drracket:frame/int^]
           [prefix drracket:text: drracket:text^]
           [prefix drracket:rep: drracket:rep/int^]
           [prefix drracket:language-configuration: drracket:language-configuration/internal^]
@@ -148,7 +148,6 @@
                     (unless added?
                       (set! added? #t)
                       (new separator-menu-item% [parent menu]))))])
-           
            (add-search-help-desk-menu-item text menu
                                            (let-values ([(x y)
                                                          (send text dc-location-to-editor-location
@@ -197,6 +196,12 @@
            (void))))))
   
   (define (add-search-help-desk-menu-item text menu position [add-sep void])
+    (define irl (cond
+                  [(is-a? text drracket:rep:text%)
+                   (send (send text get-definitions-text) get-irl)]
+                  [(is-a? text (get-definitions-text%))
+                   (send text get-irl)]
+                  [else (drracket:frame:try-to-find-an-irl)]))
     (let* ([end (send text get-end-position)]
            [start (send text get-start-position)])
       (unless (= 0 (send text last-position))
@@ -227,7 +232,12 @@
                      str
                      (string-append short-str "...")))
                 menu
-                (λ x (help-desk:help-desk str (list ctxt name))))
+                (λ x
+                  (define-values (query-table sub)
+                    (drracket:frame:try-to-find-a-query-table-and-sub irl))
+                  (help-desk:help-desk str (list ctxt name)
+                                          #:query-table query-table
+                                          #:sub sub)))
               (void)))))))
   
   (define (filename->kind fn)

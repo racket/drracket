@@ -245,6 +245,16 @@
                                                (-> read-only-text/c exact-integer?
                                                    string?)
                                                string?)))))]
+    [(documentation-language-family)
+     (hash/dc
+      [key symbol?]
+      [val (key)
+           (case key
+             [(doc-language-name) string?]
+             [(doc-path) path-string?]
+             [(doc-query) (hash/c symbol? string? #:immutable #t)]
+             [else any/c])]
+      #:immutable #t)]
     [else
      (error 'key->contract "unknown key")]))
 

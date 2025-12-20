@@ -264,7 +264,9 @@
 (define-signature drracket:frame/int^ extends drracket:frame^
   (create-root-menubar
    add-keybindings-item
-   planet-spec?))
+   planet-spec?
+   try-to-find-an-irl
+   try-to-find-a-query-table-and-sub))
 
 (define-signature drracket:program-cm^
   (frame%))

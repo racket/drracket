@@ -24,12 +24,12 @@
                "scheme-lib"
                ["snip-lib" #:version "1.2"]
                ["string-constants-lib" #:version "1.51"]
+               ["scribble-lib" #:version "1.60"]
                "tex-table"))
 
 (define build-deps '("gui-doc"
                      "net-doc"
-                     "racket-index"
-                     "scribble-lib"))
+                     "racket-index"))
 
 ;; implies drracket-tool-lib so that others dependencies don't break
 ;; (redex, in particular, used to depend on drracket but it really

@@ -46,7 +46,8 @@ Will not work with the definitions text surrogate interposition that
         'drracket:paren-matches
         'drracket:quote-matches
         'drracket:comment-delimiters
-        'drracket:define-popup))
+        'drracket:define-popup
+        'documentation-language-family))
 
 (provide
  (contract-out
