@@ -59,12 +59,12 @@
                                body)))))])))))))]
       [(_ (name type type-names strs ...) ...)
        (begin
-         (for ([str-stx (in-list (syntax->list (syntax (type-names ...))))])
-           (when (string? (syntax->datum str-stx))
-             (raise-syntax-error 'tool-contract-language.rkt
-                                 "expected type name specification"
-                                 stx
-                                 str-stx)))
+         (for ([str-stx (in-list (syntax->list (syntax (type-names ...))))]
+               #:when (string? (syntax->datum str-stx)))
+           (raise-syntax-error 'tool-contract-language.rkt
+                               "expected type name specification"
+                               stx
+                               str-stx))
          (for ([name (in-list (syntax->list (syntax (name ...))))])
            (unless (identifier? name)
              (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
@@ -112,12 +112,12 @@
                          body)))]))))))]
       [(_ (name type type-names strs ...) ...)
        (begin
-         (for ([str-stx (in-list (syntax->list (syntax (type-names ...))))])
-           (when (string? (syntax->datum str-stx))
-             (raise-syntax-error 'tool-contract-language.rkt
-                                 "expected type name specification"
-                                 stx
-                                 str-stx)))
+         (for ([str-stx (in-list (syntax->list (syntax (type-names ...))))]
+               #:when (string? (syntax->datum str-stx)))
+           (raise-syntax-error 'tool-contract-language.rkt
+                               "expected type name specification"
+                               stx
+                               str-stx))
          (for ([name (in-list (syntax->list (syntax (name ...))))])
            (unless (identifier? name)
              (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
