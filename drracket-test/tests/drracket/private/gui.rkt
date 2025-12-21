@@ -17,30 +17,17 @@
       (cond
         [(= i (string-length string1)) (only-whitespace? string2 j)]
         [(= j (string-length string2)) (only-whitespace? string1 i)]
-        [else (let ([c1 (string-ref string1 i)]
-                    [c2 (string-ref string2 j)])
-                (cond
-                  [in-whitespace?
-                   (cond
-                     [(whitespace? c1)
-                      (loop (+ i 1)
-                            j
-                            #t)]
-                     [(whitespace? c2)
-                      (loop i
-                            (+ j 1)
-                            #t)]
-                     [else (loop i j #f)])]
-                  [(and (whitespace? c1)
-                        (whitespace? c2))
-                   (loop (+ i 1)
-                         (+ j 1)
-                         #t)]
-                  [(char=? c1 c2)
-                   (loop (+ i 1)
-                         (+ j 1)
-                         #f)]
-                  [else #f]))])))
+        [else (define c1 (string-ref string1 i))
+              (define c2 (string-ref string2 j))
+              (cond
+                [in-whitespace?
+                 (cond
+                   [(whitespace? c1) (loop (+ i 1) j #t)]
+                   [(whitespace? c2) (loop i (+ j 1) #t)]
+                   [else (loop i j #f)])]
+                [(and (whitespace? c1) (whitespace? c2)) (loop (+ i 1) (+ j 1) #t)]
+                [(char=? c1 c2) (loop (+ i 1) (+ j 1) #f)]
+                [else #f])])))
   
   ;; whitespace? : char -> boolean
   ;; deteremines if `c' is whitespace
@@ -113,11 +100,11 @@
              window label class))
     (let loop ([window window])
       (cond
-        [(and (or (not class)
-                  (is-a? window class))
-              (let ([win-label (and (is-a? window window<%>)
-                                    (send window get-label))])
-                (equal? label win-label)))
+        [(cond
+           [(or (not class) (is-a? window class))
+            (define win-label (and (is-a? window window<%>) (send window get-label)))
+            (equal? label win-label)]
+           [else #f])
          (list window)]
         [(is-a? window area-container<%>) (apply append (map loop (send window get-children)))]
         [else '()])))
