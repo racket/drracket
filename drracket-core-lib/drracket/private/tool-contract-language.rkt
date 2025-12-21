@@ -65,13 +65,13 @@
                                "expected type name specification"
                                stx
                                str-stx))
-         (for ([name (in-list (syntax->list (syntax (name ...))))])
-           (unless (identifier? name)
-             (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
+         (for ([name (in-list (syntax->list (syntax (name ...))))]
+               #:unless (identifier? name))
+           (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name))
          (for ([str (in-list (apply append
-                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))])
-           (unless (string? (syntax->datum str))
-             (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str))))]))
+                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))]
+               #:unless (string? (syntax->datum str)))
+           (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))]))
   
   (define-syntax (-#%module-begin2 stx)
     (syntax-case stx ()
@@ -118,10 +118,10 @@
                                "expected type name specification"
                                stx
                                str-stx))
-         (for ([name (in-list (syntax->list (syntax (name ...))))])
-           (unless (identifier? name)
-             (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name)))
+         (for ([name (in-list (syntax->list (syntax (name ...))))]
+               #:unless (identifier? name))
+           (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name))
          (for ([str (in-list (apply append
-                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))])
-           (unless (string? (syntax->datum str))
-             (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str))))]))
+                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))]
+               #:unless (string? (syntax->datum str)))
+           (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))]))
