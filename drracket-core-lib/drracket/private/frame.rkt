@@ -414,12 +414,10 @@
       
       (define/override (file-menu:between-print-and-close menu)
         (super file-menu:between-print-and-close menu)
-        (instantiate menu-item% ()
-          (label (string-constant mfs-multi-file-search-menu-item))
-          (parent menu)
-          (callback
-           (λ (_1 _2)
-             (drracket:multi-file-search:multi-file-search))))
+        (new menu-item%
+             (label (string-constant mfs-multi-file-search-menu-item))
+             (parent menu)
+             (callback (λ (_1 _2) (drracket:multi-file-search:multi-file-search))))
         (new separator-menu-item% (parent menu)))
       
       (define/override (edit-menu:between-find-and-preferences menu)
