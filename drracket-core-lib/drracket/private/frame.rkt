@@ -334,12 +334,11 @@
     (mixin (frame:standard-menus<%>) (drracket:frame:basics<%>)
       
       (define/override (on-subwindow-focus win on?)
-        (when the-keybindings-frame
-          (when on? 
-            (send the-keybindings-frame set-bindings
-                  (if (can-show-keybindings?)
-                      (get-keybindings-to-show)
-                      '())))))
+        (when (and the-keybindings-frame on?)
+          (send the-keybindings-frame set-bindings
+                (if (can-show-keybindings?)
+                    (get-keybindings-to-show)
+                    '()))))
       
       (define/override (on-subwindow-char receiver event)
         (define user-key? (send (keymap:get-user)
