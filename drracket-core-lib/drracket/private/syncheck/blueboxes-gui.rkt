@@ -35,7 +35,7 @@
 
 (define corner-radius 48)
 (define bow-blue-box-color (make-object color% 232 240 252))
-(define (get-blue-box-color) (if (preferences:get 'framework:white-on-black?)
+(define (get-blue-box-color) (if (color-prefs:white-on-black-color-scheme?)
                                  (send the-color-database find-color "navy") ;; MidnightBlue
                                  bow-blue-box-color))
 (define bow-var-color (make-object color% 68 68 68))
@@ -49,7 +49,7 @@
 (define box-gradient-stop-color-wob (make-object color% 8 8 8))
 (define (make-blue-box-gradient-pen x y w h)
   (define stops (list (list 0 (get-blue-box-color))
-                      (list 1 (if (preferences:get 'framework:white-on-black?)
+                      (list 1 (if (color-prefs:white-on-black-color-scheme?)
                                   box-gradient-stop-color-wob
                                   box-gradient-stop-color-bow))))
   (make-object brush% "black" 'solid #f
@@ -885,7 +885,7 @@
         pi (* pi #e1.5))
  
   (send dc set-brush
-        (if (preferences:get 'framework:white-on-black?)
+        (if (color-prefs:white-on-black-color-scheme?)
             "black"
             "white")
         'solid)
@@ -938,7 +938,7 @@
     (define-values (read-more-w read-more-h read-more-d read-more-a)
       (send dc get-text-extent sc-read-more... (get-read-more-underline-font sl)))
     (send dc set-text-foreground
-          (if (preferences:get 'framework:white-on-black?)
+          (if (color-prefs:white-on-black-color-scheme?)
               "lightblue"
               "darkblue"))
     (send dc draw-text 
@@ -970,7 +970,7 @@
       (send dc get-text-extent (list-ref strs 0) label-font 'grapheme))
     
     (send dc set-text-foreground
-          (if (preferences:get 'framework:white-on-black?)
+          (if (color-prefs:white-on-black-color-scheme?)
               wob-var-color
               bow-var-color))
     (for/fold ([y (if label-overlap? 

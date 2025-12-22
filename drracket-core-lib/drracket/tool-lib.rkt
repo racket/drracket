@@ -872,8 +872,7 @@ all of the names in the tools library, for use defining keybindings
   @{Returns the background color used to highlight errors in the definitions window
     (and other places, possibly). See also @racket[drracket:debug:get-error-color-name].
     
-    The result depends on the @racket['framework:white-on-black?] preference
-    setting.})
+    The result depends on the result of @racket[(color-prefs:white-on-black-color-scheme?)].})
 
  (proc-doc
   drracket:debug:get-error-color-name

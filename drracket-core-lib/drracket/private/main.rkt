@@ -25,7 +25,8 @@
          net/url
          racket/place
          racket/future
-         mrlib/syntax-browser)
+         mrlib/syntax-browser
+         mrlib/panel-wob)
 
 (import [prefix drracket:app: drracket:app^]
         [prefix drracket:unit: drracket:unit^]
@@ -754,19 +755,25 @@
           (if wob? wob-color bow-color))
     (send sd set-delta-background bkg-color)
     (send st set-delta sd))
-  (set-the-color (preferences:get 'framework:white-on-black?)
+  (set-the-color (color-prefs:white-on-black-color-scheme?)
                  (color-prefs:lookup-in-color-scheme
                   'framework:basic-canvas-background))
   (preferences:add-callback
-   'framework:white-on-black?
-   (λ (name b) (set-the-color b
-                              (color-prefs:lookup-in-color-scheme
-                               'framework:basic-canvas-background))))
+   'framework:white-on-black-mode?
+   (λ (name v)
+     (set-the-color (match v
+                      ['platform (white-on-black-panel-scheme?)]
+                      [#t #t]
+                      [#f #f])
+                    (color-prefs:lookup-in-color-scheme
+                     'framework:basic-canvas-background))))
   (color-prefs:register-color-scheme-entry-change-callback
    'framework:basic-canvas-background
-   (λ (bkg-color) (set-the-color (preferences:get 'framework:white-on-black?)
-                             bkg-color))))
-
+   (λ (bkg-color) (set-the-color (color-prefs:white-on-black-color-scheme?)
+                                 bkg-color))))
+;; these should probably be using the usual framework machinery to
+;; adjust to various colorschemes, in particular using the style list
+;; and related things the way that the colors in the colorer do.
 (add-and-monitor-render-syntax-style render-syntax-subtitle-color-style-name
                                      "navy"
                                      "CornflowerBlue")

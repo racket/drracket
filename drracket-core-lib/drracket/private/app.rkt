@@ -1,6 +1,7 @@
 #lang racket/unit
 
 (require racket/class
+         racket/match
          string-constants
          racket/gui/base
          framework
@@ -11,7 +12,8 @@
          "local-member-names.rkt"
          "frame-icon.rkt"
          "insulated-read-language.rkt"
-         pict/snip pict)
+         pict/snip pict
+         mrlib/panel-wob)
 
 (import [prefix drracket:unit: drracket:unit^]
         [prefix drracket:frame: drracket:frame/int^]
@@ -95,7 +97,7 @@
      (send dc set-scale mb-scale-factor mb-scale-factor)
      (send dc set-smoothing 'smoothed)
      (send dc set-pen "black" 1 'transparent)
-     (when (preferences:get 'framework:white-on-black?)
+     (when (color-prefs:white-on-black-color-scheme?)
        (define old-clip (send dc get-clipping-region))
        (define rgn (new region% [dc dc]))
        (define pen (send dc get-pen))
@@ -159,7 +161,7 @@
           usual-style))
   (send clickback-style set-delta
         (gui-utils:get-clickback-delta
-         (preferences:get 'framework:white-on-black?)))
+         (color-prefs:white-on-black-color-scheme?)))
 
   (define (insert/clickback str clickback)
     (send e change-style clickback-style)
@@ -268,10 +270,14 @@
     (send sl end-style-change-sequence))
   (define remove-callback
     (preferences:add-callback
-     'framework:white-on-black?
+     'framework:white-on-black-mode?
      (λ (p v)
-       (update-wob v))))
-  (update-wob (preferences:get 'framework:white-on-black?))
+       (update-wob
+        (match v
+          ['platform (white-on-black-panel-scheme?)]
+          [#t #t]
+          [#f #f])))))
+  (update-wob (color-prefs:white-on-black-color-scheme?))
   (set! remove-callback-defined? #t)
 
   (send* e

@@ -1187,6 +1187,8 @@
                     (when checked?
                       (send item check #t))
                     (loop (cdr defns))))))))
+
+      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
       
       (super-new (label "(define ...)") ;; this default is quickly changed
                  [string-constant-untitled (string-constant untitled)]
@@ -1690,7 +1692,7 @@
           (define admin (send logger-gui-text get-admin))
           (define canvas (send logger-gui-text get-canvas))
           (define (adjust-color start)
-            (when (white-on-black-panel-scheme?)
+            (when (color-prefs:white-on-black-color-scheme?)
               (define sd (make-object style-delta%))
               (send sd set-delta-foreground "white")
               (send logger-gui-text change-style
@@ -5457,7 +5459,7 @@
         (send sdb set-size-add (send normal-control-font get-point-size))
         (send sdb set-size-in-pixels-off #t)
         (send sdb set-weight-on 'bold)
-        (when (white-on-black-panel-scheme?)
+        (when (color-prefs:white-on-black-color-scheme?)
           (send sdb set-delta-foreground "white"))
         (define sd (make-object style-delta%))
         (send sd copy sdb)
@@ -5555,10 +5557,10 @@
         (send txt change-style sd 0 (send txt last-position))))
 
     (send clear-sd set-delta-background
-          (if (white-on-black-panel-scheme?) "black" "white"))
+          (if (color-prefs:white-on-black-color-scheme?) "black" "white"))
     (send yellow-sd set-delta-background "yellow")
     (send black-foreground-sd set-delta-foreground
-          (if (white-on-black-panel-scheme?) "white" "black"))
+          (if (color-prefs:white-on-black-color-scheme?) "white" "black"))
     (send gray-foreground-sd set-delta-foreground "gray")
     (send d set-alignment 'left 'center)
     (send bp set-alignment 'right 'center)
@@ -5661,6 +5663,8 @@
              [callback 
               (λ (x y)
                 (send frame choose-language-callback))]))
+
+      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
       
       (super-new [label ""]
                  [font small-control-font]
@@ -5879,6 +5883,7 @@
                                      (send this get-top-level-window))])
           (when file
             (handler:edit-file file))))
+      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
       (super-new 
        [string-constant-untitled (string-constant untitled)]
        [string-constant-no-full-name-since-not-saved 

@@ -348,7 +348,7 @@ TODO
     error-text-style-delta)
   
   (define (click-delta)
-    (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?)))  
+    (gui-utils:get-clickback-delta (color-prefs:white-on-black-color-scheme?)))
 
   (define (get-warning-style-delta)
     (define warning-style-delta (make-object style-delta% 'change-bold))

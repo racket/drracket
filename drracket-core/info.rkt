@@ -14,7 +14,7 @@
                      "errortrace-doc"
                      "errortrace-lib"
                      "gui-doc"
-                     "gui-lib"
+                     ["gui-lib" #:version "1.79"]
                      "net-doc"
                      "pconvert-doc"
                      "pconvert-lib"

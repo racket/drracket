@@ -684,7 +684,7 @@
                  (define/override (on-paint)
                    (define dc (get-dc))
                    (send dc set-font normal-control-font)
-                   (when (white-on-black-panel-scheme?)
+                   (when (color-prefs:white-on-black-color-scheme?)
                      (send dc set-text-foreground "white"))
                    (send dc draw-text "..." 0 0))
                  (define/override (on-event evt)
@@ -951,7 +951,7 @@
                         (when second-number
                           (send item set-second-number second-number))
                         (send text insert position)
-                        (when (white-on-black-panel-scheme?)
+                        (when (color-prefs:white-on-black-color-scheme?)
                           (send text change-style wob-style-delta
                                 0 (send text last-position)))
                         (when delta
@@ -988,7 +988,7 @@
                                     (send editor insert position)
                                     (send editor change-style small-size-delta pos (+ pos 1))
                                     (send editor change-style
-                                          (if (white-on-black-panel-scheme?)
+                                          (if (color-prefs:white-on-black-color-scheme?)
                                               wob-section-style-delta
                                               bow-section-style-delta)
                                           (+ pos 1) (send editor last-position)))
@@ -1005,7 +1005,7 @@
                                   (send new-list open)
                                   (define editor (send new-list get-editor))
                                   (send editor insert position)
-                                  (when (white-on-black-panel-scheme?)
+                                  (when (color-prefs:white-on-black-color-scheme?)
                                     (send editor change-style wob-style-delta
                                           0 (send editor last-position)))
                                   (hash-set! ht (string->symbol position) x)
@@ -1383,7 +1383,7 @@
                  (send (send t get-style-list) basic-style)
                  before (send t last-position))])
         (send t change-style size-sd before (send t last-position))
-        (when (white-on-black-panel-scheme?)
+        (when (color-prefs:white-on-black-color-scheme?)
           (send t change-style wob-style-delta before (send t last-position))))
       (when (send normal-control-font get-size-in-pixels)
         (send size-sd set-size-in-pixels-on #t))
@@ -2249,7 +2249,7 @@
         (let ([list (editor:get-standard-style-list)]
               [green-style-delta (make-object style-delta% 'change-family 'default)])
           (send green-style-delta set-delta-foreground
-                (if (preferences:get 'framework:white-on-black?)
+                (if (color-prefs:white-on-black-color-scheme?)
                     (make-object color% 170 151 240)
                     "DarkViolet"))
           (send green-style-delta set-delta 'change-italic)
@@ -2305,7 +2305,7 @@
           
           (send txt insert words)
           (send txt change-style
-                (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+                (gui-utils:get-clickback-delta (color-prefs:white-on-black-color-scheme?))
                 0
                 (send txt last-position))))
       
@@ -2392,7 +2392,7 @@
              (parent racketeer-panel) 
              (label (string-constant use-language-in-source))
              (color (send the-color-database find-color
-                          (if (white-on-black-panel-scheme?)
+                          (if (color-prefs:white-on-black-color-scheme?)
                               "deepskyblue"
                               "blue")))
              (callback (λ () (change-current-lang-to
@@ -2462,7 +2462,7 @@
                (define old-tf (send dc get-text-foreground))
                (send dc set-text-foreground
                      (or color
-                         (if (white-on-black-panel-scheme?)
+                         (if (color-prefs:white-on-black-color-scheme?)
                              (send the-color-database find-color "lightgray")
                              (send the-color-database find-color "black"))))
                (send dc set-font font)
@@ -2502,7 +2502,7 @@
              (parent panel2) 
              (label lang-name)
              (color (send the-color-database find-color
-                          (if (white-on-black-panel-scheme?)
+                          (if (color-prefs:white-on-black-color-scheme?)
                               "deepskyblue"
                               "blue")))
              (callback (λ () (change-current-lang-to lang)))

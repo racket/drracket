@@ -739,6 +739,7 @@
                     [parent dynamic-panel]))
          (set! run-submodules-choice 
                (new (class name-message%
+                      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
                       (define/override (fill-popup menu reset)
                         (for ([item (in-list (preferences:get 'drracket:submodules-to-choose-from))]
                               [x (in-naturals)])
@@ -1538,7 +1539,7 @@
               (send dc set-brush "red" 'solid)
               (send dc set-pen "red" 1 'transparent)
               (send dc set-alpha 
-                    (if (preferences:get 'framework:white-on-black?)
+                    (if (color-prefs:white-on-black-color-scheme?)
                         .5
                         .25))
               
@@ -2050,7 +2051,7 @@
       (define/override (on-paint)
         (define dc (get-dc))
         (define-values (cw ch) (get-client-size))
-        (send dc set-text-foreground (if (white-on-black-panel-scheme?)
+        (send dc set-text-foreground (if (color-prefs:white-on-black-color-scheme?)
                                          (if err? "pink" "white")
                                          (if err? "firebrick" "black")))
         (define-values (tot-th gap-space) (height/gap-space dc))
@@ -2680,7 +2681,7 @@
               (when (rectangles-intersect?
                      left top right bottom
                      tx ty (+ tx tw) (+ ty th))
-                (send dc set-text-foreground (if (white-on-black-panel-scheme?) "white" "black"))
+                (send dc set-text-foreground (if (color-prefs:white-on-black-color-scheme?) "white" "black"))
                 (send dc set-alpha (* fade-amount .5))
                 (send dc draw-text id (+ dx tx) (+ dy ty) 'grapheme)
                 (send dc set-alpha α)

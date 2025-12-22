@@ -1022,7 +1022,7 @@ If the namespace does not, they are colored the unbound color.
                   ;; preference so we don't have to have the preference set up
                   ;; in the other place when running check syntax in online mode.
                   (define color 
-                    (if (preferences:get 'framework:white-on-black?)
+                    (if (color-prefs:white-on-black-color-scheme?)
                         (cond
                           [(equal? raw-color "palegreen") "darkgreen"]
                           [else raw-color])
@@ -2098,7 +2098,7 @@ If the namespace does not, they are colored the unbound color.
           (define old-text-foreground (send dc get-text-foreground))
           (define old-text-mode (send dc get-text-mode))
           (define old-alpha (send dc get-alpha))
-          (define white-on-black? (preferences:get 'framework:white-on-black?))
+          (define white-on-black? (color-prefs:white-on-black-color-scheme?))
           (send dc set-font
                 (send the-font-list find-or-create-font
                       (send old-font get-point-size)

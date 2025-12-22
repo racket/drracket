@@ -865,7 +865,7 @@
         (send text insert (string-constant more-stack-frames))
         (define hyper-end (send text last-position))
         (send text change-style (gui-utils:get-clickback-delta
-                                 (preferences:get 'framework:white-on-black?))
+                                 (color-prefs:white-on-black-color-scheme?))
               hyper-start hyper-end)
         (send text set-clickback
               hyper-start hyper-end
@@ -924,7 +924,7 @@
     (send text insert " ")
     (change-regular-style text start-pos end-pos)
     (send text change-style 
-          (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+          (gui-utils:get-clickback-delta (color-prefs:white-on-black-color-scheme?))
           start-pos 
           end-pos)
     (send text set-clickback
@@ -2168,7 +2168,7 @@
                 (cond
                   [(string? expr-src)
                    (send src-loc-editor change-style
-                         (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+                         (gui-utils:get-clickback-delta (color-prefs:white-on-black-color-scheme?))
                          before after)
                    (let ([after (send src-loc-editor last-position)])
                      (send src-loc-editor set-clickback 
@@ -2177,7 +2177,7 @@
                              (open-file-and-goto-position expr-src (syntax-position expr)))))]
                   [(is-a? expr-src editor:basic<%>)
                    (send src-loc-editor change-style
-                         (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+                         (gui-utils:get-clickback-delta (color-prefs:white-on-black-color-scheme?))
                          before after)
                    (send src-loc-editor set-clickback
                          before after

@@ -6,8 +6,8 @@
 (require/typed racket/gui/base
                [get-label-background-color
                 (-> (Instance Color%))])
-(require/typed mrlib/panel-wob
-               [white-on-black-panel-scheme?
+(require/typed framework/main
+               [color-prefs:white-on-black-color-scheme?
                 (-> Boolean)])
 (provide insert-large-letters)
 
@@ -221,7 +221,7 @@
       (define bm* bm)
       (cond
         [bm*
-         (when (white-on-black-panel-scheme?)
+         (when (color-prefs:white-on-black-color-scheme?)
            (invert-bm bm*))
          (min-width (send bm* get-width))
          (min-height (send bm* get-height))]
