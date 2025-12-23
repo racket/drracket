@@ -1520,7 +1520,7 @@
             (send admin resized this #t)))
         (define/override (get-text [start 0] [end 'eof] [flattened? #f] [force-cr? #f])
           "")
-        (define/override (get-extent dc x y wb hb db ab lb sp)
+        (define/override (get-extent dc x y [wb #f] [hb #f] [db #f] [ab #f] [lb #f] [sp #f])
           (super get-extent dc x y wb hb db ab lb sp)
           (when (box? wb) (set-box! wb width)))
         (super-new)
