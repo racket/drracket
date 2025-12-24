@@ -149,10 +149,12 @@
   (equal? choice 1))
 
 (define (help-desk [key #f] [context #f] [parent #f]
-                   #:sub [sub #f]
-                   #:query-table [query-table (hash)])
+                   #:language-family [language-family #f])
   (when key (maybe-try-to-materialize-docs parent))
-  (if key
-      (perform-search key context #:query-table query-table)
-      (send-main-page #:query-table query-table
-                      #:sub (or sub "index.html"))))
+  (cond
+    [key
+     (perform-search key context #:language-family language-family)]
+    [language-family
+     (send-language-family-page language-family)]
+    [else
+     (send-main-page)]))

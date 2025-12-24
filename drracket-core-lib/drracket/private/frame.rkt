@@ -771,11 +771,9 @@
       (define lang-name
         (cond
           [irl
-           (define ht
-             (call-read-language irl
-                                 'documentation-language-family
-                                 (hash)))
-           (hash-ref ht 'doc-language-name default-lang-name)]
+           (call-read-language irl
+                               'documentation-language-family
+                               "Racket")]
           [else default-lang-name]))
       (format (string-constant x-documentation) lang-name))
     (new menu-item%
@@ -786,9 +784,8 @@
             (send menu-item set-label (get-menu-item-label)))]
          [callback (λ (item evt)
                      (define irl (maybe-get-irl))
-                     (define ht (call-read-language irl 'documentation-language-family (hash)))
-                     (help:help-desk #:sub (hash-ref ht 'doc-path "index.html")
-                                     #:query-table (hash-ref ht 'doc-query (hash)))
+                     (define fam (call-read-language irl 'documentation-language-family "Racket"))
+                     (help:help-desk #:language-family fam)
                      #t)]))
 
   (define (drracket-help-menu:after-about menu dlg-parent)
@@ -822,16 +819,12 @@
     (and drr-frame
          (send (send (send drr-frame get-current-tab) get-defs) get-irl)))
 
-  ;; (or/c #f irl) -> (values hash string)
-  (define (try-to-find-a-query-table-and-sub irl)
-    (define ht
-      (if irl
-          (call-read-language irl
-                              'documentation-language-family
-                              (hash))
-          (hash)))
-    (values (hash-ref ht 'doc-query (hash))
-            (hash-ref ht 'doc-path "index.html"))))
+  ;; (or/c #f irl) -> string
+  (define (try-to-find-a-language-family irl)
+    (and irl
+         (call-read-language irl
+                             'documentation-language-family
+                             #f))))
 
 
 (require (submod "." add-racket-to-path)

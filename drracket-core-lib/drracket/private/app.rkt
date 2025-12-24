@@ -246,11 +246,10 @@
                            [label (string-constant help-desk)]
                            [parent button-panel]
                            [callback (λ (x y)
-                                       (define-values (query-table sub)
-                                         (drracket:frame:try-to-find-a-query-table-and-sub
+                                       (define fam
+                                         (drracket:frame:try-to-find-a-language-family
                                           (drracket:frame:try-to-find-an-irl)))
-                                       (help-desk:help-desk #:query-table query-table
-                                                            #:sub sub))])])
+                                       (help-desk:help-desk #:language-family fam))])])
     (send docs-button focus))
   (send button-panel stretchable-height #f)
   (send button-panel set-alignment 'center 'center)

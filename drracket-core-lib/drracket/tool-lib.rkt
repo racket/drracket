@@ -933,17 +933,17 @@ all of the names in the tools library, for use defining keybindings
        ((or/c #f string?)
         (or/c #f string? (list/c string? string?))
         (or/c (is-a?/c frame%) (is-a?/c dialog%) #f)
-        #:sub string?)
+        #:language-family string?)
        any)
   (()
    ((search-key #f)
     (search-context #f)
     (parent #f)
-    (sub "index.html")))
+    (language-family #f)))
   @{if @racket[search-key] is a string, performs a search in the docs with
  @racket[search-key] and @racket[search-context].
- Otherwise, calls @racket[send-main-page] with @racket[sub] as the
-@racket[#:sub] keyword argument.
+ Otherwise, calls @racket[send-language-family-page]. The @racket[language-family]
+ argument is passed along in either case.
 
  The search may involve asking the user a question, in which case the
  dialog with the question uses @racket[parent] as its parent.

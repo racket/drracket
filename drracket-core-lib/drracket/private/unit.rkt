@@ -233,11 +233,10 @@
                      (string-append short-str "...")))
                 menu
                 (λ x
-                  (define-values (query-table sub)
-                    (drracket:frame:try-to-find-a-query-table-and-sub irl))
+                  (define fam
+                    (drracket:frame:try-to-find-a-language-family irl))
                   (help-desk:help-desk str (list ctxt name)
-                                          #:query-table query-table
-                                          #:sub sub)))
+                                          #:language-family fam)))
               (void)))))))
   
   (define (filename->kind fn)

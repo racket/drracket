@@ -191,8 +191,8 @@ TODO
             (send (send (send frame get-current-tab) get-defs) get-irl)]
            [else
             (drracket:frame:try-to-find-an-irl)]))
-       (define-values (query-table sub)
-         (drracket:frame:try-to-find-a-query-table-and-sub irl))
+       (define fam
+         (drracket:frame:try-to-find-a-language-family irl))
        (cond
          [(is-a? obj text%)
           (define start (send obj get-start-position))
@@ -202,7 +202,7 @@ TODO
                           (send obj get-text start end)))
           (cond
             [(or (not str) (equal? "" str))
-             (drracket:help-desk:help-desk #:query-table query-table #:sub sub)]
+             (drracket:help-desk:help-desk #:language-family fam)]
             [else
              (let* ([l (send obj get-canvas)]
                     [l (and l (send l get-top-level-window))]
@@ -217,11 +217,9 @@ TODO
                     [name (and l (send l get-language-name))])
                (drracket:help-desk:help-desk
                 str (and ctxt (list ctxt name)) frame
-                #:query-table query-table
-                #:sub sub))])]
+                #:language-family fam))])]
          [else
-          (drracket:help-desk:help-desk #:query-table query-table
-                                        #:sub sub)])))
+          (drracket:help-desk:help-desk #:language-family fam)])))
     
     ;; keep this in case people use it in their keymaps
     (add-drs-function "execute"  (λ (frame) (send frame execute-callback)))

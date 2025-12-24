@@ -266,7 +266,7 @@
    add-keybindings-item
    planet-spec?
    try-to-find-an-irl
-   try-to-find-a-query-table-and-sub))
+   try-to-find-a-language-family))
 
 (define-signature drracket:program-cm^
   (frame%))

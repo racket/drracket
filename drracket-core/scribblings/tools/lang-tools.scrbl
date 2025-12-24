@@ -585,45 +585,25 @@ find a prefix and extract the subsequent name:
 
  When a language's @racket[_get-info] procedure (accessed via @racket[read-language])
  responds to the @racket['documentation-language-family]
- key, the information it provides is used to find documentation
- for the @tech[#:doc '(lib "scribblings/raco/raco.scrbl")]{language family}
- that the language is a part of. The response to that key should be a
- @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{hash
-  table} with certain known keys, such that those keys have to
- have specific kinds of values attached to them, but is
- allowed to have extra keys that are unconstrained (for
- better forwards compatibility). This is the contract:
-
- @racketblock[
- (hash/dc
-  [key symbol?]
-  [val (key)
-   (case key
-     [(doc-language-name) string?]
-     [(doc-path) path-string?]
-     [(doc-query) (hash/c symbol? string? #:immutable #t)]
-     [else any/c])]
-  #:immutable #t)
- ]
+ key, the result is a string that names a language family. The
+ language family should be defined as @racketidfont{language-family} in
+ some collection's @filepath{info.rkt} file, and that definition
+ configures a documentation entry point, a navigation configuration,
+ and search precedence.
 
 DrRacket uses the contents of this hash in three ways:
  @itemlist[
  @item{
-   When typing “f1” (or right clicking) to search for
+   When typing f1 (or right clicking) to search for
    documentation in DrRacket, DrRacket calls
-   @racket[perform-search] and @racket[send-main-page] to
-   summon browser-based documentation. If
-   hash contains the @racket['doc-query] key, then the value
-   associated with that key is supplied as the
-   @racket[#:query-table] argument.}
- @item{If the hash maps the
-   @racket['doc-language-name] to a string, then DrRacket uses that
-   string in the first menu item in the @onscreen{Help} menu
+   @racket[perform-search] or @racket[send-language-family-page] to
+   summon browser-based documentation, and it passes
+   along the language family.}
+ @item{DrRacket uses the name in the first menu item in the @onscreen{Help} menu
    item, replacing the word “Racket” with the string in the hash.}
- @item{ When selecting that menu item, DrRacket visits the web
-   page named by the @racket['doc-path] key. Specifically,
-   DrRacket passes @racket['doc-path] as the @racket[#:sub]
-   argument to @racket[send-main-page].
+ @item{ When selecting that menu item, DrRacket visits the
+   documentation page the language family by passing it
+   along to @racket[send-language-family-page].
    }]
 }
 
