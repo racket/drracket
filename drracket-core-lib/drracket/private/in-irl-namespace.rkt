@@ -245,7 +245,7 @@
                                                (-> read-only-text/c exact-integer?
                                                    string?)
                                                string?)))))]
-    [(documentation-language-family) string?]
+    [(documentation-language-family) (or/c #f string?)]
     [else
      (error 'key->contract "unknown key")]))
 
