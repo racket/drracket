@@ -1966,7 +1966,12 @@ the settings above should match r5rs
   (go intermediate)
   (go intermediate/lambda)
   (go advanced)
-  )
+
+  (define drr (wait-for-drracket-frame))
+  (queue-callback/res
+   (λ ()
+     (define defs (send drr get-definitions-text))
+     (send defs remove-autosave))))
 
 (fire-up-drracket-and-run-tests run-test)
 
