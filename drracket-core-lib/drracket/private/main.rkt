@@ -853,40 +853,49 @@
        (define tab-count (send frame get-tab-count))
        (unless (eq? (system-type) 'macosx)
          (new separator-menu-item% [parent windows-menu]))
-       (for ([i (in-range 1 10)])
-         (define sc (integer->char (+ (char->integer #\0) i)))
-         (cond
-           [(and (= i 9) (not (= 1 tab-count)))
-            (new menu-item% 
-                 [parent windows-menu]
-                 [label
-                  (if (< tab-count i)
-                      (format (string-constant last-tab)
-                              (send frame get-tab-filename (- tab-count 1)))
-                      (format (string-constant tab-i)
-                              9
-                              (send frame get-tab-filename (- tab-count 1))))]
-                 [shortcut sc]
-                 [callback
-                  (λ (a b)
-                    (send frame change-to-nth-tab (- tab-count 1)))])]
-           [(or (< tab-count i) (= 1 tab-count))
-            (send (new menu-item%
-                       [parent windows-menu]
-                       [label (format (string-constant tab-i/no-name) i)]
-                       [shortcut sc]
-                       [callback void])
-                  enable #f)]
-           [else
-            (new menu-item% 
-                 [parent windows-menu]
-                 [label (format (string-constant tab-i)
-                                i
-                                (send frame get-tab-filename (- i 1)))]
-                 [shortcut sc]
-                 [callback
-                  (λ (a b)
-                    (send frame change-to-nth-tab (- i 1)))])])))
+
+       ;; all of the "i"s here are 1 based, so we need to subtract 1
+       ;; when calling the zero-based change-to-nth-tab or get-tab-filename,
+       ;; but otherwise we're using the indicies the user will see in the menus
+       (define (make-menu-item last? tab-i shortcut-i)
+         (new menu-item%
+              [parent windows-menu]
+              [label
+               (if last?
+                   (format (string-constant last-tab)
+                           (send frame get-tab-filename (- tab-i 1)))
+                   (format (string-constant tab-i)
+                           tab-i
+                           (send frame get-tab-filename (- tab-i 1))))]
+              [shortcut (and shortcut-i (integer->char (+ (char->integer #\0) shortcut-i)))]
+              [callback (λ (a b) (send frame change-to-nth-tab (- tab-i 1)))]))
+       (define (make-blank-menu-item i)
+         (define mi
+           (new menu-item%
+                [parent windows-menu]
+                [label (format (string-constant tab-i/no-name) i)]
+                [shortcut (integer->char (+ (char->integer #\0) i))]
+                [callback void]))
+         (send mi enable #f))
+       (cond
+         [(= tab-count 1)
+          (for ([i (in-inclusive-range 1 9)])
+            (make-blank-menu-item i))]
+         [(<= tab-count 8)
+          (for ([i (in-inclusive-range 1 tab-count)])
+            (make-menu-item #f i i))
+          (for ([i (in-inclusive-range (+ tab-count 1) 8)])
+            (make-blank-menu-item i))
+          (make-menu-item #t tab-count 9)]
+         [(= tab-count 9)
+          (for ([i (in-inclusive-range 1 9)])
+            (make-menu-item #f i i))]
+         [else
+          (for ([i (in-inclusive-range 1 8)])
+            (make-menu-item #f i i))
+          (for ([i (in-inclusive-range 9 (- tab-count 1))])
+            (make-menu-item #f i #f))
+          (make-menu-item #t tab-count 9)]))
      (when (eq? (system-type) 'macosx)
        (new separator-menu-item% [parent windows-menu])))))
 
