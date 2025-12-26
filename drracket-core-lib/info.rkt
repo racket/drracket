@@ -27,7 +27,7 @@
                "net-lib"
                "option-contract-lib"
                "racket-lib"
-               ["racket-index" #:version "1.2"]
+               ["racket-index" #:version "1.4"]
                "sandbox-lib"
                ["scribble-lib" #:version "1.11"]
                ["string-constants-lib" #:version "1.54"]

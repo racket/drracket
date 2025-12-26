@@ -7,7 +7,7 @@
          net/url
          setup/dirs
          setup/materialize-user-docs
-         help/search
+         help
          drracket/private/drsig
          string-constants
          setup/dirs
