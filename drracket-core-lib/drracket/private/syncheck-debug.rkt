@@ -125,24 +125,24 @@
   (define (syntax-object->datum/ht stx)
     (define ht (make-hasheq))
     (values (let loop ([stx stx])
-              (let ([obj (syntax-e stx)])
-                (cond
-                  [(list? obj)
-                   (let ([res (map loop obj)])
-                     (hash-set! ht res stx)
-                     res)]
-                  [(pair? obj)
-                   (let ([res (cons (loop (car obj)) (loop (cdr obj)))])
-                     (hash-set! ht res stx)
-                     res)]
-                  [(vector? obj)
-                   (let ([res (list->vector (map loop (vector->list obj)))])
-                     (hash-set! ht res stx)
-                     res)]
-                  [else
-                   (let ([res (syntax->datum stx)])
-                     (hash-set! ht res stx)
-                     res)])))
+              (define obj (syntax-e stx))
+              (cond
+                [(list? obj)
+                 (let ([res (map loop obj)])
+                   (hash-set! ht res stx)
+                   res)]
+                [(pair? obj)
+                 (let ([res (cons (loop (car obj)) (loop (cdr obj)))])
+                   (hash-set! ht res stx)
+                   res)]
+                [(vector? obj)
+                 (let ([res (list->vector (map loop (vector->list obj)))])
+                   (hash-set! ht res stx)
+                   res)]
+                [else
+                 (let ([res (syntax->datum stx)])
+                   (hash-set! ht res stx)
+                   res)]))
             ht))
   
   ;; make-text-port : text -> port
@@ -151,8 +151,8 @@
     (define-values (in out) (make-pipe))
     (thread (λ ()
               (let loop ()
-                (let ([c (read-char in)])
-                  (unless (eof-object? c)
-                    (send text insert (string c) (send text last-position) (send text last-position))
-                    (loop))))))
+                (define c (read-char in))
+                (unless (eof-object? c)
+                  (send text insert (string c) (send text last-position) (send text last-position))
+                  (loop)))))
     out)
