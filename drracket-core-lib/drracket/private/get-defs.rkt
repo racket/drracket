@@ -96,12 +96,13 @@
             (and smallest-i
                  (string-length (define-popup-info-prefix
                                   (list-ref the-define-popup-infos smallest-i))))
-            (and smallest-i
-                 (let ([proc (define-popup-info-get-name
-                               (list-ref the-define-popup-infos smallest-i))])
-                   (if proc
-                       (lambda (text pos) (proc text pos get-defn-name))
-                       get-defn-name)))
+            (cond
+              [smallest-i
+               (define proc (define-popup-info-get-name (list-ref the-define-popup-infos smallest-i)))
+               (if proc
+                   (lambda (text pos) (proc text pos get-defn-name))
+                   get-defn-name)]
+              [else #f])
             final-positions))
   
   (define defs
