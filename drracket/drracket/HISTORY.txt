@@ -13,13 +13,8 @@
     relatively more horizontal (and ditto for references that are more
     to the right).
 
-    Because the references are evenly spaced and all go rightwards, a
-    program like this makes a pretty-looking picture:
-
-    #lang racket
-
-    (define (g x)
-               x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x)
+  . improve the handling of the dark vs light mode color scheme
+    preferences
 
   . the contour window (via the menu-shortcut keystroke "u") shrinks
     when the widest line in the window got smaller
