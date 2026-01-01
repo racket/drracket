@@ -262,47 +262,42 @@
           (when (is-a? item menu-item-container<%>)
             (loop item))))
       (when (member (system-type) '(unix windows))
-        (for ([top-level-menu (in-list (send mb get-items))])
-          (when (is-a? top-level-menu menu%)
-            (define amp-key
-              (let loop ([str (send top-level-menu get-label)])
-                (cond
-                  [(regexp-match #rx"[^&]*[&](.)(.*)" str)
-                   =>
-                   (λ (m)
-                     (define this-amp (list-ref m 1))
-                     (define rest (list-ref m 2))
-                     (cond
-                       [(equal? this-amp "&")
-                        (loop rest)]
-                       [else 
-                        (string-downcase this-amp)]))]
-                  [else #f])))
-            (when amp-key
-              (hash-set! name-ht 
-                         (string->symbol (format "m:~a" amp-key))
-                         (format "~a menu" (send top-level-menu get-plain-label)))
-              (when (equal? (system-type) 'windows)
-                (hash-set! name-ht 
-                           (string->symbol (format "m:s:~a" amp-key))
-                           (format "~a menu" (send top-level-menu get-plain-label)))))))))
+        (for ([top-level-menu (in-list (send mb get-items))]
+              #:when (is-a? top-level-menu menu%))
+          (define amp-key
+            (let loop ([str (send top-level-menu get-label)])
+              (cond
+                [(regexp-match #rx"[^&]*[&](.)(.*)" str)
+                 =>
+                 (λ (m)
+                   (define this-amp (list-ref m 1))
+                   (define rest (list-ref m 2))
+                   (cond
+                     [(equal? this-amp "&") (loop rest)]
+                     [else (string-downcase this-amp)]))]
+                [else #f])))
+          (when amp-key
+            (hash-set! name-ht
+                       (string->symbol (format "m:~a" amp-key))
+                       (format "~a menu" (send top-level-menu get-plain-label)))
+            (when (equal? (system-type) 'windows)
+              (hash-set! name-ht
+                         (string->symbol (format "m:s:~a" amp-key))
+                         (format "~a menu" (send top-level-menu get-plain-label))))))))
     name-ht)
   
   (define (menu-item->prefix-string item)
     (apply
      string-append
-     (map (λ (prefix)
-            (case prefix
-              [(alt) (if (eq? (system-type) 'windows)
-                         "m:"
-                         "a:")]
-              [(cmd) "d:"]
-              [(meta) "m:"]
-              [(ctl) "c:"]
-              [(shift) "s:"]
-              [(opt option) "a:"]
-              [else (error 'menu-item->prefix-string "unknown prefix ~s\n" prefix)]))
-          (send item get-shortcut-prefix)))))
+     (for/list ([prefix (in-list (send item get-shortcut-prefix))])
+       (case prefix
+         [(alt) (if (eq? (system-type) 'windows) "m:" "a:")]
+         [(cmd) "d:"]
+         [(meta) "m:"]
+         [(ctl) "c:"]
+         [(shift) "s:"]
+         [(opt option) "a:"]
+         [else (error 'menu-item->prefix-string "unknown prefix ~s\n" prefix)])))))
 
 (require string-constants
          racket/match
@@ -339,12 +334,11 @@
     (mixin (frame:standard-menus<%>) (drracket:frame:basics<%>)
       
       (define/override (on-subwindow-focus win on?)
-        (when the-keybindings-frame
-          (when on? 
-            (send the-keybindings-frame set-bindings
-                  (if (can-show-keybindings?)
-                      (get-keybindings-to-show)
-                      '())))))
+        (when (and the-keybindings-frame on?)
+          (send the-keybindings-frame set-bindings
+                (if (can-show-keybindings?)
+                    (get-keybindings-to-show)
+                    '()))))
       
       (define/override (on-subwindow-char receiver event)
         (define user-key? (send (keymap:get-user)
@@ -420,12 +414,10 @@
       
       (define/override (file-menu:between-print-and-close menu)
         (super file-menu:between-print-and-close menu)
-        (instantiate menu-item% ()
-          (label (string-constant mfs-multi-file-search-menu-item))
-          (parent menu)
-          (callback
-           (λ (_1 _2)
-             (drracket:multi-file-search:multi-file-search))))
+        (new menu-item%
+             (label (string-constant mfs-multi-file-search-menu-item))
+             (parent menu)
+             (callback (λ (_1 _2) (drracket:multi-file-search:multi-file-search))))
         (new separator-menu-item% (parent menu)))
       
       (define/override (edit-menu:between-find-and-preferences menu)
