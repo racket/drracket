@@ -684,7 +684,7 @@
                  (define/override (on-paint)
                    (define dc (get-dc))
                    (send dc set-font normal-control-font)
-                   (when (color-prefs:white-on-black-color-scheme?)
+                   (when (white-on-black-panel-scheme?)
                      (send dc set-text-foreground "white"))
                    (send dc draw-text "..." 0 0))
                  (define/override (on-event evt)
@@ -951,7 +951,7 @@
                         (when second-number
                           (send item set-second-number second-number))
                         (send text insert position)
-                        (when (color-prefs:white-on-black-color-scheme?)
+                        (when (white-on-black-panel-scheme?)
                           (send text change-style wob-style-delta
                                 0 (send text last-position)))
                         (when delta
@@ -988,7 +988,7 @@
                                     (send editor insert position)
                                     (send editor change-style small-size-delta pos (+ pos 1))
                                     (send editor change-style
-                                          (if (color-prefs:white-on-black-color-scheme?)
+                                          (if (white-on-black-panel-scheme?)
                                               wob-section-style-delta
                                               bow-section-style-delta)
                                           (+ pos 1) (send editor last-position)))
@@ -1005,7 +1005,7 @@
                                   (send new-list open)
                                   (define editor (send new-list get-editor))
                                   (send editor insert position)
-                                  (when (color-prefs:white-on-black-color-scheme?)
+                                  (when (white-on-black-panel-scheme?)
                                     (send editor change-style wob-style-delta
                                           0 (send editor last-position)))
                                   (hash-set! ht (string->symbol position) x)
@@ -1383,7 +1383,7 @@
                  (send (send t get-style-list) basic-style)
                  before (send t last-position))])
         (send t change-style size-sd before (send t last-position))
-        (when (color-prefs:white-on-black-color-scheme?)
+        (when (white-on-black-panel-scheme?)
           (send t change-style wob-style-delta before (send t last-position))))
       (when (send normal-control-font get-size-in-pixels)
         (send size-sd set-size-in-pixels-on #t))
@@ -2392,7 +2392,7 @@
              (parent racketeer-panel) 
              (label (string-constant use-language-in-source))
              (color (send the-color-database find-color
-                          (if (color-prefs:white-on-black-color-scheme?)
+                          (if (white-on-black-panel-scheme?)
                               "deepskyblue"
                               "blue")))
              (callback (λ () (change-current-lang-to
