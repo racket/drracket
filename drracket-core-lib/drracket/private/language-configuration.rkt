@@ -5,6 +5,7 @@
          racket/contract
          racket/string
          racket/list
+         racket/match
          racket/gui/base
          drracket/private/drsig
          "tooltip.rkt"
@@ -27,39 +28,35 @@
 
   (define original-output (current-output-port))
   (define (oprintf . args) (apply fprintf original-output args))
-  
-  (define-values (sc-use-language-in-source 
-                  sc-use-teaching-language
-                  sc-choose-a-language
-                  mouse-event-uses-shortcut-prefix?)
-    (let* ([shortcut-prefix (get-default-shortcut-prefix)]
-           [menukey-string 
-            (apply string-append
-                   (map (λ (x)
-                          (case x
-                            [(cmd) "⌘"]
-                            [else (format "~a-" x)]))
-                        shortcut-prefix))])
-      (define (mouse-event-uses-shortcut-prefix? evt)
-        (andmap (λ (prefix)
-                  (case prefix
-                    [(alt) (case (system-type)
-                             [(windows) (send evt get-meta-down)]
-                             [else (send evt get-alt-down)])]
-                    [(cmd) (send evt get-meta-down)]
-                    [(meta) (send evt get-meta-down)]
-                    [(ctl) (send evt get-control-down)]
-                    [(shift) (send evt get-shiftdown)]
-                    [(option) (send evt get-alt-down)]))
-                shortcut-prefix))
-      (values (string-append (string-constant the-racket-language)
-                             (format " (~aR)" menukey-string))
-              (string-append (string-constant teaching-languages)
-                             (format " (~aT)" menukey-string))
-              (string-append (string-constant other-languages)
-                             (format " (~aO)" menukey-string))
-              mouse-event-uses-shortcut-prefix?)))
-  
+
+(define (mouse-event-uses-shortcut-prefix? evt char)
+  (and (equal? (send evt get-key-code) char)
+       (for/and ([prefix (in-list (get-default-shortcut-prefix))])
+         (case prefix
+           [(alt) (case (system-type)
+                    [(windows) (send evt get-meta-down)]
+                    [else (send evt get-alt-down)])]
+           [(cmd) (send evt get-meta-down)]
+           [(meta) (send evt get-meta-down)]
+           [(ctl) (send evt get-control-down)]
+           [(shift) (send evt get-shiftdown)]
+           [(option) (send evt get-alt-down)]))))
+
+(define (add-menu-shortcut label shortcut)
+  (define menukey-string
+    (match (get-default-shortcut-prefix)
+      [(list 'cmd) "⌘"]
+      [(list 'ctl) "Ctrl+"] ;; ugh, how long!
+      [(list x) (format "~a-" x)]))
+  (string-append label " (" menukey-string (string (char-upcase shortcut)) ")"))
+
+(define sc-use-language-in-source
+  (add-menu-shortcut (string-constant the-racket-language) #\r))
+(define sc-use-teaching-language
+  (add-menu-shortcut (string-constant teaching-languages) #\t))
+(define sc-choose-a-language
+  (add-menu-shortcut (string-constant other-languages) #\o))
+
   (provide language-configuration@)
   
   (define-unit language-configuration@
@@ -1226,8 +1223,9 @@
             (get/set-selected-language-settings 
              (send selected-language default-settings))))
         
-        (define show-details-label (string-constant show-details-button-label))
-        (define hide-details-label (string-constant hide-details-button-label))
+        (define details-shortcut #\d)
+        (define show-details-label (add-menu-shortcut (string-constant show-details-button-label) details-shortcut))
+        (define hide-details-label (add-menu-shortcut (string-constant hide-details-button-label) details-shortcut))
         (define details-button (make-object button% 
                                  (if (show-details-label . system-font-space->= . hide-details-label)
                                      show-details-label
@@ -1333,27 +1331,22 @@
            (and get/set-selected-language-settings
                 (get/set-selected-language-settings)))
          (λ (receiver evt)
-           (case (send evt get-key-code)
-             [(#\r) 
-              (if (mouse-event-uses-shortcut-prefix? evt)
-                  (begin (send use-language-in-source-rb set-selection 0)
-                         (use-language-in-source-rb-callback)
-                         #t)
-                  #f)]
-             [(#\t)
-              (if (mouse-event-uses-shortcut-prefix? evt)
-                  (begin 
-                    (send use-teaching-language-rb set-selection 0)
-                    (use-teaching-language-rb-callback)
-                    #t)
-                  #f)]
-             [(#\o)
-              (if (mouse-event-uses-shortcut-prefix? evt)
-                  (begin 
-                    (send use-chosen-language-rb set-selection 0)
-                    (use-chosen-language-rb-callback)
-                    #t)
-                  #f)]
+           (cond
+             [(mouse-event-uses-shortcut-prefix? evt #\r)
+              (send use-language-in-source-rb set-selection 0)
+              (use-language-in-source-rb-callback)
+              #t]
+             [(mouse-event-uses-shortcut-prefix? evt #\t)
+              (send use-teaching-language-rb set-selection 0)
+              (use-teaching-language-rb-callback)
+              #t]
+             [(mouse-event-uses-shortcut-prefix? evt #\o)
+              (send use-chosen-language-rb set-selection 0)
+              (use-chosen-language-rb-callback)
+              #t]
+             [(mouse-event-uses-shortcut-prefix? evt #\d)
+              (details-callback)
+              #t]
              [else #f])))))
     
     (define (add-discussion p definitions-text use-language-in-source-rb-callback)
