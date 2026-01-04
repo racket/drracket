@@ -31,7 +31,7 @@
     (define/private (sync-style)
       (send str-snip set-style (get-style)))
     
-    (forward (define/override (get-extent dc x y wb hb db sb lb rb)) () ())
+    (forward (define/override (get-extent dc x y [wb #f] [hb #f] [db #f] [sb #f] [lb #f] [rb #f])) () ())
     (forward (define/override (draw dc x y left top right bottom dx dy draw-caret))
              {(unless insertion-done?
                 (when inside?
