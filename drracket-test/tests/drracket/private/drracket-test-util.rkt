@@ -394,7 +394,7 @@
         (error 'set-language-level! "couldn't find language: ~e" in-language-spec))
   
       (with-handlers ([exn:fail? (lambda (x) (void))])
-        (fw:test:button-push "Show Details"))
+        (fw:test:button-push #rx"Show Details"))
   
       (fw:test:button-push "Revert to Language Defaults")
   
@@ -415,7 +415,7 @@
     (fw:test:set-radio-box-item! #rx"The Racket Language")
     
     (with-handlers ([exn:fail? (lambda (x) (void))])
-      (fw:test:button-push "Show Details"))
+      (fw:test:button-push #rx"Show Details"))
     
     (fw:test:button-push "Revert to Language Defaults")
     

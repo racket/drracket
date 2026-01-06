@@ -119,7 +119,7 @@
    ;; 7. use a 3d value and make sure online compilation still works in debug mode
 
    (set-module-language! #f)
-   (test:set-radio-box-item! "No debugging or profiling")
+   (test:set-radio-box-item! #rx"No debugging or profiling")
    (let ([f (test:get-active-top-level-window)])
      (test:button-push "OK")
      (wait-for-new-frame f))

@@ -8,10 +8,10 @@
          rackunit/log
          rackunit)
 
-(define (setup-racket/base-raw) (setup/rb "No debugging or profiling"))
-(define (setup-racket/base-debug) (setup/rb "Debugging"))
-(define (setup-racket/base-profile) (setup/rb "Debugging and profiling"))
-(define (setup-racket/base-coverage) (setup/rb "Syntactic test suite coverage"))
+(define (setup-racket/base-raw) (setup/rb #rx"No debugging or profiling"))
+(define (setup-racket/base-debug) (setup/rb #rx"^Debugging [(].*[)]$"))
+(define (setup-racket/base-profile) (setup/rb #rx"Debugging and profiling"))
+(define (setup-racket/base-coverage) (setup/rb #rx"Syntactic test suite coverage"))
 
 (define (setup/rb which-rb)
   (set-module-language! #f)

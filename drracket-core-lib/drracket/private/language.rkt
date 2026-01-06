@@ -17,6 +17,7 @@
          racket/class
          racket/file
          racket/list
+         racket/match
          compiler/embed
          launcher
          mred
@@ -36,7 +37,8 @@
           [prefix drracket:rep: drracket:rep^]
           [prefix drracket:init: drracket:init/int^]
           [prefix drracket:help-desk: drracket:help-desk^]
-          [prefix drracket:module-language: drracket:module-language/int^])
+          [prefix drracket:module-language: drracket:module-language/int^]
+          [prefix drracket:language-configuration: drracket:language-configuration/internal^])
   (export drracket:language/int^)
   
   (define original-output-port (current-output-port))
@@ -120,7 +122,30 @@
       get-one-line-summary
       get-language-url
       get-reader))
-  
+
+(define (mouse-event-uses-shortcut-prefix? evt char)
+  (and (equal? (send evt get-key-code) char)
+       (for/and ([prefix (in-list (get-default-shortcut-prefix))])
+         (case prefix
+           [(alt) (case (system-type)
+                    [(windows) (send evt get-meta-down)]
+                    [else (send evt get-alt-down)])]
+           [(cmd) (send evt get-meta-down)]
+           [(meta) (send evt get-meta-down)]
+           [(ctl) (send evt get-control-down)]
+           [(shift) (send evt get-shiftdown)]
+           [(option) (send evt get-alt-down)]))))
+
+(define (add-menu-shortcut label shortcut)
+  (cond
+    [shortcut
+     (define menukey-string
+       (match (get-default-shortcut-prefix)
+         [(list 'cmd) "⌘"]
+         [(list 'ctl) "Ctrl+"] ;; ugh, how long!
+         [(list x) (format "~a-" x)]))
+     (string-append label " (" menukey-string (string (char-upcase shortcut)) ")")]
+    [else label]))
   
   (define simple-module-based-language%
     (class* object% (simple-module-based-language<%>)
@@ -228,11 +253,18 @@
            #:get-debugging-radio-box [get-debugging-radio-box void]
            #:debugging-radio-box-callback [debugging-radio-box-callback void]
            #:include-print-mode? [include-print-mode? #t]
+           #:keyboard-shortcuts? [keyboard-shortcuts? #f]
 
            ;; called whenever any of the settings changed; used when the settings
            ;; are put into the preferences dialog (which doesn't have an explicit
            ;; close action that the user takes)
            #:something-changed [something-changed void])
+
+    (define no-debugging-or-profiling-keystroke #\n)
+    (define debugging-keystroke #\b)
+    (define debugging-and-profiling-keystroke #\p)
+    (define test-coverage-keystroke #\c)
+
     (letrec ([parent (new vertical-panel% (parent _parent) (alignment '(center center)))]
              
              [input-panel (and (eq? *case-sensitive '?)
@@ -263,25 +295,39 @@
              [debugging-left (new radio-box%
                                   (label #f)
                                   (choices 
-                                   (list (string-constant no-debugging-or-profiling)
-                                         (string-constant debugging)))
+                                   (list (add-menu-shortcut
+                                          (string-constant no-debugging-or-profiling)
+                                          (and keyboard-shortcuts? no-debugging-or-profiling-keystroke))
+                                         (add-menu-shortcut
+                                          (string-constant debugging)
+                                          (and keyboard-shortcuts? debugging-keystroke))))
                                   (parent debugging-panel)
                                   (callback
                                    (λ (a b)
-                                     (send debugging-right set-selection #f)
-                                     (debugging-radio-box-callback a b)
-                                     (something-changed))))]
+                                     (debugging-left-callback))))]
+             [debugging-left-callback
+              (λ ()
+                (send debugging-right set-selection #f)
+                (debugging-radio-box-callback)
+                (something-changed))]
              [debugging-right (new radio-box%
                                    (label #f)
                                    (choices 
-                                    (list (string-constant debugging-and-profiling)
-                                          (string-constant test-coverage)))
+                                    (list (add-menu-shortcut
+                                           (string-constant debugging-and-profiling)
+                                           (and keyboard-shortcuts? debugging-and-profiling-keystroke))
+                                          (add-menu-shortcut
+                                           (string-constant test-coverage)
+                                           (and keyboard-shortcuts? test-coverage-keystroke))))
                                    (parent debugging-panel)
                                    (callback
                                     (λ (a b)
-                                      (send debugging-left set-selection #f)
-                                      (debugging-radio-box-callback a b)
-                                      (something-changed))))]
+                                      (debugging-right-callback))))]
+             [debugging-right-callback
+              (λ ()
+                (send debugging-left set-selection #f)
+                (debugging-radio-box-callback)
+                (something-changed))]
              [output-style (make-object radio-box%
                              (string-constant output-style-label)
                              (flatten
@@ -313,50 +359,71 @@
                 (λ (_1 _2) (something-changed)))])
       (get-debugging-radio-box debugging-left debugging-right)
       (dynamic-panel-extras dynamic-panel)
-      
-      (case-lambda
-        [()
-         (make-simple-settings
-          (if case-sensitive
-            (send case-sensitive get-value)
-            (and *case-sensitive #t))
-          (case (send output-style get-selection)
-            [(0) 'constructor]
-            [(1) 'quasiquote]
-            [(2) 'trad-write]
-            [(3) (if include-print-mode? 'print 'trad-write)])
-          (if (send fraction-style get-value)
-              'repeating-decimal-e
-              'mixed-fraction-e)
-          (send show-sharing get-value)
-          (send insert-newlines get-value)
-          (case (send debugging-left get-selection)
-            [(0) 'none]
-            [(1) 'debug]
-            [(#f)
-             (case (send debugging-right get-selection)
-               [(0) 'debug/profile]
-               [(1) 'test-coverage])]))]
-        [(settings)
-         (when case-sensitive
-           (send case-sensitive set-value
-                 (simple-settings-case-sensitive settings)))
-         (send output-style set-selection
-               (case (simple-settings-printing-style settings)
-                 [(constructor) 0]
-                 [(quasiquote) 1]
-                 [(write trad-write) 2]
-                 [(print) (if include-print-mode? 3 2)]))
-         (enable-fraction-style)
-         (send fraction-style set-value (eq? (simple-settings-fraction-style settings)
-                                             'repeating-decimal-e))
-         (send show-sharing set-value (simple-settings-show-sharing settings))
-         (send insert-newlines set-value (simple-settings-insert-newlines settings))
-         (case (simple-settings-annotations settings)
-           [(none) (send debugging-right set-selection #f) (send debugging-left set-selection 0)]
-           [(debug) (send debugging-right set-selection #f) (send debugging-left set-selection 1)]
-           [(debug/profile) (send debugging-left set-selection #f) (send debugging-right set-selection 0)]
-           [(test-coverage) (send debugging-left set-selection #f) (send debugging-right set-selection 1)])])))
+
+      (define shortcuts
+        (list (list no-debugging-or-profiling-keystroke
+                    (λ ()
+                      (send debugging-left set-selection 0)
+                      (debugging-left-callback)))
+              (list debugging-keystroke
+                    (λ ()
+                      (send debugging-left set-selection 1)
+                      (debugging-left-callback)))
+              (list debugging-and-profiling-keystroke
+                    (λ ()
+                      (send debugging-right set-selection 0)
+                      (debugging-right-callback)))
+              (list test-coverage-keystroke
+                    (λ ()
+                      (send debugging-right set-selection 1)
+                      (debugging-right-callback)))))
+
+
+      (drracket:language-configuration:config-panel-with-keystrokes
+       (case-lambda
+         [()
+          (make-simple-settings
+           (if case-sensitive
+               (send case-sensitive get-value)
+               (and *case-sensitive #t))
+           (case (send output-style get-selection)
+             [(0) 'constructor]
+             [(1) 'quasiquote]
+             [(2) 'trad-write]
+             [(3) (if include-print-mode? 'print 'trad-write)])
+           (if (send fraction-style get-value)
+               'repeating-decimal-e
+               'mixed-fraction-e)
+           (send show-sharing get-value)
+           (send insert-newlines get-value)
+           (case (send debugging-left get-selection)
+             [(0) 'none]
+             [(1) 'debug]
+             [(#f)
+              (case (send debugging-right get-selection)
+                [(0) 'debug/profile]
+                [(1) 'test-coverage])]))]
+         [(settings)
+          (when case-sensitive
+            (send case-sensitive set-value
+                  (simple-settings-case-sensitive settings)))
+          (send output-style set-selection
+                (case (simple-settings-printing-style settings)
+                  [(constructor) 0]
+                  [(quasiquote) 1]
+                  [(write trad-write) 2]
+                  [(print) (if include-print-mode? 3 2)]))
+          (enable-fraction-style)
+          (send fraction-style set-value (eq? (simple-settings-fraction-style settings)
+                                              'repeating-decimal-e))
+          (send show-sharing set-value (simple-settings-show-sharing settings))
+          (send insert-newlines set-value (simple-settings-insert-newlines settings))
+          (case (simple-settings-annotations settings)
+            [(none) (send debugging-right set-selection #f) (send debugging-left set-selection 0)]
+            [(debug) (send debugging-right set-selection #f) (send debugging-left set-selection 1)]
+            [(debug/profile) (send debugging-left set-selection #f) (send debugging-right set-selection 0)]
+            [(test-coverage) (send debugging-left set-selection #f) (send debugging-right set-selection 1)])])
+       (if keyboard-shortcuts? shortcuts '()))))
   
   ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) (union 'infinity number) -> void
   (define (simple-module-based-language-render-value/format value settings port width)

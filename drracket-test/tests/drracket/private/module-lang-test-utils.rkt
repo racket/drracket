@@ -218,7 +218,7 @@
   (init-temp-files)
   (run-use-compiled-file-paths-tests)
   (set-module-language! #f)
-  (test:set-radio-box-item! "Debugging")
+  (test:set-radio-box-item! #rx"Debugging")
   (let ([f (queue-callback/res (λ () (test:get-active-top-level-window)))])
     (test:button-push "OK")
     (wait-for-new-frame f))
@@ -252,7 +252,7 @@
         (setup-dialog/run 
          (λ () 
            (test:set-radio-box-item! radio-box)
-           (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f))))
+           (test:set-check-box! #rx"Populate “compiled” directories" #f))))
       (unless (spaces-equal? got (format "~s" no-check-expected))
         (error 'r-u-c-f-p-t.2 "test-failed\n  got: ~s\n  expected: ~s\n  radio-box: ~s"
                got
@@ -274,7 +274,7 @@
   
   (clear-definitions drs)
   (insert-in-definitions drs "#lang scheme\n(use-compiled-file-paths)")
-  (run-one-test "No debugging or profiling" (list drs/compiled compiled) (list compiled))
-  (run-one-test "Debugging" (list drs/compiled/et compiled) (list compiled))
-  (run-one-test "Debugging and profiling" (list compiled))
-  (run-one-test "Syntactic test suite coverage" (list compiled)))
+  (run-one-test #rx"No debugging or profiling" (list drs/compiled compiled) (list compiled))
+  (run-one-test #rx"^Debugging [(]" (list drs/compiled/et compiled) (list compiled))
+  (run-one-test #rx"Debugging and profiling" (list compiled))
+  (run-one-test #rx"Syntactic test suite coverage" (list compiled)))

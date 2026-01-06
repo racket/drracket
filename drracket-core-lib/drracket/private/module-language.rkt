@@ -251,7 +251,7 @@
       ;; uses drracket:language:simple-module-based-language-config-panel
       ;; and adds a collection paths configuration to it.
       (define/override (config-panel parent)
-        (module-language-config-panel parent))
+        (module-language-config-panel parent #:keyboard-shortcuts? #t))
       
       ;; NOTE: this method is also used in the super class's implementation
       ;; of default-settings?, which is why the super call is appropriate
@@ -676,7 +676,8 @@
   ;; module-language-config-panel : panel -> (case-> (-> settings) (settings -> void))
   (define (module-language-config-panel parent
                                         #:add-auto-text-controls? [add-auto-text-controls? #t]
-                                        #:something-changed [something-changed void])
+                                        #:something-changed [something-changed void]
+                                        #:keyboard-shortcuts? [keyboard-shortcuts? #f])
     (define new-parent
       (new-vertical-panel%
            [parent parent]
@@ -704,10 +705,19 @@
       ;; (also, rely on sort's stability)
       (set! submodules-to-run (sort l < 
                                     #:key (λ (x) (hash-ref ht x +inf.0)))))
+
+    (define automatically-compile-kestroke #\a)
+    (define stacktrace-keystroke #\s)
+    (define enforce-module-constants-keystroke #\k)
+
+    (define (compilation-on-checkbox-callback)
+      (set! compilation-on? (send compilation-on-check-box get-value))
+      (something-changed))
     
     (define simple-case-lambda
       (drracket:language:simple-module-based-language-config-panel
        new-parent
+       #:keyboard-shortcuts? keyboard-shortcuts?
        #:something-changed something-changed
        #:case-sensitive #t
        
@@ -716,26 +726,31 @@
                                    (set! right-debugging-radio-box rb-r))
        
        #:debugging-radio-box-callback
-       (λ (debugging-radio-box evt)
+       (λ ()
          (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box))
 
        #:dynamic-panel-extras
        (λ (dynamic-panel)
          (set! compilation-on-check-box
                (new check-box%
-                    [label (string-constant automatically-compile)]
+                    [label (drracket:language:add-menu-shortcut
+                            (string-constant automatically-compile)
+                            (and keyboard-shortcuts? automatically-compile-kestroke))]
                     [parent dynamic-panel]
                     [callback
                      (λ (_1 _2)
-                       (set! compilation-on? (send compilation-on-check-box get-value))
-                       (something-changed))]))
+                       (compilation-on-checkbox-callback))]))
          (set! save-stacktrace-on-check-box 
                (new check-box%
-                    [label (string-constant preserve-stacktrace-information)]
+                    [label (drracket:language:add-menu-shortcut
+                            (string-constant preserve-stacktrace-information)
+                            (and keyboard-shortcuts? stacktrace-keystroke))]
                     [parent dynamic-panel]))
          (set! enforce-module-constants-checkbox
                (new check-box%
-                    [label (string-constant enforce-module-constants-checkbox-label)]
+                    [label (drracket:language:add-menu-shortcut
+                            (string-constant enforce-module-constants-checkbox-label)
+                            (and keyboard-shortcuts? enforce-module-constants-keystroke))]
                     [parent dynamic-panel]))
          (set! run-submodules-choice 
                (new (class name-message%
@@ -911,33 +926,51 @@
     (update-buttons)
     (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
 
-    (case-lambda
-      [()
-       (let ([simple-settings (simple-case-lambda)])
-         (apply make-module-language-settings
-                (append 
-                 (vector->list (drracket:language:simple-settings->vector simple-settings))
-                 (list (get-collection-paths)
-                       (get-command-line-args)
-                       #f ;; auto-text in the settings is ignored.
-                       (case (send left-debugging-radio-box get-selection)
-                         [(0 1) compilation-on?]
-                         [(#f) #f])
-                       (send save-stacktrace-on-check-box get-value)
-                       submodules-to-run
-                       (send enforce-module-constants-checkbox get-value)))))]
-      [(settings)
-       (simple-case-lambda settings)
-       (install-collection-paths (module-language-settings-collection-paths settings))
-       (install-command-line-args (module-language-settings-command-line-args settings))
-       (set! compilation-on? (module-language-settings-compilation-on? settings))
-       (send compilation-on-check-box set-value (module-language-settings-compilation-on? settings))
-       (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
-       (send save-stacktrace-on-check-box set-value (module-language-settings-full-trace? settings))
-       (set-submodules-to-run (module-language-settings-submodules-to-run settings))
-       (send enforce-module-constants-checkbox set-value
-             (module-language-settings-enforce-module-constants settings))
-       (update-buttons)]))
+    (define shortcuts
+      (append
+       (if (drracket:language-configuration:config-panel-with-keystrokes? simple-case-lambda)
+           (drracket:language-configuration:config-panel-with-keystrokes-keystrokes simple-case-lambda)
+           '())
+       (list (list automatically-compile-kestroke
+                   (λ ()
+                     (send compilation-on-check-box set-value (not (send compilation-on-check-box get-value)))
+                     (compilation-on-checkbox-callback)))
+             (list stacktrace-keystroke
+                   (λ ()
+                     (send save-stacktrace-on-check-box set-value (not (send save-stacktrace-on-check-box get-value)))))
+             (list enforce-module-constants-keystroke
+                   (λ ()
+                     (send enforce-module-constants-checkbox set-value (not (send enforce-module-constants-checkbox get-value))))))))
+
+    (drracket:language-configuration:config-panel-with-keystrokes
+     (case-lambda
+       [()
+        (let ([simple-settings (simple-case-lambda)])
+          (apply make-module-language-settings
+                 (append
+                  (vector->list (drracket:language:simple-settings->vector simple-settings))
+                  (list (get-collection-paths)
+                        (get-command-line-args)
+                        #f ;; auto-text in the settings is ignored.
+                        (case (send left-debugging-radio-box get-selection)
+                          [(0 1) compilation-on?]
+                          [(#f) #f])
+                        (send save-stacktrace-on-check-box get-value)
+                        submodules-to-run
+                        (send enforce-module-constants-checkbox get-value)))))]
+       [(settings)
+        (simple-case-lambda settings)
+        (install-collection-paths (module-language-settings-collection-paths settings))
+        (install-command-line-args (module-language-settings-command-line-args settings))
+        (set! compilation-on? (module-language-settings-compilation-on? settings))
+        (send compilation-on-check-box set-value (module-language-settings-compilation-on? settings))
+        (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
+        (send save-stacktrace-on-check-box set-value (module-language-settings-full-trace? settings))
+        (set-submodules-to-run (module-language-settings-submodules-to-run settings))
+        (send enforce-module-constants-checkbox set-value
+              (module-language-settings-enforce-module-constants settings))
+        (update-buttons)])
+     (if keyboard-shortcuts? shortcuts '())))
 
   (define (add-auto-text-controls new-parent)
     (define auto-text-panel (new group-box-panel%

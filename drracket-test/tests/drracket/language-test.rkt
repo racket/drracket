@@ -56,13 +56,13 @@ the settings above should match r5rs
     (generic-output #t #t #t #t #t #t)
     
     (test-setting
-     (lambda () (fw:test:set-check-box! "Enforce constant definitions (enables some inlining)" #f))
+     (lambda () (fw:test:set-check-box! #rx"Enforce constant definitions" #f))
      "enforce-module-constants -- #f"
      "#lang racket/base\n(define x 1)\n"
      #:interactions "(set! x 2)"
      "> (set! x 2)")
     (test-setting
-     (lambda () (fw:test:set-check-box! "Enforce constant definitions (enables some inlining)" #t))
+     (lambda () (fw:test:set-check-box! #rx"Enforce constant definitions" #t))
      "enforce-module-constants -- #t"
      "#lang racket/base\n(define x 1)\n"
      #:interactions "(set! x 2)"

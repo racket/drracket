@@ -124,7 +124,7 @@ and then loading the framework after that.
        (test:set-radio-box-item! #rx"The Racket Language")
        
        (with-handlers ([exn:fail? (lambda (x) (void))])
-         (test:button-push "Show Details"))
+         (test:button-push #rx"Show Details"))
        
        (test:button-push "Revert to Language Defaults")
        

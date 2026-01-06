@@ -201,7 +201,8 @@
    add-no-language-chosen-language-if-there-are-choices
    not-a-language-language<%>
    language-allows-executable-creation?
-   only-module-language?))
+   only-module-language?
+   (struct config-panel-with-keystrokes (proc keystrokes))))
 
 (define-signature drracket:tools-cm^
   ())
@@ -377,7 +378,9 @@
 (define-signature drracket:language/int^ extends drracket:language^
   (simple-module-based-language-config-panel
    setup-setup-values
-   simple-module-based-language-render-value/format))
+   simple-module-based-language-render-value/format
+   add-menu-shortcut
+   mouse-event-uses-shortcut-prefix?))
 
 (define-signature drracket:multi-file-search-cm^
   ())

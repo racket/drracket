@@ -1774,7 +1774,7 @@
           ;(set-language-level! (list "Pretty Big"))
           (begin
             (set-language-level! (list "Pretty Big") #f)
-            (test:set-radio-box-item! "No debugging or profiling")
+            (test:set-radio-box-item! #rx"No debugging or profiling")
             (let ([f (test:get-active-top-level-window)])
               (test:button-push "OK")
               (wait-for-new-frame f)))

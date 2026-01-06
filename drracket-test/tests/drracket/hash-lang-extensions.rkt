@@ -12,7 +12,7 @@
    (define ints (queue-callback/res (λ () (send drr get-interactions-text))))
      
    (set-module-language! #f)
-   (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f)
+   (test:set-check-box! #rx"Populate “compiled” directories" #f)
    (test:button-push "OK")
    (wait-for-drracket-frame) ;; make sure language dialog is closed
    
