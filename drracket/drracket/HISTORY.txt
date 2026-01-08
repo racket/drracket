@@ -2,6 +2,9 @@
        Version 9.1
 ------------------------------
 
+  . improve the handling of the dark mode preferences and improve the
+    GUI for choosing color schemes
+
   . improve the interactivity of on-paint when there are a lot of
     check-syntax arrows by caching the arrow drawing in a bitmap
     and computing the bitmap on multiple events
@@ -18,6 +21,11 @@
 
   . the contour window (via the menu-shortcut keystroke "u") shrinks
     when the widest line in the window got smaller
+
+  . improve the Insert Large Letters to be language-sensitive it the
+    choice of comment characters
+
+  . bug fixes and refactorings
 
 
 ------------------------------
