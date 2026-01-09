@@ -4,7 +4,6 @@
          drracket/private/rectangle-intersect
          framework/gui-utils
          framework/preferences
-         framework/private/wob-color-scheme
          mrlib/graph
          mrlib/panel-wob
          pkg/path
@@ -536,7 +535,7 @@
       (define-values (cw ch) (get-client-size))
       (define-values (tw th _1 _2) (send dc get-text-extent label))
       (when in?
-        (define color (if (white-on-black-color-scheme?) 0.5 0.2))
+        (define color (if (white-on-black-panel-scheme?) 0.5 0.2))
         (send dc set-pen "black" 1 'transparent)
         (send dc set-brush (get-label-foreground-color) 'solid)
         (define alpha (send dc get-alpha))
