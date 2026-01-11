@@ -478,9 +478,9 @@ Will not work with the definitions text surrogate interposition that
          (for ([chars (in-list (syntax->list #'(chars ...)))])
            (unless (string? (syntax-e chars))
              (raise-syntax-error 'chars "expected a string" stx chars))
-           (for ([char (in-string (syntax-e chars))])
-             (unless (< (char->integer char) 128)
-               (raise-syntax-error 'chars "expected only one-byte chars" stx chars))))
+           (for ([char (in-string (syntax-e chars))]
+                 #:unless (< (char->integer char) 128))
+             (raise-syntax-error 'chars "expected only one-byte chars" stx chars)))
          #'(cond
              [(check-chars port chars)
               rhs ...]
