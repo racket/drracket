@@ -37,16 +37,14 @@
             0
             (send text last-position)))
   
-    (define dummy
-      (begin
-        (pretty-print (syntax->datum original-object) output-port)
-        (newline output-port)
-        (parameterize ([current-output-port output-port]
-                       [pretty-print-pre-print-hook range-pretty-print-pre-hook]
-                       [pretty-print-post-print-hook range-pretty-print-post-hook]
-                       [pretty-print-columns 30])
-          (pretty-print expanded-datum))
-        (make-modern output-text)))
+    (pretty-print (syntax->datum original-object) output-port)
+    (newline output-port)
+    (parameterize ([current-output-port output-port]
+                   [pretty-print-pre-print-hook range-pretty-print-pre-hook]
+                   [pretty-print-post-print-hook range-pretty-print-post-hook]
+                   [pretty-print-columns 30])
+      (pretty-print expanded-datum))
+    (define dummy (make-modern output-text))
   
     (define ranges
       (sort (apply append (hash-map range-ht (λ (k vs) (map (λ (v) (cons k v)) vs))))
