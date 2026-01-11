@@ -158,19 +158,17 @@
 ;; get-defn-indent : text number -> number
 ;; returns the amount to indent a particular definition
 (define (get-defn-indent text pos)
-  (let* ([para (send text position-paragraph pos)]
-         [para-start (send text paragraph-start-position para #t)])
-    (let loop ([c-pos para-start]
-               [offset 0])
-      (cond
-        [(< c-pos pos)
-         (define char (send text get-character c-pos))
-         (cond
-           [(char=? char #\tab)
-            (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
-           [else
-            (loop (+ c-pos 1) (+ offset 1))])]
-        [else offset]))))
+  (define para (send text position-paragraph pos))
+  (define para-start (send text paragraph-start-position para #t))
+  (let loop ([c-pos para-start]
+             [offset 0])
+    (cond
+      [(< c-pos pos)
+       (define char (send text get-character c-pos))
+       (cond
+         [(char=? char #\tab) (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
+         [else (loop (+ c-pos 1) (+ offset 1))])]
+      [else offset])))
 
 ;; whitespace-or-paren?
 (define (whitespace-or-paren? char)
