@@ -37,16 +37,14 @@
             0
             (send text last-position)))
   
-    (define dummy
-      (begin
-        (pretty-print (syntax->datum original-object) output-port)
-        (newline output-port)
-        (parameterize ([current-output-port output-port]
-                       [pretty-print-pre-print-hook range-pretty-print-pre-hook]
-                       [pretty-print-post-print-hook range-pretty-print-post-hook]
-                       [pretty-print-columns 30])
-          (pretty-print expanded-datum))
-        (make-modern output-text)))
+    (pretty-print (syntax->datum original-object) output-port)
+    (newline output-port)
+    (parameterize ([current-output-port output-port]
+                   [pretty-print-pre-print-hook range-pretty-print-pre-hook]
+                   [pretty-print-post-print-hook range-pretty-print-post-hook]
+                   [pretty-print-columns 30])
+      (pretty-print expanded-datum))
+    (define dummy (make-modern output-text))
   
     (define ranges
       (sort (apply append (hash-map range-ht (λ (k vs) (map (λ (v) (cons k v)) vs))))
@@ -78,22 +76,21 @@
                     (and (syntax? origin) (syntax->datum origin)))]
           [else (void)])))
   
-    (for-each (λ (range)
-                (let* ([obj (car range)]
-                       [stx (hash-ref stx-ht obj)]
-                       [start (cadr range)]
-                       [end (cddr range)])
-                  (when (syntax? stx)
-                    (send output-text set-clickback
-                          start
-                          end
-                          (λ _
-                            (send info-text begin-edit-sequence)
-                            (send info-text erase)
-                            (show-info stx)
-                            (make-modern info-text)
-                            (send info-text end-edit-sequence))))))
-              ranges)
+    (for ([range (in-list ranges)])
+      (define obj (car range))
+      (define stx (hash-ref stx-ht obj))
+      (define start (cadr range))
+      (define end (cddr range))
+      (when (syntax? stx)
+        (send output-text set-clickback
+              start
+              end
+              (λ _
+                (send info-text begin-edit-sequence)
+                (send info-text erase)
+                (show-info stx)
+                (make-modern info-text)
+                (send info-text end-edit-sequence)))))
   
     (newline output-port)
     (newline output-port)
@@ -105,11 +102,10 @@
             (λ _
               (send info-text begin-edit-sequence)
               (send info-text erase)
-              (for-each (λ (rng)
-                          (let ([stx (hash-ref stx-ht (car rng))])
-                            (when (syntax? stx)
-                              (show-info stx))))
-                        ranges)
+              (for ([rng (in-list ranges)])
+                (define stx (hash-ref stx-ht (car rng)))
+                (when (syntax? stx)
+                  (show-info stx)))
               (make-modern info-text)
               (send info-text end-edit-sequence))))
   
@@ -125,24 +121,24 @@
   (define (syntax-object->datum/ht stx)
     (define ht (make-hasheq))
     (values (let loop ([stx stx])
-              (let ([obj (syntax-e stx)])
-                (cond
-                  [(list? obj)
-                   (let ([res (map loop obj)])
-                     (hash-set! ht res stx)
-                     res)]
-                  [(pair? obj)
-                   (let ([res (cons (loop (car obj)) (loop (cdr obj)))])
-                     (hash-set! ht res stx)
-                     res)]
-                  [(vector? obj)
-                   (let ([res (list->vector (map loop (vector->list obj)))])
-                     (hash-set! ht res stx)
-                     res)]
-                  [else
-                   (let ([res (syntax->datum stx)])
-                     (hash-set! ht res stx)
-                     res)])))
+              (define obj (syntax-e stx))
+              (cond
+                [(list? obj)
+                 (let ([res (map loop obj)])
+                   (hash-set! ht res stx)
+                   res)]
+                [(pair? obj)
+                 (let ([res (cons (loop (car obj)) (loop (cdr obj)))])
+                   (hash-set! ht res stx)
+                   res)]
+                [(vector? obj)
+                 (let ([res (list->vector (map loop (vector->list obj)))])
+                   (hash-set! ht res stx)
+                   res)]
+                [else
+                 (let ([res (syntax->datum stx)])
+                   (hash-set! ht res stx)
+                   res)]))
             ht))
   
   ;; make-text-port : text -> port
@@ -151,8 +147,8 @@
     (define-values (in out) (make-pipe))
     (thread (λ ()
               (let loop ()
-                (let ([c (read-char in)])
-                  (unless (eof-object? c)
-                    (send text insert (string c) (send text last-position) (send text last-position))
-                    (loop))))))
+                (define c (read-char in))
+                (unless (eof-object? c)
+                  (send text insert (string c) (send text last-position) (send text last-position))
+                  (loop)))))
     out)

@@ -96,12 +96,13 @@
             (and smallest-i
                  (string-length (define-popup-info-prefix
                                   (list-ref the-define-popup-infos smallest-i))))
-            (and smallest-i
-                 (let ([proc (define-popup-info-get-name
-                               (list-ref the-define-popup-infos smallest-i))])
-                   (if proc
-                       (lambda (text pos) (proc text pos get-defn-name))
-                       get-defn-name)))
+            (cond
+              [smallest-i
+               (define proc (define-popup-info-get-name (list-ref the-define-popup-infos smallest-i)))
+               (if proc
+                   (lambda (text pos) (proc text pos get-defn-name))
+                   get-defn-name)]
+              [else #f])
             final-positions))
   
   (define defs
@@ -158,19 +159,17 @@
 ;; get-defn-indent : text number -> number
 ;; returns the amount to indent a particular definition
 (define (get-defn-indent text pos)
-  (let* ([para (send text position-paragraph pos)]
-         [para-start (send text paragraph-start-position para #t)])
-    (let loop ([c-pos para-start]
-               [offset 0])
-      (cond
-        [(< c-pos pos)
-         (define char (send text get-character c-pos))
-         (cond
-           [(char=? char #\tab)
-            (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
-           [else
-            (loop (+ c-pos 1) (+ offset 1))])]
-        [else offset]))))
+  (define para (send text position-paragraph pos))
+  (define para-start (send text paragraph-start-position para #t))
+  (let loop ([c-pos para-start]
+             [offset 0])
+    (cond
+      [(< c-pos pos)
+       (define char (send text get-character c-pos))
+       (cond
+         [(char=? char #\tab) (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
+         [else (loop (+ c-pos 1) (+ offset 1))])]
+      [else offset])))
 
 ;; whitespace-or-paren?
 (define (whitespace-or-paren? char)
