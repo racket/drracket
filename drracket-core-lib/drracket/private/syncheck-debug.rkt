@@ -76,22 +76,21 @@
                     (and (syntax? origin) (syntax->datum origin)))]
           [else (void)])))
   
-    (for-each (λ (range)
-                (let* ([obj (car range)]
-                       [stx (hash-ref stx-ht obj)]
-                       [start (cadr range)]
-                       [end (cddr range)])
-                  (when (syntax? stx)
-                    (send output-text set-clickback
-                          start
-                          end
-                          (λ _
-                            (send info-text begin-edit-sequence)
-                            (send info-text erase)
-                            (show-info stx)
-                            (make-modern info-text)
-                            (send info-text end-edit-sequence))))))
-              ranges)
+    (for ([range (in-list ranges)])
+      (define obj (car range))
+      (define stx (hash-ref stx-ht obj))
+      (define start (cadr range))
+      (define end (cddr range))
+      (when (syntax? stx)
+        (send output-text set-clickback
+              start
+              end
+              (λ _
+                (send info-text begin-edit-sequence)
+                (send info-text erase)
+                (show-info stx)
+                (make-modern info-text)
+                (send info-text end-edit-sequence)))))
   
     (newline output-port)
     (newline output-port)
@@ -103,11 +102,10 @@
             (λ _
               (send info-text begin-edit-sequence)
               (send info-text erase)
-              (for-each (λ (rng)
-                          (let ([stx (hash-ref stx-ht (car rng))])
-                            (when (syntax? stx)
-                              (show-info stx))))
-                        ranges)
+              (for ([rng (in-list ranges)])
+                (define stx (hash-ref stx-ht (car rng)))
+                (when (syntax? stx)
+                  (show-info stx)))
               (make-modern info-text)
               (send info-text end-edit-sequence))))
   
