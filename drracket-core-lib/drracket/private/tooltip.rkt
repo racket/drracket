@@ -114,14 +114,13 @@
     (init-field [frame-to-track #;#;: (Option (Instance Window<%>)) #f])
     (: timer (Option (Instance Timer%)))
     (define timer
-      (let ([frame-to-track frame-to-track])
-        (and frame-to-track
-             (new timer%
-                  [notify-callback
-                   (λ ()
-                     (unless (send frame-to-track is-shown?)
-                       (show #f)
-                       (send (assert timer) stop)))]))))
+      (and frame-to-track
+           (new timer%
+                [notify-callback
+                 (λ ()
+                   (unless (send frame-to-track is-shown?)
+                     (show #f)
+                     (send (assert timer) stop)))])))
     
     
     (define/override (on-subwindow-event r evt)
