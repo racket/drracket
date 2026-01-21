@@ -1231,7 +1231,8 @@ TODO
                                (call-with-values
                                 (λ ()
                                   (parameterize ([outermost #t])
-                                    (eval-syntax sexp/syntax/eof)))
+                                    (with-stack-checkpoint
+                                        (eval-syntax sexp/syntax/eof))))
                                 list))
                              (parameterize ([pretty-print-columns pretty-print-width])
                                (for ([x (in-list results)])
