@@ -1,10 +1,9 @@
 #lang racket/base
-(require racket/gui/base "private/key.rkt" "private/compiled-dir.rkt")
+(require "private/key.rkt" "private/compiled-dir.rkt")
 
 (module test racket/base)
 
 (define debugging? (getenv "PLTDRDEBUG"))
-(define profiling? (getenv "PLTDRPROFILE"))
 
 (define first-parallel? (getenv "PLTDRPAR"))
 
@@ -33,12 +32,21 @@
                       (displayln str))
                     (loop))))))
 
+(define drracket-splash-load-handler
+  (let ([old-load (current-load)])
+    (λ (f expected)
+      (drracket-splash-load-handler-step)
+      (old-load f expected))))
+(current-load drracket-splash-load-handler)
+
 (cond
   [debugging?
    (flprintf "PLTDRDEBUG: loading CM to load/create errortrace zos\n")
+   (printf "original ns registry ~a\n" (eq-hash-code (namespace-module-registry (current-namespace))))
+   (current-namespace (make-base-empty-namespace))
+   (printf "new ns registry ~a\n" (eq-hash-code (namespace-module-registry (current-namespace))))
    (define-values (zo-compile make-compilation-manager-load/use-compiled-handler)
-     (parameterize ([current-namespace (make-base-empty-namespace)]
-                    [use-compiled-file-paths '()])
+     (parameterize ([use-compiled-file-paths '()])
        (values (dynamic-require 'errortrace/zo-compile 'zo-compile)
                (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler))))
    (flprintf "PLTDRDEBUG: installing CM to load/create errortrace zos\n")
@@ -52,9 +60,9 @@
      (run-trace-thread))]
   [install-cm?
    (flprintf "PLTDRCM: loading compilation manager\n")
+   (current-namespace (make-base-empty-namespace))
    (define make-compilation-manager-load/use-compiled-handler
-     (parameterize ([current-namespace (make-base-empty-namespace)])
-       (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler)))
+     (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler))
    (flprintf "PLTDRCM: installing compilation manager\n")
    (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
    (when cm-trace?
@@ -95,10 +103,9 @@
                          dirs
                          (list dirs))))
             '()))))
-   
+   (current-namespace (make-base-empty-namespace))
    (define make-compilation-manager-load/use-compiled-handler
-     (parameterize ([current-namespace (make-base-empty-namespace)])
-       (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler)))
+     (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler))
    (when cm-trace?
      (flprintf "PLTDRPAR: enabling CM tracing\n")
      (run-trace-thread))
@@ -132,18 +139,6 @@
    (flprintf "PLTDRPAR: installing compilation manager\n")
    (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))])
 
-(when profiling?
-  (flprintf "PLTDRPROFILE: installing profiler\n")
-  ;; NOTE that this might not always work.
-  ;; it creates a new custodian and installs it, but the
-  ;; original eventspace was created on the original custodian
-  ;; and this code does not create a new eventspace. 
-  (define orig-cust (current-custodian))
-  (current-eventspace)
-  (define new-cust (make-custodian))
-  (current-custodian new-cust)
-  ((dynamic-require 'drracket/private/profile-drs 'start-profile) orig-cust))
-
 (dynamic-require 'drracket/private/drracket-normal #f)
 
 (when repl
@@ -155,4 +150,3 @@
     (when (file-exists? init-file)
       (load init-file)))
   (void (thread read-eval-print-loop)))
-

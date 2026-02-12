@@ -7,10 +7,22 @@
          racket/runtime-path
          (for-syntax racket/base)
          mrlib/panel-wob
+         "key.rkt"
          "frame-icon.rkt"
          "dates.rkt")
 
 (module test racket/base)
+
+(when (getenv "PLTDRPROFILE")
+  (fprintf "PLTDRPROFILE: installing profiler\n")
+  ;; NOTE that this might not always work.
+  ;; it creates a new custodian and installs it, but the
+  ;; original eventspace was created on the original custodian
+  ;; and this code does not create a new eventspace. 
+  (define orig-cust (current-custodian))
+  (define new-cust (make-custodian))
+  (current-custodian new-cust)
+  ((dynamic-require 'drracket/private/profile-drs 'start-profile) orig-cust))
 
 (define-runtime-path doc-icon.rkt "dock-icon.rkt")
 
@@ -295,6 +307,7 @@
                   the-bitmap-spec)
               (format "DrRacket ~a" (version))
               700
+              #:increment-splash (λ (f) (set-drracket-splash-load-handler-step! f))
               #:allow-funny? #t
               #:frame-icon (and (equal? (system-type) 'unix)
                                 (get-todays-icon)))

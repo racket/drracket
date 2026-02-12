@@ -1,5 +1,5 @@
 #lang racket/base
-  (provide break-threads)
+  (provide break-threads drracket-splash-load-handler-step set-drracket-splash-load-handler-step!)
   (define super-cust (current-custodian))
   (define first-child (make-custodian))
   (current-custodian first-child)
@@ -16,3 +16,6 @@
                (break-thread man))
              (when (custodian? man)
                (loop current-cust man))))))))
+
+(define drracket-splash-load-handler-step void)
+(define (set-drracket-splash-load-handler-step! f) (set! drracket-splash-load-handler-step f))
