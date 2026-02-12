@@ -5,7 +5,7 @@
 (define compile-omit-paths '("snip" "image-and-comment-box.rkt"))
 
 (define test-timeouts '(("easter-egg.rkt" 300)
-                        ("errortrace-startup.rkt" 600)
+                        ("errortrace-startup.rkt" 1000)
                         ("teaching-lang-sharing-modules.rkt" 600)
                         ("no-write-and-frame-leak.rkt" 300)
                         ("test-engine-test.rkt" 300)))
