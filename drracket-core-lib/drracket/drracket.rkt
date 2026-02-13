@@ -42,9 +42,7 @@
 (cond
   [debugging?
    (flprintf "PLTDRDEBUG: loading CM to load/create errortrace zos\n")
-   (printf "original ns registry ~a\n" (eq-hash-code (namespace-module-registry (current-namespace))))
    (current-namespace (make-base-empty-namespace))
-   (printf "new ns registry ~a\n" (eq-hash-code (namespace-module-registry (current-namespace))))
    (define-values (zo-compile make-compilation-manager-load/use-compiled-handler)
      (parameterize ([use-compiled-file-paths '()])
        (values (dynamic-require 'errortrace/zo-compile 'zo-compile)
@@ -130,10 +128,10 @@
                              (case handler-type
                                [(done) 
                                 (when cm-trace?
-                                  (printf "PLTDRPAR: made ~a\n" path))]
+                                  (flprintf "PLTDRPAR: made ~a\n" path))]
                                [else
-                                (printf "~a\n" msg)
-                                (printf "stdout from compiling ~a:\n~a\n" path out)
+                                (flprintf "~a\n" msg)
+                                (flprintf "stdout from compiling ~a:\n~a\n" path out)
                                 (flush-output)
                                 (eprintf "stderr from compiling ~a:\n~a\n" path err)])))
    (flprintf "PLTDRPAR: installing compilation manager\n")
@@ -142,7 +140,7 @@
 (dynamic-require 'drracket/private/drracket-normal #f)
 
 (when repl
-  (printf "Welcome to DrRacket, v~a\n" (version))
+  (flprintf "Welcome to DrRacket, v~a\n" (version))
   (namespace-require 'racket)
   (namespace-require 'drracket/tool-lib)
   (unless (equal? repl "-q")
