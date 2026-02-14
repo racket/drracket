@@ -17,6 +17,16 @@ the same ones that drracket is using.
 (void (putenv "PLTDRDEBUG" "yes")
       (putenv "PLTNOTOOLS" "yes"))
 
+(void
+ (thread
+  (λ ()
+    (define lr (make-log-receiver (current-logger) 'info 'compiler/cm))
+    (let loop ()
+      (define msg (sync lr))
+      (displayln (vector-ref msg 1))
+      (flush-output)
+      (loop)))))
+
 ;; start up DrRacket
 (dynamic-require 'drracket #f)
 
