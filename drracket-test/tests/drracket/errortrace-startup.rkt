@@ -17,6 +17,8 @@ the same ones that drracket is using.
 (void (putenv "PLTDRDEBUG" "yes")
       (putenv "PLTNOTOOLS" "yes"))
 
+;; this logs the files as they are compiled.
+#;
 (void
  (thread
   (λ ()
@@ -34,7 +36,6 @@ the same ones that drracket is using.
 ;; see if the drracket frame appeared.
 (define get-top-level-windows (dynamic-require 'racket/gui/base 'get-top-level-windows))
 (define yield (dynamic-require 'racket/gui/base 'yield))
-(define application-quit-handler (dynamic-require 'racket/gui/base 'application-quit-handler))
 (define object-interface (dynamic-require 'racket/class 'object-interface))
 (define method-in-interface? (dynamic-require 'racket/class 'method-in-interface?))
 
