@@ -216,6 +216,7 @@
     (mixin (text:basic<%>) (ml-tools-text<%>)
       (inherit position-paragraph paragraph-start-position
                delete insert
+               set-position paragraph-end-position get-character
                begin-edit-sequence end-edit-sequence)
       (define/public (range-indent range-indentation-function start end)
         (define substs (range-indentation-function this start end))
@@ -227,13 +228,38 @@
                (let loop ([substs substs] [line start-line])
                  (unless (or (null? substs)
                              (line . > . end-line))
-                   (define pos (paragraph-start-position line))
+                   (define para-start-pos (paragraph-start-position line))
                    (define del-amt (caar substs))
                    (define insert-str (cadar substs))
+                   (define in-whitespace-before-edit?
+                     (cond
+                       [(= start end)
+                        (define para-end (paragraph-end-position start-line))
+                        (let loop ([pos para-start-pos])
+                          (cond
+                            [(< pos para-end)
+                             (define c (get-character pos))
+                             (cond
+                               [(char-whitespace? c) (loop (+ pos 1))]
+                               [else
+                                (<= para-start-pos start pos)])]
+                            [else #f]))]
+                       [else #f]))
                    (unless (zero? del-amt)
-                     (delete pos (+ pos del-amt)))
+                     (delete para-start-pos (+ para-start-pos del-amt)))
                    (unless (equal? insert-str "")
-                     (insert insert-str pos))
+                     (insert insert-str para-start-pos))
+                   (when (and (= start end)
+                              in-whitespace-before-edit?)
+                     (define para-end (paragraph-end-position start-line))
+                     (let loop ([pos para-start-pos])
+                       (cond
+                         [(< pos para-end)
+                          (define c (get-character pos))
+                          (cond
+                            [(char-whitespace? c) (loop (+ pos 1))]
+                            [else (set-position pos pos)])]
+                         [else (void)])))
                    (loop (cdr substs) (add1 line))))
                (end-edit-sequence)
                #t)))
