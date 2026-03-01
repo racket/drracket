@@ -109,12 +109,11 @@
               (make-modern info-text)
               (send info-text end-edit-sequence))))
   
-    (let ()
-      (define f (make-object frame% "Syntax 'origin Browser" #f 600 300))
-      (define p (make-object horizontal-panel% f))
-      (make-object editor-canvas% p output-text)
-      (make-object editor-canvas% p info-text)
-      (send f show #t)))
+    (define f (make-object frame% "Syntax 'origin Browser" #f 600 300))
+    (define p (make-object horizontal-panel% f))
+    (make-object editor-canvas% p output-text)
+    (make-object editor-canvas% p info-text)
+    (send f show #t))
   
   ;; build-ht : stx -> hash-table
   ;; the resulting hash-table maps from the each sub-object's to its syntax.
