@@ -509,8 +509,8 @@
 
     (define (fraction-style->exact-prefix+view fraction-style)
       (case fraction-style
-        [(mixed-fraction) (values 'never 'mixed)]
-        [(mixed-fraction-e) (values 'never  'mixed)]
+        [(mixed-fraction) (values 'never (preferences:get 'framework:fraction-snip-style))]
+        [(mixed-fraction-e) (values 'never (preferences:get 'framework:fraction-snip-style))]
         [(repeating-decimal) (values 'never  'decimal)]
         [(repeating-decimal-e) (values 'when-necessary 'decimal)]))
       
