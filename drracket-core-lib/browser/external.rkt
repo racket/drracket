@@ -183,11 +183,11 @@
                       [parent h-panel]
                       [callback
                        (lambda (radio event)
-                         (let ([n (send radio get-selection)])
-                           (set-browser! (cond
-                                           [(= n none-index) #f]
-                                           [(= n custom-index) (get-custom)]
-                                           [else (list-ref raw:unix-browser-list n)]))))])]
+                         (define n (send radio get-selection))
+                         (set-browser! (cond
+                                         [(= n none-index) #f]
+                                         [(= n custom-index) (get-custom)]
+                                         [else (list-ref raw:unix-browser-list n)])))])]
               [select-custom (lambda (_ __)
                                (send r set-selection custom-index)
                                (set-browser! (get-custom)))]
