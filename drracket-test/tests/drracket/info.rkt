@@ -17,3 +17,5 @@
                             ("language-test.rkt" (robby matthias))
                             ("hangman.rkt" (robby matthias))
                             (all robby)))
+
+(define test-xvfb-paths '("memory-log.rkt"))
