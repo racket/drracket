@@ -198,6 +198,7 @@
             '(lib "simple-tree-text-markup/data.rkt")
             ; srclocs-special<%>
             '(lib "simple-tree-text-markup/port.rkt")
+            '(lib "errortrace/marks-to-context.rkt")
             ;; preserve the invariant that:
             ;;   if a module is shared, so 
             ;;   are all of its submodules

@@ -11,7 +11,7 @@
                ["drracket-plugin-lib" #:version "1.1"]
                "drracket-tool-lib"
                "drracket-tool-text-lib"
-               ["errortrace-lib" #:version "1.5"]
+               ["errortrace-lib" #:version "1.6"]
                ["gui-lib" #:version "1.76"]
                "gui-pkg-manager-lib"
                ["icons" #:version "1.2"]

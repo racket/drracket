@@ -10,9 +10,11 @@
          pkg/lib
          framework/preferences
          errortrace/stacktrace
+         errortrace/marks-to-context
          "drracket-errortrace-key.rkt"
          (prefix-in *** '#%foreign) ;; just to make sure it is here
-         "compiled-dir.rkt")
+         "compiled-dir.rkt"
+         (submod "stack-checkpoint.rkt" item->srcloc))
 
 (provide set-basic-parameters/no-gui
          set-module-language-parameters
@@ -165,6 +167,15 @@
                                        (use-compiled-file-paths))])
                  (orig path mod-name))
                (orig path mod-name))))))
+
+    (errortrace-continuation-mark-set->context
+     (let ([drracket-errortrace-lib-continuation-mark-set->context
+            (λ (cms)
+              (map
+               errortrace-stack-item->srcloc
+               (continuation-mark-set->list cms drracket-errortrace-key)))])
+       drracket-errortrace-lib-continuation-mark-set->context))
+
     ;; Install the compilation manager:
     (current-parallel-lock-shutdown-evt (make-custodian-box (current-custodian) #t))
     (parallel-lock-client module-language-parallel-lock-client)
