@@ -36,6 +36,17 @@
          errortrace-stack-item->srcloc
          copy-viewable-stack)
 
+(module item->srcloc racket/base
+  (provide errortrace-stack-item->srcloc)
+  
+  (define (errortrace-stack-item->srcloc x)
+    (make-srcloc (vector-ref x 0)
+                 (vector-ref x 1)
+                 (vector-ref x 2)
+                 (vector-ref x 3)
+                 (vector-ref x 4))))
+(require (submod "." item->srcloc))
+
 (provide
  (contract-out
   [cut-stack-at-checkpoint (-> continuation-mark-set? (listof srcloc?))]
@@ -175,13 +186,6 @@
                         errortrace-stack-item->srcloc
                         interesting-editors
                         a-viewable-stack))
-
-(define (errortrace-stack-item->srcloc x)
-  (make-srcloc (vector-ref x 0)
-               (vector-ref x 1)
-               (vector-ref x 2)
-               (vector-ref x 3)
-               (vector-ref x 4)))
 
 (define (cms->builtin-viewable-stack cms interesting-editors
                                      #:share-cache [a-viewable-stack #f])
