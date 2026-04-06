@@ -58,7 +58,8 @@ arguments. Other tools may use only a subset.
          @item{@language-info-ref[drracket:toolbar-buttons]}
          @item{@language-info-ref[drracket:define-popup]}
          @item{@language-info-ref[documentation-language-family]}
-         @item{@language-info-ref[definitions-text-surrogate]}]
+         @item{@language-info-ref[definitions-text-surrogate]}
+         @item{@language-info-ref[drracket:default-instrumentation]}]
 
 @section{Syntax Coloring}
 
@@ -606,6 +607,27 @@ DrRacket uses the contents of this hash in three ways:
    along to @racket[send-language-family-page].
    }]
 }
+
+@section[#:tag "sec:drracket:default-instrumentation"]{Defaulting to Debugging or other Errortrace-based Annotations}
+
+@language-info-def[drracket:default-instrumentation]{
+DrRacket uses the @racketmodname[errortrace] library to instrument programs
+before evaluating them, resulting in a tradeoff between feedback to the
+programmer and execution (and compile-time) cost. But default, each
+@tt{#lang}-based language is run with errortrace's debugging annotations,
+meaning that error context information is relatively fine-grained. For some
+languages, however, this default isn't appropriate. By responding to the
+key drracket:default-instrumentation, a language can choose a different
+default. These are the options:
+@itemlist[
+ @item{@racket['none]: no errortrace-based annotations}
+ @item{@racket['debug]: instruments the program to provide fine-grained stacktrace information}
+ @item{@racket['debug/profile]: instruments the program to provide fine-grained stacktrace information and profiling information}
+ @item{@racket['test-coverage]: instruments the program to provide fine-grained stacktrace information and test coverage information}
+ ]
+ }
+
+@history[#:added "1.17"]
 
 @section[#:tag "sec:definitions-text-surrogate"]{Definitions Text Surrogate}
 

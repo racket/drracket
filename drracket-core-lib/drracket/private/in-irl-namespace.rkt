@@ -246,6 +246,7 @@
                                                    string?)
                                                string?)))))]
     [(documentation-language-family) (or/c #f string?)]
+    [(drracket:default-instrumentation) (or/c 'none 'debug 'debug/profile 'test-coverage)]
     [else
      (error 'key->contract "unknown key")]))
 

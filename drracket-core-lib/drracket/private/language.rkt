@@ -203,10 +203,10 @@
                      repeating-decimal-e))
              (boolean? (vector-ref printable 3))
              (boolean? (vector-ref printable 4))
-             (memq (vector-ref printable 5) '(none debug debug/profile test-coverage))
+             (memq (vector-ref printable 5) '(none debug debug/profile test-coverage lang-default))
              (apply make-simple-settings (vector->list printable))))
       (define/public (default-settings) 
-        (make-simple-settings #t 'print 'mixed-fraction-e #f #t 'debug))
+        (make-simple-settings #t 'print 'mixed-fraction-e #f #t 'lang-default))
       (define/public (default-settings? x)
         (equal? (simple-settings->vector x)
                 (simple-settings->vector (default-settings))))
@@ -254,6 +254,7 @@
            #:debugging-radio-box-callback [debugging-radio-box-callback void]
            #:include-print-mode? [include-print-mode? #t]
            #:keyboard-shortcuts? [keyboard-shortcuts? #f]
+           #:lang-default-debugging? [lang-default-debugging? #f]
 
            ;; called whenever any of the settings changed; used when the settings
            ;; are put into the preferences dialog (which doesn't have an explicit
@@ -264,6 +265,7 @@
     (define debugging-keystroke #\b)
     (define debugging-and-profiling-keystroke #\p)
     (define test-coverage-keystroke #\c)
+    (define default-debugging-keystroke #\i)
 
     (letrec ([parent (new vertical-panel% (parent _parent) (alignment '(center center)))]
              
@@ -308,6 +310,7 @@
              [debugging-left-callback
               (λ ()
                 (send debugging-right set-selection #f)
+                (send debugging-bottom set-selection #f)
                 (debugging-radio-box-callback)
                 (something-changed))]
              [debugging-right (new radio-box%
@@ -326,6 +329,24 @@
              [debugging-right-callback
               (λ ()
                 (send debugging-left set-selection #f)
+                (send debugging-bottom set-selection #f)
+                (debugging-radio-box-callback)
+                (something-changed))]
+             [debugging-bottom
+              (and lang-default-debugging?
+                   (new radio-box%
+                        [label #f]
+                        [parent dynamic-panel]
+                        [choices (list (add-menu-shortcut
+                                        (string-constant use-hash-langs-instrumentation)
+                                        (and keyboard-shortcuts? default-debugging-keystroke)))]
+                        [callback
+                         (λ (a b)
+                           (debugging-bottom-callback))]))]
+             [debugging-bottom-callback
+              (λ ()
+                (send debugging-left set-selection #f)
+                (send debugging-right set-selection #f)
                 (debugging-radio-box-callback)
                 (something-changed))]
              [output-style (make-object radio-box%
@@ -357,7 +378,11 @@
               (make-object check-box% (string-constant decimal-notation-for-rationals)
                 output-panel
                 (λ (_1 _2) (something-changed)))])
-      (get-debugging-radio-box debugging-left debugging-right)
+      (cond
+        [(procedure-arity-includes? get-debugging-radio-box 3)
+         (get-debugging-radio-box debugging-left debugging-right debugging-bottom)]
+        [else
+         (get-debugging-radio-box debugging-left debugging-right)])
       (dynamic-panel-extras dynamic-panel)
 
       (define shortcuts
@@ -376,7 +401,11 @@
               (list test-coverage-keystroke
                     (λ ()
                       (send debugging-right set-selection 1)
-                      (debugging-right-callback)))))
+                      (debugging-right-callback)))
+              (list default-debugging-keystroke
+                    (λ ()
+                      (send debugging-bottom set-selection 0)
+                      (debugging-bottom-callback)))))
 
 
       (drracket:language-configuration:config-panel-with-keystrokes
@@ -396,33 +425,40 @@
                'mixed-fraction-e)
            (send show-sharing get-value)
            (send insert-newlines get-value)
-           (case (send debugging-left get-selection)
-             [(0) 'none]
-             [(1) 'debug]
-             [(#f)
-              (case (send debugging-right get-selection)
-                [(0) 'debug/profile]
-                [(1) 'test-coverage])]))]
+           (match (send debugging-left get-selection)
+             [0 'none]
+             [1 'debug]
+             [#f
+              (match (send debugging-right get-selection)
+                [0 'debug/profile]
+                [1 'test-coverage]
+                [#f (cond
+                      [debugging-bottom
+                       (match (send debugging-bottom get-selection)
+                         [0 'lang-default])]
+                      [else #f])])]))]
          [(settings)
           (when case-sensitive
             (send case-sensitive set-value
                   (simple-settings-case-sensitive settings)))
           (send output-style set-selection
-                (case (simple-settings-printing-style settings)
-                  [(constructor) 0]
-                  [(quasiquote) 1]
-                  [(write trad-write) 2]
-                  [(print) (if include-print-mode? 3 2)]))
+                (match (simple-settings-printing-style settings)
+                  ['constructor 0]
+                  ['quasiquote 1]
+                  ['write 2]
+                  ['trad-write 2]
+                  ['print (if include-print-mode? 3 2)]))
           (enable-fraction-style)
           (send fraction-style set-value (eq? (simple-settings-fraction-style settings)
                                               'repeating-decimal-e))
           (send show-sharing set-value (simple-settings-show-sharing settings))
           (send insert-newlines set-value (simple-settings-insert-newlines settings))
-          (case (simple-settings-annotations settings)
-            [(none) (send debugging-right set-selection #f) (send debugging-left set-selection 0)]
-            [(debug) (send debugging-right set-selection #f) (send debugging-left set-selection 1)]
-            [(debug/profile) (send debugging-left set-selection #f) (send debugging-right set-selection 0)]
-            [(test-coverage) (send debugging-left set-selection #f) (send debugging-right set-selection 1)])])
+          (match (simple-settings-annotations settings)
+            ['none (send debugging-right set-selection #f) (send debugging-left set-selection 0) (when debugging-bottom (send debugging-bottom set-selection #f))]
+            ['debug (send debugging-right set-selection #f) (send debugging-left set-selection 1) (when debugging-bottom (send debugging-bottom set-selection #f))]
+            ['debug/profile (send debugging-left set-selection #f) (send debugging-right set-selection 0) (when debugging-bottom (send debugging-bottom set-selection #f))]
+            ['test-coverage (send debugging-left set-selection #f) (send debugging-right set-selection 1) (when debugging-bottom (send debugging-bottom set-selection #f))]
+            ['lang-default (when debugging-bottom (send debugging-left set-selection #f) (send debugging-right set-selection #f) (send debugging-bottom set-selection 0))])])
        (if keyboard-shortcuts? shortcuts '()))))
   
   ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) (union 'infinity number) -> void
@@ -645,33 +681,38 @@
             (to-snip-value? expr))
         expr
         (sh expr basic-convert sub-convert)))
-  
+
+(define lang-default-annotations (make-parameter 'debug))
+
   ;; initialize-simple-module-based-language : setting ((-> void) -> void)
   (define (initialize-simple-module-based-language setting run-in-user-thread)
+    (define annotations
+      (cond
+        [(equal? (simple-settings-annotations setting) 'lang-default)
+         (lang-default-annotations)]
+        [else (simple-settings-annotations setting)]))
     (run-in-user-thread
      (λ ()
-       
-       (let ([annotations (simple-settings-annotations setting)])
-         (case annotations
-           [(debug)
-            (current-compile (drracket:debug:make-debug-compile-handler (current-compile)))
-            (error-display-handler 
-             (drracket:debug:make-debug-error-display-handler
-              (error-display-handler)))]
+       (case annotations
+         [(debug)
+          (current-compile (drracket:debug:make-debug-compile-handler (current-compile)))
+          (error-display-handler
+           (drracket:debug:make-debug-error-display-handler
+            (error-display-handler)))]
            
-           [(debug/profile)
-            (drracket:debug:profiling-enabled #t)
-            (error-display-handler 
-             (drracket:debug:make-debug-error-display-handler
-              (error-display-handler)))
-            (current-eval (drracket:debug:make-debug-eval-handler (current-eval)))]
+         [(debug/profile)
+          (drracket:debug:profiling-enabled #t)
+          (error-display-handler
+           (drracket:debug:make-debug-error-display-handler
+            (error-display-handler)))
+          (current-eval (drracket:debug:make-debug-eval-handler (current-eval)))]
            
-           [(test-coverage)
-            (drracket:debug:test-coverage-enabled #t)
-            (error-display-handler 
-             (drracket:debug:make-debug-error-display-handler
-              (error-display-handler)))
-            (current-eval (drracket:debug:make-debug-eval-handler (current-eval)))]))
+         [(test-coverage)
+          (drracket:debug:test-coverage-enabled #t)
+          (error-display-handler
+           (drracket:debug:make-debug-error-display-handler
+            (error-display-handler)))
+          (current-eval (drracket:debug:make-debug-eval-handler (current-eval)))])
        
        (define-values (my-setup-printing-parameters
                        drracket-pretty-print-size-hook

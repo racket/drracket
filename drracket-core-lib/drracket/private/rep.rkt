@@ -1454,16 +1454,26 @@ TODO
             (send context set-breakables #f #f)
             
             ;; initialize the language
-            (send (drracket:language-configuration:language-settings-language user-language-settings)
-                  on-execute
-                  (drracket:language-configuration:language-settings-settings user-language-settings)
-                  (let ([run-on-user-thread
-                         (lambda (t) 
-                           (queue-user/wait 
-                            (λ ()
-                              (with-handlers ((exn? (λ (x) (oprintf "~s\n" (exn-message x)))))
-                                (t)))))])
-                    run-on-user-thread))
+            (let ()
+              (define (run-on-user-thread t)
+                (queue-user/wait
+                 (λ ()
+                   (with-handlers ((exn? (λ (x) (oprintf "~s\n" (exn-message x)))))
+                     (t)))))
+              (define lang (drracket:language-configuration:language-settings-language user-language-settings))
+              (define settings (drracket:language-configuration:language-settings-settings user-language-settings))
+              (cond
+                [(is-a? lang drracket:module-language:module-language<%>)
+                 (send lang
+                       on-execute
+                       settings
+                       run-on-user-thread
+                       (send definitions-text get-irl))]
+                [else
+                 (send lang
+                       on-execute
+                       settings
+                       run-on-user-thread)]))
             
             ;; setup the special repl values
             (let ([raised-exn? #f]

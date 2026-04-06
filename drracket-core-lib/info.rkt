@@ -30,7 +30,7 @@
                ["racket-index" #:version "1.4"]
                "sandbox-lib"
                ["scribble-lib" #:version "1.11"]
-               ["string-constants-lib" #:version "1.54"]
+               ["string-constants-lib" #:version "1.57"]
                ["syntax-color-lib" #:version "1.4"]
                "simple-tree-text-markup-lib"
                "typed-racket-lib"
@@ -42,7 +42,7 @@
 
 (define pkg-authors '(robby))
 
-(define version "1.16")
+(define version "1.17")
 
 (define license
   '(Apache-2.0 OR MIT))

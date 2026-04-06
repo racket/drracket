@@ -76,6 +76,10 @@ of various libraries).
         The @italic{Syntactic test suite coverage} option means to use @racket[test-coverage-enabled]
         in conjunction with @racket[current-eval].
 
+        The @italic{Use the #lang's default choice for instrumentation} option means to use one
+  of the previous options, as specified by @elemref["drracket:default-instrumentation"]{the
+   @racket['drracket:default-instrumentation] key} from @racket[read-language].
+
         The other three checkboxes save compiled @tt{.zo} files and adjust the compiler. 
         
         The @italic{populate compiled/ directories} option corresponds to 
