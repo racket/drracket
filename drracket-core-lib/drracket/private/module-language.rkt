@@ -229,7 +229,9 @@
                      [(debug/profile)
                       (string-constant module-language-repl-debug/profile-annotations)]
                      [(test-coverage)
-                      (string-constant module-language-repl-test-annotations)]))]
+                      (string-constant module-language-repl-test-annotations)]
+                     [(lang-default)
+                      (string-constant module-language-repl-no-annotations)]))]
           [else
            (get-language-name)]))
       
@@ -256,12 +258,12 @@
       ;; NOTE: this method is also used in the super class's implementation
       ;; of default-settings?, which is why the super call is appropriate
       ;; there, even tho these settings are not the same as the defaults
-      ;; in other languages (here 'none is the default annotations,
+      ;; in other languages (here 'lang-default is the default annotations,
       ;; there you get errortrace annotations).
       (define/override (default-settings)
         (let ([super-defaults (super default-settings)])
           (make-module-language-settings
-           #t 'print 'mixed-fraction-e #f #t 'debug;; simple settings defaults 
+           #t 'print 'mixed-fraction-e #f #t 'lang-default;; simple settings defaults
            
            '(default)
            #()
@@ -273,8 +275,15 @@
       
       ;; default-settings? : -> boolean
       (define/override (default-settings? settings)
-        
-        (and (super default-settings? settings)
+
+        ;; first, check the simple settings defaults
+        (and (equal? (lmn:drracket:language:simple-settings-case-sensitive settings) #t)
+             (equal? (lmn:drracket:language:simple-settings-printing-style settings) 'print)
+             (equal? (lmn:drracket:language:simple-settings-fraction-style settings) 'mixed-fraction-e)
+             (equal? (lmn:drracket:language:simple-settings-show-sharing settings) #f)
+             (equal? (lmn:drracket:language:simple-settings-insert-newlines settings) #t)
+             ;; except we want a different default for annotations
+             (equal? (lmn:drracket:language:simple-settings-annotations settings) 'lang-default)
              
              (equal? (module-language-settings-collection-paths settings)
                      '(default))
@@ -359,15 +368,21 @@
                                           ;; versions might.
                                           (and (memq 
                                                 (drracket:language:simple-settings-annotations super) 
-                                                '(none debug))
+                                                '(none debug lang-default))
                                                compilation-on?)
                                           
                                           full-trace?
                                           submodules-to-run
                                           enforce-module-constants)))))))))))
-      
-      (define/override (on-execute settings run-in-user-thread)
-        (super on-execute settings run-in-user-thread)
+
+      ;; drracket will always supply `the-irl`, but some tools might call this,
+      ;; and they might not supply it
+      (define/override (on-execute settings run-in-user-thread [the-irl #f])
+        (parameterize ([drracket:language:lang-default-annotations
+                        (call-read-language the-irl
+                                            'drracket:default-instrumentation
+                                            'debug)])
+          (super on-execute settings run-in-user-thread))
         
         (let ([currently-open-files (get-currently-open-files)])
           (run-in-user-thread
@@ -691,6 +706,7 @@
     (define run-submodules-choice #f)
     (define left-debugging-radio-box #f)
     (define right-debugging-radio-box #f)
+    (define bottom-debugging-radio-box #f)
     (define submodules-to-run #f)
     
     (define (set-submodules-to-run l)
@@ -721,13 +737,15 @@
        #:something-changed something-changed
        #:case-sensitive #t
        
-       #:get-debugging-radio-box (λ (rb-l rb-r) 
+       #:get-debugging-radio-box (λ (rb-l rb-r rb-b)
                                    (set! left-debugging-radio-box rb-l)
-                                   (set! right-debugging-radio-box rb-r))
+                                   (set! right-debugging-radio-box rb-r)
+                                   (set! bottom-debugging-radio-box rb-b))
        
        #:debugging-radio-box-callback
        (λ ()
-         (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box))
+         (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))
+       #:lang-default-debugging? #t
 
        #:dynamic-panel-extras
        (λ (dynamic-panel)
@@ -783,12 +801,19 @@
                        [font normal-control-font]
                        [parent dynamic-panel]
                        [label (string-constant submodules-to-run)])))))))
-    (define (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
-      (case (send left-debugging-radio-box get-selection)
-        [(0 1)
+    (define (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+      (define compilation-on-allowed?
+        (match* ((send left-debugging-radio-box get-selection)
+                 (send bottom-debugging-radio-box get-selection))
+          [(0 _) #t]
+          [(1 _) #t]
+          [(_ 0) #t]
+          [(_ _) #f]))
+      (cond
+        [compilation-on-allowed?
          (send compilation-on-check-box enable #t)
          (send compilation-on-check-box set-value compilation-on?)]
-        [(#f)
+        [else
          (send compilation-on-check-box enable #f)
          (send compilation-on-check-box set-value #f)]))
     
@@ -924,7 +949,7 @@
     
     (install-collection-paths '(default))
     (update-buttons)
-    (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
+    (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
 
     (define shortcuts
       (append
@@ -954,7 +979,10 @@
                         #f ;; auto-text in the settings is ignored.
                         (case (send left-debugging-radio-box get-selection)
                           [(0 1) compilation-on?]
-                          [(#f) #f])
+                          [(#f)
+                           (case (send bottom-debugging-radio-box get-selection)
+                             [(0) compilation-on?]
+                             [else #f])])
                         (send save-stacktrace-on-check-box get-value)
                         submodules-to-run
                         (send enforce-module-constants-checkbox get-value)))))]
@@ -964,7 +992,7 @@
         (install-command-line-args (module-language-settings-command-line-args settings))
         (set! compilation-on? (module-language-settings-compilation-on? settings))
         (send compilation-on-check-box set-value (module-language-settings-compilation-on? settings))
-        (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box)
+        (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
         (send save-stacktrace-on-check-box set-value (module-language-settings-full-trace? settings))
         (set-submodules-to-run (module-language-settings-submodules-to-run settings))
         (send enforce-module-constants-checkbox set-value
