@@ -310,7 +310,7 @@
              [debugging-left-callback
               (λ ()
                 (send debugging-right set-selection #f)
-                (send debugging-bottom set-selection #f)
+                (when debugging-bottom (send debugging-bottom set-selection #f))
                 (debugging-radio-box-callback)
                 (something-changed))]
              [debugging-right (new radio-box%
@@ -329,7 +329,7 @@
              [debugging-right-callback
               (λ ()
                 (send debugging-left set-selection #f)
-                (send debugging-bottom set-selection #f)
+                (when debugging-bottom (send debugging-bottom set-selection #f))
                 (debugging-radio-box-callback)
                 (something-changed))]
              [debugging-bottom
@@ -386,26 +386,30 @@
       (dynamic-panel-extras dynamic-panel)
 
       (define shortcuts
-        (list (list no-debugging-or-profiling-keystroke
-                    (λ ()
-                      (send debugging-left set-selection 0)
-                      (debugging-left-callback)))
-              (list debugging-keystroke
-                    (λ ()
-                      (send debugging-left set-selection 1)
-                      (debugging-left-callback)))
-              (list debugging-and-profiling-keystroke
-                    (λ ()
-                      (send debugging-right set-selection 0)
-                      (debugging-right-callback)))
-              (list test-coverage-keystroke
-                    (λ ()
-                      (send debugging-right set-selection 1)
-                      (debugging-right-callback)))
-              (list default-debugging-keystroke
-                    (λ ()
-                      (send debugging-bottom set-selection 0)
-                      (debugging-bottom-callback)))))
+        (append
+         (list (list no-debugging-or-profiling-keystroke
+                     (λ ()
+                       (send debugging-left set-selection 0)
+                       (debugging-left-callback)))
+               (list debugging-keystroke
+                     (λ ()
+                       (send debugging-left set-selection 1)
+                       (debugging-left-callback)))
+               (list debugging-and-profiling-keystroke
+                     (λ ()
+                       (send debugging-right set-selection 0)
+                       (debugging-right-callback)))
+               (list test-coverage-keystroke
+                     (λ ()
+                       (send debugging-right set-selection 1)
+                       (debugging-right-callback))))
+         (cond
+           [debugging-bottom
+            (list (list default-debugging-keystroke
+                        (λ ()
+                          (send debugging-bottom set-selection 0)
+                          (debugging-bottom-callback))))]
+           [else '()])))
 
 
       (drracket:language-configuration:config-panel-with-keystrokes
