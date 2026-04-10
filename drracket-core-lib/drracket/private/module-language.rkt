@@ -375,15 +375,17 @@
                                           submodules-to-run
                                           enforce-module-constants)))))))))))
 
-      ;; drracket will always supply `the-irl`, but some tools might call this,
-      ;; and they might not supply it
+      ;; drracket will always supply `the-irl`, when running the program,
+      ;; but some tools might call this, and they might not supply it
       (define/override (on-execute settings run-in-user-thread [the-irl #f])
-        (parameterize ([drracket:language:lang-default-annotations
-                        (call-read-language the-irl
-                                            'drracket:default-instrumentation
-                                            'debug)])
-          (super on-execute settings run-in-user-thread))
-        
+        (cond
+          [the-irl
+           (parameterize ([drracket:language:lang-default-annotations
+                           (call-read-language the-irl
+                                               'drracket:default-instrumentation
+                                               'debug)])
+             (super on-execute settings run-in-user-thread))]
+          [else (super on-execute settings run-in-user-thread)])
         (let ([currently-open-files (get-currently-open-files)])
           (run-in-user-thread
            (λ ()
