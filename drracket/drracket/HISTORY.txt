@@ -1,4 +1,12 @@
 ------------------------------
+       Version 9.2
+------------------------------
+
+  . added keyboard shortcuts to the language dialog
+
+  . bug fixes and refactorings
+
+------------------------------
        Version 9.1
 ------------------------------
 
