@@ -206,7 +206,7 @@
              (memq (vector-ref printable 5) '(none debug debug/profile test-coverage lang-default))
              (apply make-simple-settings (vector->list printable))))
       (define/public (default-settings) 
-        (make-simple-settings #t 'print 'mixed-fraction-e #f #t 'lang-default))
+        (make-simple-settings #t 'print 'mixed-fraction-e #f #t 'debug))
       (define/public (default-settings? x)
         (equal? (simple-settings->vector x)
                 (simple-settings->vector (default-settings))))
