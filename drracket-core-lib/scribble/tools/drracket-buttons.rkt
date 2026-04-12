@@ -44,9 +44,9 @@
                           ;; if (eval 'doc) goes wrong, then we assume that's because of
                           ;; an earlier failure, so we just don't do anything.
                           (when doc
-                            (printf "scribble: loading xref\n")
+                            (displayln "scribble: loading xref")
                             (define xref ((dynamic-require 'setup/xref 'load-collections-xref)))
-                            (printf "scribble: rendering\n")
+                            (displayln "scribble: rendering")
                             (parameterize ([current-input-port (open-input-string "")])
                               ((dynamic-require 'scribble/render 'render) 
                                (list doc)
