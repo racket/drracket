@@ -18,7 +18,7 @@
                 (map (λ (t) (continuation-mark-set->context (continuation-marks t))) (get-threads)))
               (for* ([trace (in-list new-traces)]
                      [line (in-list trace)])
-                (hash-set! traces-table line (cons trace (hash-ref traces-table line '()))))
+                (hash-update! traces-table line (λ (v) (cons trace v)) '()))
               (cond
                 [(zero? i)
                  (update-gui traces-table)
