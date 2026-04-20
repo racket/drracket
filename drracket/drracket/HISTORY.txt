@@ -1,4 +1,13 @@
 ------------------------------
+       Version 9.3
+------------------------------
+
+ . In the "use the language in the source" setting in the language
+   dialog, drracket asks the #lang language what the default value of
+   the annotations should be, enabling the #lang-based teaching
+   languages to default to test coverage.
+
+------------------------------
        Version 9.2
 ------------------------------
 
