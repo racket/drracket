@@ -13,9 +13,10 @@
             raw-autosave-contents))
   (unless (null? autosave-contents)
     (error 'autosave-recovery-gui.rkt 
-           "there was a non-empty autosave toc when starting the test, so the test won't work right; contents:\n  ~s"
-           autosave-contents)))
-   
+           "there was a non-empty autosave toc when starting the test, so the test won't work right\n  contents: ~s\n  filename: ~a"
+           autosave-contents
+           autosave:toc-path)))
+
 (fire-up-drracket-and-run-tests 
  (λ ()
    (define drs (wait-for-drracket-frame))
