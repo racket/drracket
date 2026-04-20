@@ -142,12 +142,18 @@
     (collection-paths command-line-args auto-text compilation-on? full-trace? submodules-to-run
                       enforce-module-constants))
   
-  (define (module-language-settings->prefab-module-settings settings)
+  (define (module-language-settings->prefab-module-settings settings #:irl the-irl)
     (prefab-module-settings (module-language-settings-command-line-args settings)
                             (module-language-settings-collection-paths settings)
                             (module-language-settings-compilation-on? settings)
                             (module-language-settings-full-trace? settings)
-                            (drracket:language:simple-settings-annotations settings)
+                            (cond
+                              [(not the-irl)
+                               ;; when we don't have an irl, we're doing
+                               ;; online expansion which we never instrument
+                               'none]
+                              [else
+                               (drracket:language:get-simple-settings-annotations settings the-irl)])
                             (module-language-settings-enforce-module-constants settings)))
   
   (define default-compilation-on? #t)
@@ -390,7 +396,7 @@
           (run-in-user-thread
            (λ ()
              (set-module-language-parameters 
-              (module-language-settings->prefab-module-settings settings)
+              (module-language-settings->prefab-module-settings settings #:irl the-irl)
               module-language-parallel-lock-client
               currently-open-files)))))
       
@@ -428,7 +434,8 @@
 
         (define-values (name lang module-expr)
           (cond
-            [(drracket:rep:current-pre-compiled-transform-module-results)
+            [(and (drracket:rep:current-pre-compiled-transform-module-results)
+                  (equal? (drracket:language:get-simple-settings-annotations settings the-irl) 'none))
              =>
              (λ (transform-module-results)
                (define compiled-expression
@@ -2379,7 +2386,7 @@
          (define settings (tab-in-module-language dirty/pending-tab))
          (send-to-place editor-contents
                         filename/loc
-                        (module-language-settings->prefab-module-settings settings)
+                        (module-language-settings->prefab-module-settings settings #:irl #f)
                         (λ (res) (oc-finished res))
                         (λ (a b) (oc-status-message a b))
                         (λ (key val) (oc-monitor-value key val))

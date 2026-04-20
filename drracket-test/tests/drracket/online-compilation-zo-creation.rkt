@@ -71,7 +71,7 @@
           (find-relative-path tmp-dir file))]
        [else
         '()]))
-   (define expected-file (build-path compiled-dir "drracket/errortrace/y_rkt.zo"))
+   (define expected-file (build-path compiled-dir "drracket/y_rkt.zo"))
    (unless (member expected-file compiled-dir-files)
      (eprintf "expected to find ~s in compiled dir but it contained ~s\n"
               expected-file compiled-dir-files))

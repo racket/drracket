@@ -58,10 +58,13 @@ left to right:
   go and which how renaming any given variable affects
   any of the others. If it is green, DrRacket's online
   expansion has finished. If it is a spiky green ball
-  (instead of a round green ball), then DrRacket will use
+  (instead of a round green ball), and the language settings
+  do not imply errortrace annotations, then DrRacket will use
   the result of the online expansion to speed up the
   @onscreen{Run} button. That is, when the green spiky ball
-  is present, DrRacket will not
-  expand or compile your program, but just run it directly.
+  is present, DrRacket will have already
+  expanded and compiled your program, and can reuse that work,
+  as long as errortrace debugging, profiling, and test suite
+  coverage are turned off.
  }
  ]

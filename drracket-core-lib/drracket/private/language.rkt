@@ -30,6 +30,7 @@
          "rep.rkt"
          "local-member-names.rkt"
          "compiled-dir.rkt"
+         "insulated-read-language.rkt"
          (prefix-in pict-snip: "pict-snip.rkt"))
   
   (import [prefix drracket:debug: drracket:debug^]
@@ -234,6 +235,14 @@
 (define simple-settings? drracket:language:simple-settings?)
 (define make-simple-settings make-drracket:language:simple-settings)
 (define simple-settings make-simple-settings)
+
+(define (get-simple-settings-annotations settings the-irl)
+  (cond
+    [(equal? (drracket:language:simple-settings-annotations settings) 'lang-default)
+     (call-read-language the-irl
+                         'drracket:default-instrumentation
+                         'debug)]
+    [else (drracket:language:simple-settings-annotations settings)]))
 
 (define (simple-settings->vector s)
   (vector (drracket:language:simple-settings-case-sensitive s)

@@ -125,10 +125,6 @@
     (parameterize ([current-custodian cust])
       (thread
        (λ ()
-         (define no-annotations?
-           ;; if there is an annotation set up, then this compiled
-           ;; code won't be the right compiled code, so don't save it
-           (equal? (prefab-module-settings-annotations settings) 'none))
          (ep-log-info "expanding-place.rkt: 00 starting monitors")
          (for ([handler (in-list handlers)])
            (define pc (handler-monitor-pc handler))
@@ -168,11 +164,6 @@
                           loaded-paths))
               (cl path mod-name))))
          (ep-log-info "expanding-place.rkt: 03 setting module language parameters")
-         (when (equal? (prefab-module-settings-annotations settings) 'debug)
-           (current-compile
-            (make-debug-compile-handler/errortrace-annotate
-             (current-compile)
-             errortrace-annotate)))
          (set-module-language-parameters settings
                                          module-language-parallel-lock-client
                                          null
@@ -222,15 +213,12 @@
                              (namespace-syntax-introduce stx)
                              raise-hopeless-syntax-error))
          (define log-io? (log-level? expanding-place-logger 'warning))
-         (define-values (in out)
-           (if (or log-io? no-annotations?)
-               (make-pipe)
-               (values #f (open-output-nowhere))))
+         (define-values (in out) (make-pipe))
          (define the-io (make-channel))
          (cond
            [log-io?
             (thread (λ () (catch-and-log in the-io)))]
-           [no-annotations?
+           [else
             (thread (λ () (catch-and-check-non-empty in the-io)))])
          (ep-log-info "expanding-place.rkt: 09 starting expansion")
          (define expanded 
@@ -239,11 +227,9 @@
              (expand transformed-stx)))
          (ep-log-info "expanding-place.rkt: 10 finished expansion")
          (define no-io-happened?
-           (cond
-             [(or log-io? no-annotations?)
-              (close-output-port out)
-              (channel-get the-io)]
-             [else #f]))
+           (begin
+             (close-output-port out)
+             (channel-get the-io)))
          (channel-put old-registry-chan 
                       (namespace-module-registry (current-namespace)))
          (place-channel-put pc-status-expanding-place 'finished-expansion)
@@ -278,13 +264,12 @@
          (ep-log-info "expanding-place.rkt: 12 handlers finished")
          (define compiled-bytes
            (cond
-             [(and no-annotations?
-                   ;; we don't try to reuse the compiled bytes
-                   ;; if there was any IO because we cannot tell
-                   ;; which part is to be replayed and which
-                   ;; isn't; just re-run the expansion on the
-                   ;; user's side so they see the IO directly
-                   no-io-happened?)
+             [no-io-happened?
+              ;; we don't try to reuse the compiled bytes
+              ;; if there was any IO because we cannot tell
+              ;; which part is to be replayed and which
+              ;; isn't; just re-run the expansion on the
+              ;; user's side so they see the IO directly
               (define compiled (compile expanded))
               (define bp (open-output-bytes))
               (define write-succeeded?

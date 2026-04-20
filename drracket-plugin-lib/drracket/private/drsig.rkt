@@ -381,7 +381,8 @@
    simple-module-based-language-render-value/format
    add-menu-shortcut
    mouse-event-uses-shortcut-prefix?
-   lang-default-annotations))
+   lang-default-annotations
+   get-simple-settings-annotations))
 
 (define-signature drracket:multi-file-search-cm^
   ())
