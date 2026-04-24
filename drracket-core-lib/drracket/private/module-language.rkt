@@ -434,8 +434,8 @@
 
         (define-values (name lang module-expr)
           (cond
-            [(and (drracket:rep:current-pre-compiled-transform-module-results)
-                  (equal? (drracket:language:get-simple-settings-annotations settings the-irl) 'none))
+            [(and (equal? (drracket:language:get-simple-settings-annotations settings the-irl) 'none)
+                  (drracket:rep:current-pre-compiled-transform-module-results))
              =>
              (λ (transform-module-results)
                (define compiled-expression
