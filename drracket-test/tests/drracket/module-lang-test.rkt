@@ -854,13 +854,13 @@ f: contract violation
               Check failures:\s*
                 +check-satisfied for empty encountered an error[.]\s*
                 +:: +at line 11, column 0 +function call: expect.+function.+open parenthesis.+received '[(][)]\s*
-              at line 11, column 0.*
+              at line 11, column 0
                 +check-satisfied for local-even encountered an error[.]\s*
                 +:: +at line 12, column 0 +my-even: expect.+2 arguments.+found only 1\s*
-              at line 12, column 0.*
+              at line 12, column 0
                 +check-satisfied for real-my-even encountered an error[.]\s*
                 +:: +at line 13, column 0 +check-satisfied: expect.+function.+one argument.+second position.+real-my-even\s*
-              at line 13, column 0.*
+              at line 13, column 0
               > }))
         ;; Includes the flattened test result snips.
         (define full-ints-text
@@ -868,7 +868,7 @@ f: contract violation
         (define passed?
           (regexp-match? re full-ints-text))
         (unless passed?
-          (eprintf "FAILED line ~a: ~a\n  extra assertion expected: ~s\n\n  got: ~s\n"
+          (eprintf "FAILED line ~a: ~a\n  extra assertion expected: ~s\n\n  got: ~a\n"
                    (test-line test)
                    (test-definitions test)
                    re
@@ -1210,7 +1210,7 @@ f: contract violation
               Check failures:\s*
                 +check-expect encountered the following error instead of the expected value, 111[.]\s*
                 +:: +at line 12, column 14 oops:\s*
-              at line 12, column 0.*
+              at line 12, column 0
               > }))
         ;; Includes the flattened test result snips.
         (define full-ints-text
