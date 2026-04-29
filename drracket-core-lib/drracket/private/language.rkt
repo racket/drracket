@@ -239,9 +239,14 @@
 (define (get-simple-settings-annotations settings the-irl)
   (cond
     [(equal? (drracket:language:simple-settings-annotations settings) 'lang-default)
-     (call-read-language the-irl
-                         'drracket:default-instrumentation
-                         'debug)]
+     ;; when we get here in the module language but we don't have an irl,
+     ;; that means that we're doing online expansion so we should use 'none
+     ;; for the annotations
+     (if the-irl
+         (call-read-language the-irl
+                             'drracket:default-instrumentation
+                             'debug)
+         'none)]
     [else (drracket:language:simple-settings-annotations settings)]))
 
 (define (simple-settings->vector s)
