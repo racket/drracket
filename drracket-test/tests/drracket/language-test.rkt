@@ -1908,12 +1908,12 @@ the settings above should match r5rs
          (send definitions-text set-position
                (string-length dp)
                (send definitions-text last-position))
-         
-         (send definitions-text copy)
-         (send interactions-text set-position
+         (send definitions-text move/copy-to-edit
+               interactions-text
+               (send definitions-text get-start-position)
+               (send definitions-text get-end-position)
                (send interactions-text last-position)
-               (send interactions-text last-position))
-         (send interactions-text paste))))
+               #:try-to-move? #f))))
     
     (define last-para (queue-callback/res (λ () (send interactions-text last-paragraph))))
     (alt-return-in-interactions drs)
