@@ -135,9 +135,9 @@
                    (hash-set! ht res stx)
                    res)]
                 [else
-                 (let ([res (syntax->datum stx)])
-                   (hash-set! ht res stx)
-                   res)]))
+                 (define res (syntax->datum stx))
+                 (hash-set! ht res stx)
+                 res]))
             ht))
   
   ;; make-text-port : text -> port
