@@ -84,7 +84,7 @@
             (loop (send w get-parent) (cons w l)))))
 
     (when (getenv "PLTDRKEYS")
-      (printf "PLTDRKEYS: installing unit frame mixin\n")
+      (displayln "PLTDRKEYS: installing unit frame mixin")
       (drracket:get/extend:extend-unit-frame tool-mixin))))
 
 (module+ test
