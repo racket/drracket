@@ -124,13 +124,14 @@
             (error 'poll-until "timeout after ~e secs, ~e never returned a true value" secs pred))])
   (define step 1/20)
   (let loop ([counter secs])
-    (if (<= counter 0)
-        (fail)
-        (let ([result (pred)])
-          (or result
-              (begin
-                (sleep step)
-                (loop (- counter step))))))))
+    (cond
+      [(<= counter 0) (fail)]
+      [else
+       (define result (pred))
+       (or result
+           (begin
+             (sleep step)
+             (loop (- counter step))))])))
 
 (define (wait-for-events-in-frame-eventspace fr)
   (define sema (make-semaphore 0))
