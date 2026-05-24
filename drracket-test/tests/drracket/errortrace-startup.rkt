@@ -44,18 +44,15 @@ the same ones that drracket is using.
  (thread
   (λ ()
     (let loop ([i 10])
-      (cond
-        [(zero? i)
-         (error 'errortrace-startup.rkt "never saw the drracket frame")]
-        [else
-         (define actives (get-top-level-windows))
-         (define drracket-frame-found?
-           (for/or ([active (in-list actives)])
-             (and active
-                  (method-in-interface? 'get-execute-button (object-interface active)))))
-         (unless drracket-frame-found?
-           (sleep 1)
-           (loop (- i 1)))]))
+      (when (zero? i)
+        (error 'errortrace-startup.rkt "never saw the drracket frame"))
+      (define actives (get-top-level-windows))
+      (define drracket-frame-found?
+        (for/or ([active (in-list actives)])
+          (and active (method-in-interface? 'get-execute-button (object-interface active)))))
+      (unless drracket-frame-found?
+        (sleep 1)
+        (loop (- i 1))))
     (semaphore-post sema))))
 
 (void (yield sema))
