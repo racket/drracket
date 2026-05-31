@@ -219,11 +219,10 @@
                                                 [n 0])
                                        (cond
                                          [(null? x) (send r set-selection n)]
+                                         [(eq? pref (car x)) (send r set-selection n)]
                                          [else
-                                          (if (eq? pref (car x))
-                                              (send r set-selection n)
-                                              (init (cdr x)
-                                                    (add1 n)))]))]))])
+                                          (init (cdr x)
+                                                (add1 n))]))]))])
        
            (unless ask-later?
              (send r enable none-index #f))
