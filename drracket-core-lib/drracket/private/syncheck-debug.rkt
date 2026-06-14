@@ -131,9 +131,9 @@
                    (hash-set! ht res stx)
                    res)]
                 [(vector? obj)
-                 (let ([res (list->vector (map loop (vector->list obj)))])
-                   (hash-set! ht res stx)
-                   res)]
+                 (define res (list->vector (map loop (vector->list obj))))
+                 (hash-set! ht res stx)
+                 res]
                 [else
                  (define res (syntax->datum stx))
                  (hash-set! ht res stx)
