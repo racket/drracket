@@ -778,8 +778,7 @@
        (handle-evt
         get-blueboxes-cache-chan
         (λ (resp-chan+to-update-the-strs)
-          (define resp-chan (list-ref resp-chan+to-update-the-strs 0))
-          (define to-update-the-strs (list-ref resp-chan+to-update-the-strs 1))
+          (match-define (list resp-chan to-update-the-strs) resp-chan+to-update-the-strs)
 
           (define (start-blueboxes-computation)
             (thread
