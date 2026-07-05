@@ -163,10 +163,10 @@
   (define (do-execute frame [wait-for-finish? #t])
     (not-on-eventspace-handler-thread 'do-execute)
     (queue-callback/res (λ () (verify-drracket-frame-frontmost 'do-execute frame)))
-    (let ([button (queue-callback/res (λ () (send frame get-execute-button)))])
-      (fw:test:run-one (lambda () (send button command)))
-      (when wait-for-finish?
-        (wait-for-computation frame))))
+    (define button (queue-callback/res (λ () (send frame get-execute-button))))
+    (fw:test:run-one (lambda () (send button command)))
+    (when wait-for-finish?
+      (wait-for-computation frame)))
   
   (define (verify-drracket-frame-frontmost function-name frame)
     (on-eventspace-handler-thread 'verify-drracket-frame-frontmost)
@@ -249,14 +249,14 @@
         (loop (+ i 1)))))
   
   (define (wait test desc-string [time 5])
-    (let ([int 1/2])
-      (let loop ([sofar 0])
-        (cond
-          [(> sofar time) (error 'wait desc-string)]
-          [(test) (void)]
-          [else
-           (sleep int)
-           (loop (+ sofar int))]))))
+    (define int 1/2)
+    (let loop ([sofar 0])
+      (cond
+        [(> sofar time) (error 'wait desc-string)]
+        [(test) (void)]
+        [else
+         (sleep int)
+         (loop (+ sofar int))])))
   
   (define (wait-pending)
     (wait (lambda () (= 0 (fw:test:number-pending-actions)))
@@ -421,12 +421,12 @@
     
     (when close-dialog?
       (fw:test:button-push "OK")
-      (let ([new-frame (wait-for-new-frame language-dialog)])
-        (unless (eq? new-frame drs-frame)
-          (error 'set-module-language!
-                 "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
-                 new-frame
-                 drs-frame)))))
+      (define new-frame (wait-for-new-frame language-dialog))
+      (unless (eq? new-frame drs-frame)
+        (error 'set-module-language!
+               "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
+               new-frame
+               drs-frame))))
   
   (provide (contract-out [check-language-level ((or/c string? regexp?) . -> . void?)]))
   ;; checks that the language in the drracket window is set to the given one.
