@@ -219,13 +219,13 @@
     (define editor (queue-callback/res (λ () (send canvas get-editor))))
     (cond
       [just-insert?
-       (let ([s (make-semaphore 0)])
-         (queue-callback (λ ()
-                           (send editor set-caret-owner #f)
-                           (send editor insert str)
-                           (semaphore-post s)))
-         (unless (sync/timeout 3 s)
-           (error who "callback didn't run for 3 seconds; trying to insert ~s" str/sexp)))]
+       (define s (make-semaphore 0))
+       (queue-callback (λ ()
+                         (send editor set-caret-owner #f)
+                         (send editor insert str)
+                         (semaphore-post s)))
+       (unless (sync/timeout 3 s)
+         (error who "callback didn't run for 3 seconds; trying to insert ~s" str/sexp))]
       [else
        (queue-callback/res (λ () (send editor set-caret-owner #f)))
        (type-string str)]))
