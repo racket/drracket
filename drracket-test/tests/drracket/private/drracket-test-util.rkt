@@ -94,7 +94,7 @@
       (or (wait-for-drracket-frame-pred)
           (begin
             (when print-message?
-              (printf "Select DrRacket frame\n"))
+              (displayln "Select DrRacket frame"))
             (poll-until wait-for-drracket-frame-pred))))
     (when drr-fr
       (wait-for-events-in-frame-eventspace drr-fr))
