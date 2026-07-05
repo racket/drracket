@@ -64,7 +64,7 @@ and then loading the framework after that.
        (define drr-frame (wait-for-drracket-frame))
        (set-module-language! drr-frame)
        (queue-callback/res
-        (λ () (send (send (send drr-frame get-definitions-text) get-canvas) focus)))
+        (λ () (send+ drr-frame (get-definitions-text) (get-canvas) (focus))))
        (for ([x (in-string "(car 'x)")])
          (test:keystroke x))
        (let ([button (queue-callback/res (λ () (send drr-frame get-execute-button)))])
