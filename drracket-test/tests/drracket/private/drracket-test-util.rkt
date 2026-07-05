@@ -206,12 +206,13 @@
     (unless (and (object? frame) (is-a? frame top-level-window<%>))
       (error who "expected a frame or a dialog as the first argument, got ~e" frame))
     (define str
-      (if (string? str/sexp)
-          str/sexp
-          (let ([port (open-output-string)])
-            (parameterize ([current-output-port port])
-              (write str/sexp port))
-            (get-output-string port))))
+      (cond
+        [(string? str/sexp) str/sexp]
+        [else
+         (define port (open-output-string))
+         (parameterize ([current-output-port port])
+           (write str/sexp port))
+         (get-output-string port)]))
     (queue-callback/res (λ () (verify-drracket-frame-frontmost who frame)))
     (define canvas (queue-callback/res (λ () (get-canvas frame))))
     (fw:test:new-window canvas)
