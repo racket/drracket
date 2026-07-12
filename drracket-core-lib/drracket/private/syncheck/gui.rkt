@@ -884,9 +884,7 @@ If the namespace does not, they are colored the unbound color.
               (define per-txt-positions (make-hash))
               (for ([(k _) (in-hash (make-identifiers-hash))])
                 (define-values (txt start-pos end-pos) (apply values k))
-                (hash-set! per-txt-positions txt 
-                           (cons (cons start-pos end-pos)
-                                 (hash-ref per-txt-positions txt '()))))
+                (hash-update! per-txt-positions txt (λ (v) (cons (cons start-pos end-pos) v)) '()))
               (for ([(source-txt start+ends) (in-hash per-txt-positions)])
                 (when (is-a? source-txt text%)
                   (define merged-positions (sort-and-merge start+ends))
