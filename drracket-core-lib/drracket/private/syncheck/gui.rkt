@@ -1523,9 +1523,7 @@ If the namespace does not, they are colored the unbound color.
               (define in-edit-sequence '())
               (define (un/highlight highlight?)
                 (for ([(lst _) (in-hash current-matching-identifiers)])
-                  (define txt (list-ref lst 0))
-                  (define start (list-ref lst 1))
-                  (define end (list-ref lst 2))
+                  (match-define (list txt start end) lst)
                   (unless refreshing?
                     (unless (member txt in-edit-sequence)
                       (set! in-edit-sequence (cons txt in-edit-sequence))
