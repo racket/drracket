@@ -449,10 +449,10 @@ If the namespace does not, they are colored the unbound color.
                        (printf "~s =>\n" (interval-map-iterate-key v it))
                        (for ([v (in-list (interval-map-iterate-value v it))])
                          (printf "  ~s\n" v))
-                       (printf "\n")
+                       (newline)
                        (loop (interval-map-iterate-next v it)))))]
                 [else
-                 (printf "arrow-records empty\n")]))
+                 (displayln "arrow-records empty")]))
             
             ;; cleanup-texts : (or/c #f (listof text))
             (define cleanup-texts #f)
