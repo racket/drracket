@@ -431,11 +431,13 @@ If the namespace does not, they are colored the unbound color.
             (define arrow-records #f)
 
             (define/private (fetch-arrow-records txt pos)
-              (and arrow-records
-                   (let ([im (hash-ref arrow-records txt #f)]) 
-                     (if im
-                         (interval-map-ref im pos '())
-                         '()))))
+              (cond
+                [arrow-records
+                 (define im (hash-ref arrow-records txt #f))
+                 (if im
+                     (interval-map-ref im pos '())
+                     '())]
+                [else #f]))
             
             (define/public (dump-arrow-records)
               (cond
