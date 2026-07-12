@@ -984,15 +984,13 @@ If the namespace does not, they are colored the unbound color.
                 (cond
                   [(is-a? menu menu-bar%) (send menu get-frame)]
                   [(is-a? menu popup-menu%)
-                   (let ([target (send menu get-popup-target)])
-                     (cond
-                       [(is-a? target editor<%>) 
-                        (let ([canvas (send target get-canvas)])
-                          (and canvas
-                               (send canvas get-top-level-window)))]
-                       [(is-a? target window<%>) 
-                        (send target get-top-level-window)]
-                       [else #f]))]
+                   (define target (send menu get-popup-target))
+                   (cond
+                     [(is-a? target editor<%>)
+                      (let ([canvas (send target get-canvas)])
+                        (and canvas (send canvas get-top-level-window)))]
+                     [(is-a? target window<%>) (send target get-top-level-window)]
+                     [else #f])]
                   [(is-a? menu menu-item<%>) (loop (send menu get-parent))]
                   [else #f])))
             
