@@ -1000,14 +1000,11 @@ If the namespace does not, they are colored the unbound color.
                   (add-to-range/key text start-pos end-pos make-menu key (and key #t)))))
 
             (define/public (syncheck:add-text-type text start fin text-type)
-              (when arrow-records
-                (when (is-a? text text:basic<%>)
-                  (when (hash-has-key? cs-check-syntax-background-colors text-type)
-                    (define color
-                      (hash-ref cs-check-syntax-background-colors text-type))
-                    (add-to-range/key text start fin
-                                      (make-colored-region color text start fin)
-                                      #f #f)))))
+              (when (and arrow-records
+                         (is-a? text text:basic<%>)
+                         (hash-has-key? cs-check-syntax-background-colors text-type))
+                (define color (hash-ref cs-check-syntax-background-colors text-type))
+                (add-to-range/key text start fin (make-colored-region color text start fin) #f #f)))
 
             ;; these three methods are no longer used; see docs for more
             (define/public (syncheck:add-background-color text start fin raw-color)
@@ -1045,17 +1042,29 @@ If the namespace does not, they are colored the unbound color.
                                                              end-px end-py
                                                              actual? level require-arrow? name-dup?)
               (when (and arrow-records
-                         (preferences:get 'drracket:syncheck:show-arrows?))
-                (when (add-to-bindings-table
-                       start-text start-pos-left start-pos-right
-                       end-text end-pos-left end-pos-right)
-                  (let ([arrow (make-var-arrow start-text start-pos-left start-pos-right
-                                               start-px start-py
-                                               end-text end-pos-left end-pos-right
-                                               end-px end-py
-                                               actual? level require-arrow? name-dup?)])
-                    (add-to-range/key start-text start-pos-left start-pos-right arrow #f #f)
-                    (add-to-range/key end-text end-pos-left end-pos-right arrow #f #f)))))
+                         (preferences:get 'drracket:syncheck:show-arrows?)
+                         (add-to-bindings-table start-text
+                                                start-pos-left
+                                                start-pos-right
+                                                end-text
+                                                end-pos-left
+                                                end-pos-right))
+                (let ([arrow (make-var-arrow start-text
+                                             start-pos-left
+                                             start-pos-right
+                                             start-px
+                                             start-py
+                                             end-text
+                                             end-pos-left
+                                             end-pos-right
+                                             end-px
+                                             end-py
+                                             actual?
+                                             level
+                                             require-arrow?
+                                             name-dup?)])
+                  (add-to-range/key start-text start-pos-left start-pos-right arrow #f #f)
+                  (add-to-range/key end-text end-pos-left end-pos-right arrow #f #f))))
             
             ;; syncheck:add-tail-arrow : text number text number -> void
             (define/public (syncheck:add-tail-arrow from-text from-pos to-text to-pos)
@@ -1620,14 +1629,14 @@ If the namespace does not, they are colored the unbound color.
                         (for ([candidate-binder
                                (in-list (fetch-arrow-records (var-arrow-start-text arrow)
                                                              (var-arrow-start-pos-left arrow)))])
-                          (when (var-arrow? candidate-binder)
-                            (when (and (equal? (var-arrow-start-text arrow)
-                                               (var-arrow-start-text candidate-binder))
-                                       (equal? (var-arrow-start-pos-left arrow)
-                                               (var-arrow-start-pos-left candidate-binder))
-                                       (equal? (var-arrow-start-pos-right arrow)
-                                               (var-arrow-start-pos-right candidate-binder)))
-                              (add-var-binding-arrow candidate-binder))))])])))
+                          (when (and (var-arrow? candidate-binder)
+                                     (equal? (var-arrow-start-text arrow)
+                                             (var-arrow-start-text candidate-binder))
+                                     (equal? (var-arrow-start-pos-left arrow)
+                                             (var-arrow-start-pos-left candidate-binder))
+                                     (equal? (var-arrow-start-pos-right arrow)
+                                             (var-arrow-start-pos-right candidate-binder)))
+                            (add-var-binding-arrow candidate-binder)))])])))
               binding-arrows)
 
             (define (binding-arrows->identifiers-hash include-require-arrows? binding-arrows)
