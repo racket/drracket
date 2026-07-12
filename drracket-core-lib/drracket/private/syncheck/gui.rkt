@@ -1191,9 +1191,8 @@ If the namespace does not, they are colored the unbound color.
                   (define max-height-for-arrow (unbox hb))
                   (unless (zero? max-width-for-arrow)
                     (get-view-size wb hb)
-                    (define-values (inset-x inset-y)
-                      (values (send (get-canvas) horizontal-inset)
-                              (send (get-canvas) vertical-inset)))
+                    (define inset-x (send (get-canvas) horizontal-inset))
+                    (define inset-y (send (get-canvas) vertical-inset))
 
                     ;; if anything in this vector changes, then
                     ;; the tacked arrows will draw differently
