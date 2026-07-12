@@ -885,17 +885,17 @@ If the namespace does not, they are colored the unbound color.
               (for ([(k _) (in-hash (make-identifiers-hash))])
                 (define-values (txt start-pos end-pos) (apply values k))
                 (hash-update! per-txt-positions txt (λ (v) (cons (cons start-pos end-pos) v)) '()))
-              (for ([(source-txt start+ends) (in-hash per-txt-positions)])
-                (when (is-a? source-txt text%)
-                  (define merged-positions (sort-and-merge start+ends))
-                  (begin-edit-sequence)
-                  (for ([start+end (in-list (reverse merged-positions))])
-                    (define start (car start+end))
-                    (define end (cdr start+end))
-                    (unless (memq source-txt edit-sequence-txts)
-                      (send source-txt begin-edit-sequence)
-                      (set! edit-sequence-txts (cons source-txt edit-sequence-txts)))
-                    (f source-txt start end))))
+              (for ([(source-txt start+ends) (in-hash per-txt-positions)]
+                    #:when (is-a? source-txt text%))
+                (define merged-positions (sort-and-merge start+ends))
+                (begin-edit-sequence)
+                (for ([start+end (in-list (reverse merged-positions))])
+                  (define start (car start+end))
+                  (define end (cdr start+end))
+                  (unless (memq source-txt edit-sequence-txts)
+                    (send source-txt begin-edit-sequence)
+                    (set! edit-sequence-txts (cons source-txt edit-sequence-txts)))
+                  (f source-txt start end)))
               (for ([txt (in-list edit-sequence-txts)])
                 (send txt end-edit-sequence)))
                 
@@ -1247,15 +1247,17 @@ If the namespace does not, they are colored the unbound color.
             (define/private (determine-the-tacked-arrows)
               (define table (make-hash))
 
-              (for ([(arrow v) (in-hash tacked-hash-table)])
-                (when v
-                  (define arrow-text+arrow-pos
-                    (cond
-                      [(var-arrow? arrow) (cons (var-arrow-start-text arrow)
-                                                (var-arrow-start-pos-left arrow))]
-                      [(tail-arrow? arrow) (cons (tail-arrow-from-text arrow)
-                                                 (tail-arrow-from-pos arrow))]))
-                  (hash-set! table arrow-text+arrow-pos (cons arrow (hash-ref table arrow-text+arrow-pos '())))))
+              (for ([(arrow v) (in-hash tacked-hash-table)]
+                    #:when v)
+                (define arrow-text+arrow-pos
+                  (cond
+                    [(var-arrow? arrow)
+                     (cons (var-arrow-start-text arrow) (var-arrow-start-pos-left arrow))]
+                    [(tail-arrow? arrow)
+                     (cons (tail-arrow-from-text arrow) (tail-arrow-from-pos arrow))]))
+                (hash-set! table
+                           arrow-text+arrow-pos
+                           (cons arrow (hash-ref table arrow-text+arrow-pos '()))))
 
               (for/list ([(arrow-text+arrow-pos arrows) (in-hash table)])
                 (match-define (cons arrow-text arrow-pos) arrow-text+arrow-pos)
