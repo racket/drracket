@@ -542,19 +542,18 @@ If the namespace does not, they are colored the unbound color.
                 (send text position-location pos xlb xrb)
                 (send text editor-location-to-dc-location (unbox xlb) (unbox xrb)))
               
-              (let ([start-text (list-ref l1 0)]
-                    [start-left (list-ref l1 1)]
-                    [end-text (list-ref l2 0)]
-                    [end-left (list-ref l2 1)])
-                (cond
-                  [(object=? start-text end-text)
-                   (< start-left end-left)]
-                  [else
-                   (let-values ([(sx sy) (find-dc-location start-text start-left)]
-                                [(ex ey) (find-dc-location end-text end-left)])
-                     (cond
-                       [(= sy ey) (< sx ex)]
-                       [else (< sy ey)]))])))
+              (define start-text (list-ref l1 0))
+              (define start-left (list-ref l1 1))
+              (define end-text (list-ref l2 0))
+              (define end-left (list-ref l2 1))
+              (cond
+                [(object=? start-text end-text) (< start-left end-left)]
+                [else
+                 (let-values ([(sx sy) (find-dc-location start-text start-left)]
+                              [(ex ey) (find-dc-location end-text end-left)])
+                   (cond
+                     [(= sy ey) (< sx ex)]
+                     [else (< sy ey)]))]))
             
             (define tacked-hash-table (make-hasheq))
             
@@ -616,23 +615,21 @@ If the namespace does not, they are colored the unbound color.
             (define/public (syncheck:color-range source start finish style-name)
               (when (is-a? source text%)
                 (define (apply-style/remember ed start finish style)
-                  (let ([outermost (find-outermost-editor ed)])
-                    (and (is-a? outermost syncheck-text<%>)
-                         (send outermost syncheck:apply-style/remember ed start finish style))))
+                  (define outermost (find-outermost-editor ed))
+                  (and (is-a? outermost syncheck-text<%>)
+                       (send outermost syncheck:apply-style/remember ed start finish style)))
                 
                 (define (find-outermost-editor ed)
                   (let loop ([ed ed])
-                    (let ([admin (send ed get-admin)])
-                      (if (is-a? admin editor-snip-editor-admin<%>)
-                          (let* ([enclosing-snip (send admin get-snip)]
-                                 [enclosing-snip-admin (send enclosing-snip get-admin)])
-                            (loop (send enclosing-snip-admin get-editor)))
-                          ed))))
+                    (define admin (send ed get-admin))
+                    (if (is-a? admin editor-snip-editor-admin<%>)
+                        (let* ([enclosing-snip (send admin get-snip)]
+                               [enclosing-snip-admin (send enclosing-snip get-admin)])
+                          (loop (send enclosing-snip-admin get-editor)))
+                        ed)))
                 
-                (let ([style (send (send source get-style-list)
-                                   find-named-style
-                                   style-name)])
-                  (apply-style/remember source start finish style))))
+                (define style (send (send source get-style-list) find-named-style style-name))
+                (apply-style/remember source start finish style)))
 
             ;; add-to-cleanup/apply-style : (is-a?/c text%) number number style% symbol -> boolean
             (define/private (add-to-cleanup/apply-style txt start finish style)
@@ -1486,12 +1483,12 @@ If the namespace does not, they are colored the unbound color.
                                                                    description-of-name)]
                          [callback
                           (λ (x y)
-                            (let ([frame-parent (find-menu-parent menu)])
-                              (rename-menu-callback make-identifiers-hash
-                                                    name-to-offer
-                                                    name-to-offer
-                                                    binding-identifiers
-                                                    frame-parent)))]))
+                            (define frame-parent (find-menu-parent menu))
+                            (rename-menu-callback make-identifiers-hash
+                                                  name-to-offer
+                                                  name-to-offer
+                                                  binding-identifiers
+                                                  frame-parent))]))
                   (unless sep-before?
                     (when need-a-sep?
                       (new separator-menu-item% [parent menu])))
