@@ -7,6 +7,12 @@
    the annotations should be, enabling the #lang-based teaching
    languages to default to test coverage.
 
+ . when doing online expansion, never turn on errortrace annotations;
+   this can speed up online expansion when debugging is turned on for
+   some programs
+
+ . refactorings
+
 ------------------------------
        Version 9.2
 ------------------------------
