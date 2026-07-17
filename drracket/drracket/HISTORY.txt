@@ -1,4 +1,13 @@
 ------------------------------
+       Version 9.4
+------------------------------
+
+ . The file format for files that contain 2htdp/image snips changed to
+   improve the performance. The change is not backwards
+   compatible. New versions can open files from old verisons, but not
+   vice versa.
+
+------------------------------
        Version 9.3
 ------------------------------
 
