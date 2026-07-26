@@ -807,8 +807,7 @@
     (document-variable var level))
 
   (for ([(level+mods varrefs) (in-hash phase-to-varrefs)])
-    (define level (list-ref level+mods 0))
-    (define mods (list-ref level+mods 1))
+    (match-define (list level mods) level+mods)
     (define binders (lookup-phase-to-mapping phase-to-binders level))
     (define varsets (lookup-phase-to-mapping phase-to-varsets level))
     (initialize-binder-connections binders connections)
@@ -835,8 +834,7 @@
   (for ([phase (in-hash-keys phase-to-binders)])
     (set! phases (set-add phases phase)))
   (for ([(phase+mod _) (in-hash phase-to-requires)])
-    (define phase (list-ref phase+mod 0))
-    (define mod (list-ref phase+mod 1))
+    (match-define (list phase mod) phase+mod)
     (set! phases (set-add phases phase))
     (set! all-mods (set-add all-mods mod)))
 
@@ -873,8 +871,7 @@
       (color-unused require-hash unused-hash module-lang-requires)))
 
   (for ([(level+mods directives) (in-hash sub-identifier-binding-directives)])
-    (define phase-level (list-ref level+mods 0))
-    (define mods (list-ref level+mods 1))
+    (match-define (list phase-level mods) level+mods)
     (for ([directive (in-list directives)])
       (match-define (vector binding-id to-start to-span to-dx to-dy
                             new-binding-id from-start from-span from-dx from-dy)
