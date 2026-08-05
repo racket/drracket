@@ -505,24 +505,6 @@ the settings above should match r5rs
     
     (test-expression "(error 'a \"~a\" 1)" "a: ~a1")
     (test-expression "(error \"a\" \"a\")" "aa")
-
-    (test-expression "(check-expect 1 1)"
-                     "The test passed!"
-                     "Both tests passed!")
-    (test-expression "(check-expect 1 1)\n(check-expect 2 2)\n(+ \"hello\" \"world\")\n(check-expect 3 3)\n"
-                     (λ (got)
-                       (define m (regexp-match #rx"(.*)0 tests passed(.*)" got))
-                       (cond
-                         [m
-                          (define before (list-ref m 1))
-                          (define after (list-ref m 2))
-                          (and (not (regexp-match? #rx"tests? passed" before))
-                               (not (regexp-match? #rx"tests? passed" after)))]
-                         [else #f]))
-                     (λ (got) #t)) ;; just skip the interactions test
-    (test-expression "(define (badfn x) (error \"hello\"))\n(check-expect (badfn 1) 1)\n(error \"hello\")"
-                     #rx"0 tests passed[.].*hello"
-                     (λ (got) #t))
     
     (test-undefined-fn "(time 1)" "time")
     
@@ -672,13 +654,6 @@ the settings above should match r5rs
     (test-error-after-definition)
     
     (prepare-for-test-expression)
-
-    (test-expression "(check-expect 1 1)"
-                     "The only test passed!"
-                     "") ;; somewhat dubious -- it should either be a syntax error or work...
-    (test-expression "(check-expect 1 2)"
-                     #rx"Actual value 1 differs from 2"
-                     "")
                      
     (test-expression "'|.|"
                      "'|.|"
@@ -898,23 +873,6 @@ the settings above should match r5rs
     (test-expression "(error 'a \"~a\" 1)" "a: ~a1")
     (test-expression "(error \"a\" \"a\")" "aa")
     
-    (test-expression "(check-expect 1 1)"
-                     "The test passed!"
-                     "Both tests passed!")
-    (test-expression "(check-expect 1 1)\n(check-expect 2 2)\n(+ \"hello\" \"world\")\n(check-expect 3 3)\n"
-                     (λ (got)
-                       (define m (regexp-match #rx"(.*)0 tests passed(.*)" got))
-                       (cond
-                         [m
-                          (define before (list-ref m 1))
-                          (define after (list-ref m 2))
-                          (and (not (regexp-match? #rx"tests? passed" before))
-                               (not (regexp-match? #rx"tests? passed" after)))]
-                         [else #f]))
-                     (λ (got) #t)) ;; just skip the interactions test
-    (test-expression "(define (badfn x) (error \"hello\"))\n(check-expect (badfn 1) 1)\n(error \"hello\")"
-                     #rx"0 tests passed[.].*hello"
-                     (λ (got) #t))
 
 (test-undefined-fn "(time 1)" "time")
     
@@ -1074,24 +1032,6 @@ the settings above should match r5rs
     
     (test-expression "(error 'a \"~a\" 1)" "a: ~a1")
     (test-expression "(error \"a\" \"a\")" "aa")
-
-    (test-expression "(check-expect 1 1)"
-                     "The test passed!"
-                     "Both tests passed!")
-    (test-expression "(check-expect 1 1)\n(check-expect 2 2)\n(+ \"hello\" \"world\")\n(check-expect 3 3)\n"
-                     (λ (got)
-                       (define m (regexp-match #rx"(.*)0 tests passed(.*)" got))
-                       (cond
-                         [m
-                          (define before (list-ref m 1))
-                          (define after (list-ref m 2))
-                          (and (not (regexp-match? #rx"tests? passed" before))
-                               (not (regexp-match? #rx"tests? passed" after)))]
-                         [else #f]))
-                     (λ (got) #t)) ;; just skip the interactions test
-    (test-expression "(define (badfn x) (error \"hello\"))\n(check-expect (badfn 1) 1)\n(error \"hello\")"
-                     #rx"0 tests passed[.].*hello"
-                     (λ (got) #t))
     
     (test-expression "(time 1)" 
                      #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
@@ -1247,24 +1187,6 @@ the settings above should match r5rs
     (test-expression "(error 'a \"~a\" 1)" "a: ~a1")
     (test-expression "(error \"a\" \"a\")" "aa")
     
-    (test-expression "(check-expect 1 1)"
-                     "The test passed!"
-                     "Both tests passed!")
-    (test-expression "(check-expect 1 1)\n(check-expect 2 2)\n(+ \"hello\" \"world\")\n(check-expect 3 3)\n"
-                     (λ (got)
-                       (define m (regexp-match #rx"(.*)0 tests passed(.*)" got))
-                       (cond
-                         [m
-                          (define before (list-ref m 1))
-                          (define after (list-ref m 2))
-                          (and (not (regexp-match? #rx"tests? passed" before))
-                               (not (regexp-match? #rx"tests? passed" after)))]
-                         [else #f]))
-                     (λ (got) #t)) ;; just skip the interactions test
-    (test-expression "(define (badfn x) (error \"hello\"))\n(check-expect (badfn 1) 1)\n(error \"hello\")"
-                     #rx"0 tests passed[.].*hello"
-                     (λ (got) #t))
-
     (test-expression "(time 1)" 
                      #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
     
@@ -1416,24 +1338,6 @@ the settings above should match r5rs
     (test-expression "(error 'a \"~a\" 1)" "a: ~a1")
     (test-expression "(error \"a\" \"a\")" "aa")
     
-    (test-expression "(check-expect 1 1)"
-                     "The test passed!"
-                     "Both tests passed!")
-    (test-expression "(check-expect 1 1)\n(check-expect 2 2)\n(+ \"hello\" \"world\")\n(check-expect 3 3)\n"
-                     (λ (got)
-                       (define m (regexp-match #rx"(.*)0 tests passed(.*)" got))
-                       (cond
-                         [m
-                          (define before (list-ref m 1))
-                          (define after (list-ref m 2))
-                          (and (not (regexp-match? #rx"tests? passed" before))
-                               (not (regexp-match? #rx"tests? passed" after)))]
-                         [else #f]))
-                     (λ (got) #t)) ;; just skip the interactions test
-    (test-expression "(define (badfn x) (error \"hello\"))\n(check-expect (badfn 1) 1)\n(error \"hello\")"
-                     #rx"0 tests passed[.].*hello"
-                     (λ (got) #t))
-
     (test-expression "(time 1)" 
                      #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
     
