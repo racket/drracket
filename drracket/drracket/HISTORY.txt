@@ -7,6 +7,9 @@
    compatible. New versions can open files from old verisons, but not
    vice versa.
 
+ . HtDP tests in drracket-test have been moved to racket/htdp under
+   the new package htdp-drracket-test.
+
 ------------------------------
        Version 9.3
 ------------------------------
