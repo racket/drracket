@@ -8,7 +8,10 @@
    vice versa.
 
  . HtDP tests in drracket-test have been moved to racket/htdp under
-   the new package htdp-drracket-test.
+   the new package htdp-drracket-test. More specifically, the moved
+   tests were mostly aiming at HtDP (e.g. #501, 7c6d289a, 21669173,
+   #689, #481, 2870b7f2, and 8ffa8041). The menu-based teaching language
+   tests still remain part of tests/drracket/language-test.rkt.
 
 ------------------------------
        Version 9.3
