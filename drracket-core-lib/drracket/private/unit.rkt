@@ -478,15 +478,14 @@
               add-to-program-editor-mixin)))
   
   ;; this sends a message to its frame when it gets the focus
-  (define make-searchable-canvas%
-    (λ (%)
-      (class %
-        (inherit get-top-level-window)
-        (define/override (on-focus on?)
-          (when on?
-            (send (get-top-level-window) make-searchable this))
-          (super on-focus on?))
-        (super-new))))
+  (define (make-searchable-canvas% %)
+    (class %
+      (inherit get-top-level-window)
+      (define/override (on-focus on?)
+        (when on?
+          (send (get-top-level-window) make-searchable this))
+        (super on-focus on?))
+      (super-new)))
   
   (define interactions-canvas% 
     (class (make-searchable-canvas%
