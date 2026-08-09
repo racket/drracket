@@ -403,10 +403,11 @@
       (send num-m min-width mw))
     (send bp set-alignment 'right 'center)
     (send dlg show #t)
-    (and ok?
-         (let ([v (validate-number)])
-           (and (number? v)
-                v))))
+    (cond
+      [ok?
+       (define v (validate-number))
+       (and (number? v) v)]
+      [else #f]))
   
   ;; create-executable : (instanceof drracket:unit:frame<%>) -> void
   (define (create-executable frame)
