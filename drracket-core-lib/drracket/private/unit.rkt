@@ -373,16 +373,13 @@
                           0
                           (string->number (send whole get-value))))
       (cond
-        [(or (not whole-s) (not (integer? whole-s)))
-         (string-constant insert-number/bad-whole-part)]
+        [(or (not whole-s) (not (integer? whole-s))) (string-constant insert-number/bad-whole-part)]
         [(or (not num-s) (not (integer? num-s)) (< num-s 0))
          (string-constant insert-number/bad-numerator)]
         [(or (not den-s) (not (integer? den-s)) (<= den-s 0))
          (string-constant insert-number/bad-denominator)]
-        [else
-         (if (< whole-s 0)
-             (- whole-s (/ num-s den-s))
-             (+ whole-s (/ num-s den-s)))]))
+        [(< whole-s 0) (- whole-s (/ num-s den-s))]
+        [else (+ whole-s (/ num-s den-s))]))
     (define (ok-callback)
       (define v (validate-number))
       (cond
