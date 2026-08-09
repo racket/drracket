@@ -293,28 +293,25 @@
       [else
        (send text split-snip pos)
        (send text split-snip (+ pos 1))
-       (let ([snip (send text find-snip pos 'after)])
-         (if (is-a? snip string-snip%)
-             (let* ([before
-                     (let loop ([i (- pos 1)]
-                                [chars null])
-                       (if (< i 0)
-                           chars
-                           (let ([char (send text get-character i)])
-                             (if (non-letter? char)
-                                 chars
-                                 (loop (- i 1)
-                                       (cons char chars))))))]
-                    [after
-                     (let loop ([i pos])
-                       (if (< i (send text last-position))
-                           (let ([char (send text get-character i)])
-                             (if (non-letter? char)
-                                 null
-                                 (cons char (loop (+ i 1)))))
-                           null))])
-               (apply string (append before after)))
-             ""))]))
+       (define snip (send text find-snip pos 'after))
+       (if (is-a? snip string-snip%)
+           (let* ([before (let loop ([i (- pos 1)]
+                                     [chars null])
+                            (if (< i 0)
+                                chars
+                                (let ([char (send text get-character i)])
+                                  (if (non-letter? char)
+                                      chars
+                                      (loop (- i 1) (cons char chars))))))]
+                  [after (let loop ([i pos])
+                           (if (< i (send text last-position))
+                               (let ([char (send text get-character i)])
+                                 (if (non-letter? char)
+                                     null
+                                     (cons char (loop (+ i 1)))))
+                               null))])
+             (apply string (append before after)))
+           "")]))
   
   ;; non-letter? : char -> boolean
   ;; returns #t if the character belongs in a symbol (approx) and #f it is
