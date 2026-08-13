@@ -156,10 +156,12 @@
            (send (group:get-the-frame-group)
                  for-each-frame
                  (lambda (frame)
-                   (and (is-a? frame drscheme:unit:frame<%>)
-                        (let* ([defss (map (lambda (t) (send t get-defs)) (send frame get-tabs))]
-                               [defs (findf (lambda (d) (send d port-name-matches? source)) defss)])
-                          (and defs (k defs))))))
+                   (cond
+                     [(is-a? frame drscheme:unit:frame<%>)
+                      (define defss (map (lambda (t) (send t get-defs)) (send frame get-tabs)))
+                      (define defs (findf (lambda (d) (send d port-name-matches? source)) defss))
+                      (and defs (k defs))]
+                     [else #f])))
            default])))
     
     (define (debug-definitions-text-mixin super%)
@@ -486,26 +488,26 @@
           (when (and (send (get-tab) debug?) (not before))
             ;; render breakpoints
             (let ([breakpoints (send (get-tab) get-breakpoints)])
-              (for ([(pos enabled?) (in-hash breakpoints)])
-                (when (and (>= pos 0) (or enabled? (and mouse-over-pos (= mouse-over-pos pos))))
-                  (define-values (xl yl xr yr) (find-char-box this pos))
-                  (define diameter (- xr xl))
-                  (define yoff (/ (- yr yl diameter) 2))
-                  (define op (send dc get-pen))
-                  (define ob (send dc get-brush))
-                  (case enabled?
-                    [(#t)
-                     (send dc set-pen bp-pen)
-                     (send dc set-brush bp-brush)]
-                    [(#f)
-                     (send dc set-pen bp-mo-pen)
-                     (send dc set-brush bp-mo-brush)]
-                    [else
-                     (send dc set-pen bp-tmp-pen)
-                     (send dc set-brush bp-tmp-brush)])
-                  (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
-                  (send dc set-pen op)
-                  (send dc set-brush ob))))
+              (for ([(pos enabled?) (in-hash breakpoints)]
+                    #:when (and (>= pos 0) (or enabled? (and mouse-over-pos (= mouse-over-pos pos)))))
+                (define-values (xl yl xr yr) (find-char-box this pos))
+                (define diameter (- xr xl))
+                (define yoff (/ (- yr yl diameter) 2))
+                (define op (send dc get-pen))
+                (define ob (send dc get-brush))
+                (case enabled?
+                  [(#t)
+                   (send dc set-pen bp-pen)
+                   (send dc set-brush bp-brush)]
+                  [(#f)
+                   (send dc set-pen bp-mo-pen)
+                   (send dc set-brush bp-mo-brush)]
+                  [else
+                   (send dc set-pen bp-tmp-pen)
+                   (send dc set-brush bp-tmp-brush)])
+                (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
+                (send dc set-pen op)
+                (send dc set-brush ob)))
             ;; mark the boundaries of the current stack frame
             ;; unless we're at the end of the expression and looking at the top frame,
             ;; in which case just mark the current location
@@ -636,10 +638,11 @@
                                (namespace-syntax-introduce
                                 (datum->syntax #f orig-exp))))
                (define top-e (expand-syntax-to-top-form exp))
-               (define fn (and (syntax? orig-exp)
-                               (let ([src (syntax-source orig-exp)])
-                                 (and (path? src)
-                                      src))))
+               (define fn (cond
+                            [(syntax? orig-exp)
+                             (define src (syntax-source orig-exp))
+                             (and (path? src) src)]
+                            [else #f]))
                (define annotating-tabs (make-hasheq))
                (cond
                  [(or (eq? (filename->defs (and (syntax? orig-exp)
@@ -909,39 +912,45 @@
         
         (define/public (defs-containing-pc)
           (let ([stack-frames (get-stack-frames)])
-            (and (cons? stack-frames)
-                 (let* ([src-stx (mark-source (first stack-frames))]
-                        [source (syntax-source src-stx)])
-                   (if source
-                       (filename->defs source)
-                       (get-defs))))))
+            (cond
+              [(cons? stack-frames)
+               (define src-stx (mark-source (first stack-frames)))
+               (define source (syntax-source src-stx))
+               (if source
+                   (filename->defs source)
+                   (get-defs))]
+              [else #f])))
         
         (define/public (defs-containing-current-frame)
           (let ([stack-frames (get-stack-frames)])
-            (and (cons? stack-frames)
-                 (let* ([src-stx (mark-source (list-ref stack-frames (get-frame-num)))]
-                        [source (syntax-source src-stx)])
-                   (if source
-                       (filename->defs source)
-                       (get-defs))))))
+            (cond
+              [(cons? stack-frames)
+               (define src-stx (mark-source (list-ref stack-frames (get-frame-num))))
+               (define source (syntax-source src-stx))
+               (if source
+                   (filename->defs source)
+                   (get-defs))]
+              [else #f])))
 
         (define/public (get-pc)
           (let ([stack-frames (get-stack-frames)])
-            (and (cons? stack-frames)
-                 (let* ([src-stx (mark-source (first stack-frames))]
-                        [start (syntax-position src-stx)]
-                        [end (and start (+ start (syntax-span src-stx) -1))])
-                   (if (cons? (get-break-status))
-                       end
-                       start)))))
+            (cond
+              [(cons? stack-frames)
+               (define src-stx (mark-source (first stack-frames)))
+               (define start (syntax-position src-stx))
+               (define end (and start (+ start (syntax-span src-stx) -1)))
+               (if (cons? (get-break-status)) end start)]
+              [else #f])))
         
         (define/public (get-frame-endpoints frame-num)
           (let ([stack-frames (get-stack-frames)])
-            (and (cons? stack-frames)
-                 (let* ([src-stx (mark-source (list-ref stack-frames frame-num))]
-                        [start (syntax-position src-stx)]
-                        [end (and start (+ start (syntax-span src-stx) -1))])
-                   (list start end)))))
+            (cond
+              [(cons? stack-frames)
+               (define src-stx (mark-source (list-ref stack-frames frame-num)))
+               (define start (syntax-position src-stx))
+               (define end (and start (+ start (syntax-span src-stx) -1)))
+               (list start end)]
+              [else #f])))
         
         (define/public (get-current-frame-endpoints)
           (get-frame-endpoints (get-frame-num)))
@@ -1234,21 +1243,20 @@
         
         (define/public (register-stack-frames frames already-stopped?)
           (define trimmed-exprs
-            (map (lambda (frame)
-                   (let ([expr (mark-source frame)])
-                     (cond
-                       ; should succeed unless the user closes a secondary tab during debugging
-                       [(and expr (filename->defs (syntax-source expr)))
-                        =>
-                        (lambda (defs)
-                          (trim-expr-str (if (syntax-position expr)
-                                             (send defs get-text
-                                                   (sub1 (syntax-position expr))
-                                                   (+ -1 (syntax-position expr) (syntax-span expr)))
-                                             "??")
-                                         15))]
-                       ["??"])))
-                 frames))
+            (for/list ([frame (in-list frames)])
+              (define expr (mark-source frame))
+              (cond
+                ; should succeed unless the user closes a secondary tab during debugging
+                [(and expr (filename->defs (syntax-source expr)))
+                 =>
+                 (lambda (defs)
+                   (trim-expr-str (if (syntax-position expr)
+                                      (send defs get-text
+                                            (sub1 (syntax-position expr))
+                                            (+ -1 (syntax-position expr) (syntax-span expr)))
+                                      "??")
+                                  15))]
+                ["??"])))
           (send stack-frames begin-edit-sequence)
           (send stack-frames lock #f)
           (unless already-stopped?
