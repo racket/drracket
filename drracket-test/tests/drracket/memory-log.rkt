@@ -6,11 +6,11 @@
          framework/preferences
          drracket/private/syncheck/local-member-names) ;; for the syncheck:arrows-visible? method
 
-(printf "The printouts below are designed to trick drdr into graphing them;\n")
-(printf "they aren't times, but memory usage. The first is starting up DrRacket,\n")
-(printf "the second is after the documentation index has been loaded (via check\n")
-(printf "syntax) and the third is after online check syntax has completed once (so\n")
-(printf "a place was created and the docs loaded there.\n")
+(displayln "The printouts below are designed to trick drdr into graphing them;")
+(displayln "they aren't times, but memory usage. The first is starting up DrRacket,")
+(displayln "the second is after the documentation index has been loaded (via check")
+(displayln "syntax) and the third is after online check syntax has completed once (so")
+(displayln "a place was created and the docs loaded there.")
 
 ;; mem-cnt returns the amount of memory used, iterating (collect-garbage)
 ;; until the delta is less than 1% or we've done it 20 times.
