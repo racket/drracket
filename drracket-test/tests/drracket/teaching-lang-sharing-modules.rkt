@@ -42,22 +42,19 @@ Of course, other (similar) things can go wrong, too.
      (for ([exp (in-list things-to-try)])
        (insert-in-definitions drs-frame (format "~s\n" exp)))
      (do-execute drs-frame)
-     (let ([output (fetch-output drs-frame)])
-       (cond
-         [(equal? output first-line-output)
-          (try-interaction-test drs-frame)]
-         [else
-          (eprintf "teaching-lang-sharing-modules.rkt: got bad output from execute: ~s"
-                   output)])))
+     (define output (fetch-output drs-frame))
+     (cond
+       [(equal? output first-line-output) (try-interaction-test drs-frame)]
+       [else (eprintf "teaching-lang-sharing-modules.rkt: got bad output from execute: ~s" output)]))
    #:prefs '([plt:framework-pref:framework:autosaving-on? #f])))
 
 (define (try-interaction-test drs-frame)
   (type-in-interactions drs-frame "1\n")
   (wait-for-computation drs-frame)
-  (let ([interactions-output (fetch-output drs-frame)])
-    (unless (equal? interactions-output (format "~a\n> 1\n1" first-line-output))
-      (error 'teaching-language-sharing-modules.rkt
-             "got bad output from interaction: ~s\n" 
-             interactions-output))))
+  (define interactions-output (fetch-output drs-frame))
+  (unless (equal? interactions-output (format "~a\n> 1\n1" first-line-output))
+    (error 'teaching-language-sharing-modules.rkt
+           "got bad output from interaction: ~s\n"
+           interactions-output)))
 
 (go)
