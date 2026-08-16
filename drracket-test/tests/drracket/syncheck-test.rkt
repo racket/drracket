@@ -1337,7 +1337,7 @@
       (hash "m.rkt"
             (with-output-to-string
               (λ ()
-                (printf "#lang racket/base\n")
+                (displayln "#lang racket/base")
                 (pretty-write '(require (for-syntax racket/base)))
                 (pretty-write '(provide m))
                 (pretty-write
@@ -1393,7 +1393,7 @@
        "n.rkt"
        (with-output-to-string
          (λ ()
-           (printf "#lang racket/base\n")
+           (displayln "#lang racket/base")
            (pretty-write '(require (for-syntax racket/base)))
            (pretty-write '(provide n))
            (pretty-write
