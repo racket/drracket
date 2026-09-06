@@ -187,7 +187,7 @@ TODO
        (define irl
          (cond
            [(is-a? frame drracket:unit:frame%)
-            (send (send (send frame get-current-tab) get-defs) get-irl)]
+            (send+ frame (get-current-tab) (get-defs) (get-irl))]
            [else
             (drracket:frame:try-to-find-an-irl)]))
        (define fam
