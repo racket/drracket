@@ -141,22 +141,21 @@ TODO
     (drracket:debug:error-display-handler/stacktrace msg exn))
   
   (define (main-user-eventspace-thread?)
-    (let ([rep (current-rep)])
-      (and rep
-           (eq? (eventspace-handler-thread (send rep get-user-eventspace))
-                (current-thread)))))
+    (define rep (current-rep))
+    (and rep (eq? (eventspace-handler-thread (send rep get-user-eventspace)) (current-thread))))
   
   (define drs-bindings-keymap (make-object keymap:aug-keymap%))
   (define drs-binding-alt-as-meta-keymap (make-object keymap:aug-keymap%))
 
   (let* ([get-frame
           (λ (obj)
-            (and (is-a? obj editor<%>)
-                 (let ([canvas (send obj get-canvas)])
-                   (and canvas
-                        (let ([frame (send canvas get-top-level-window)])
-                          (and (is-a? frame drracket:unit:frame%)
-                               frame))))))]
+            (cond
+              [(is-a? obj editor<%>)
+               (define canvas (send obj get-canvas))
+               (and canvas
+                    (let ([frame (send canvas get-top-level-window)])
+                      (and (is-a? frame drracket:unit:frame%) frame)))]
+              [else #f]))]
          [add-drs-function
           (λ (name f)
             (define (fn obj evt) (cond [(get-frame obj) => f]))
@@ -188,7 +187,7 @@ TODO
        (define irl
          (cond
            [(is-a? frame drracket:unit:frame%)
-            (send (send (send frame get-current-tab) get-defs) get-irl)]
+            (send+ frame (get-current-tab) (get-defs) (get-irl))]
            [else
             (drracket:frame:try-to-find-an-irl)]))
        (define fam
@@ -598,20 +597,20 @@ TODO
       ;; returns the width of the repl in characters, or 80 if the
       ;; answer cannot be found.
       (define/private (get-repl-char-width)
-        (let ([admin (get-admin)]
-              [standard (send (get-style-list) find-named-style "Standard")])
-          (if (and admin standard)
-              (let ([bw (box 0)])
-                (send admin get-view #f #f bw #f)
-                (let* ([dc (send admin get-dc)]
-                       [standard-font (send standard get-font)]
-                       [old-font (send dc get-font)])
-                  (send dc set-font standard-font)
-                  (let* ([char-width (send dc get-char-width)]
-                         [answer (inexact->exact (floor (/ (unbox bw) char-width)))])
-                    (send dc set-font old-font)
-                    answer)))
-              80)))
+        (define admin (get-admin))
+        (define standard (send (get-style-list) find-named-style "Standard"))
+        (if (and admin standard)
+            (let ([bw (box 0)])
+              (send admin get-view #f #f bw #f)
+              (let* ([dc (send admin get-dc)]
+                     [standard-font (send standard get-font)]
+                     [old-font (send dc get-font)])
+                (send dc set-font standard-font)
+                (let* ([char-width (send dc get-char-width)]
+                       [answer (inexact->exact (floor (/ (unbox bw) char-width)))])
+                  (send dc set-font old-font)
+                  answer)))
+            80))
       
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;;                                            ;;;
@@ -640,11 +639,11 @@ TODO
       ;; highlight-errors/exn : exn -> void
       ;; highlights all of the errors associated with the exn (incl. arrows)
       (define/public (highlight-errors/exn exn)
-        (let ([locs (cond
-                      [(exn:srclocs? exn)
-                       ((exn:srclocs-accessor exn) exn)]
-                      [else '()])])
-          (highlight-errors locs #f)))
+        (define locs
+          (cond
+            [(exn:srclocs? exn) ((exn:srclocs-accessor exn) exn)]
+            [else '()]))
+        (highlight-errors locs #f))
       
       ;; =Kernel= =handler=
       ;; highlight-errors :    (listof srcloc)
@@ -667,42 +666,40 @@ TODO
               (define finish (+ start span))
               (send file highlight-range start finish 'drracket:error-background-highlighting #f 'high)))
           (when (and definitions-text error-arrows)
-            (let ([filtered-arrows
-                   (remove-duplicate-error-arrows
-                    (filter
-                     (λ (arr) (embedded-in? (srcloc-source arr) definitions-text))
-                     error-arrows))])
-              (send definitions-text set-error-arrows filtered-arrows)))
+            (define filtered-arrows
+              (remove-duplicate-error-arrows
+               (filter (λ (arr) (embedded-in? (srcloc-source arr) definitions-text)) error-arrows)))
+            (send definitions-text set-error-arrows filtered-arrows))
             
           (set! clear-error-highlighting
                 (λ ()
                   (set! clear-error-highlighting void)
                   (for-each (λ (x) (x)) resets))))
 
-        (let* ([first-loc (and (pair? locs) (car locs))]
-               [first-file (and first-loc (srcloc-source first-loc))]
-               [first-start (and first-loc (- (srcloc-position first-loc) 1))]
-               [first-span (and first-loc (srcloc-span first-loc))])
-          
-          (on-highlighted-errors locs)
-          
-          (when (and first-loc first-start first-span)
-            (let ([first-finish (+ first-start first-span)])
-              (when (eq? first-file definitions-text) ;; only move set the cursor in the defs window
-                (send first-file set-position first-start first-start))
-              (send first-file scroll-to-position first-start #f first-finish)))
-
-          (for-each (λ (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
-          (when first-loc
-            
-            (when (eq? first-file definitions-text)
-              ;; when we're highlighting something in the defs window,
-              ;; make sure it is visible
-              (let ([tlw (send first-file get-top-level-window)]) 
-                (when (is-a? tlw drracket:unit:frame<%>)
-                  (send tlw ensure-defs-shown))))
-            
-            (send first-file set-caret-owner (get-focus-snip) 'global))))
+        (define first-loc (and (pair? locs) (car locs)))
+        (define first-file (and first-loc (srcloc-source first-loc)))
+        (define first-start (and first-loc (- (srcloc-position first-loc) 1)))
+        (define first-span (and first-loc (srcloc-span first-loc)))
+        
+        (on-highlighted-errors locs)
+        
+        (when (and first-loc first-start first-span)
+          (let ([first-finish (+ first-start first-span)])
+            (when (eq? first-file definitions-text) ;; only move set the cursor in the defs window
+              (send first-file set-position first-start first-start))
+            (send first-file scroll-to-position first-start #f first-finish)))
+        
+        (for-each (λ (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
+        (when first-loc
+        
+          (when (eq? first-file definitions-text)
+            ;; when we're highlighting something in the defs window,
+            ;; make sure it is visible
+            (let ([tlw (send first-file get-top-level-window)])
+              (when (is-a? tlw drracket:unit:frame<%>)
+                (send tlw ensure-defs-shown))))
+        
+          (send first-file set-caret-owner (get-focus-snip) 'global)))
 
       ;; unlike highlight-error just above, this function does not change 
       ;; what the currently noted errors locations are, it just highlights 
@@ -742,9 +739,9 @@ TODO
           (when (eq? source definitions-text)
             ;; when we're highlighting something in the defs window,
             ;; make sure it is visible
-            (let ([tlw (send source get-top-level-window)]) 
-              (when (is-a? tlw drracket:unit:frame<%>)
-                (send tlw ensure-defs-shown))))
+            (define tlw (send source get-top-level-window))
+            (when (is-a? tlw drracket:unit:frame<%>)
+              (send tlw ensure-defs-shown)))
           
           (send source set-caret-owner (get-focus-snip) 'global)))
       
@@ -752,45 +749,46 @@ TODO
         (void))
         
       (define/private (cleanup-locs locs)
-        (let ([ht (make-hasheq)])
-          (filter (λ (loc) (and (is-a? (srcloc-source loc) text:basic<%>)
-                                (number? (srcloc-position loc))
-                                (number? (srcloc-span loc))))
-                  (map (λ (srcloc)
-                         (cond
-                           [(hash-ref ht (srcloc-source srcloc) #f)
-                            =>
-                            (λ (e) 
-                              (make-srcloc e
-                                           (srcloc-line srcloc)
-                                           (srcloc-column srcloc)
-                                           (srcloc-position srcloc)
-                                           (srcloc-span srcloc)))]
-                           [(send definitions-text port-name-matches? (srcloc-source srcloc))
-                            (hash-set! ht (srcloc-source srcloc) definitions-text)
-                            (make-srcloc definitions-text
+        (define ht (make-hasheq))
+        (filter (λ (loc)
+                  (and (is-a? (srcloc-source loc) text:basic<%>)
+                       (number? (srcloc-position loc))
+                       (number? (srcloc-span loc))))
+                (map (λ (srcloc)
+                       (cond
+                         [(hash-ref ht (srcloc-source srcloc) #f)
+                          =>
+                          (λ (e)
+                            (make-srcloc e
                                          (srcloc-line srcloc)
                                          (srcloc-column srcloc)
                                          (srcloc-position srcloc)
-                                         (srcloc-span srcloc))]
-                           [(port-name-matches? (srcloc-source srcloc))
-                            (hash-set! ht (srcloc-source srcloc) this)
-                            (make-srcloc this
+                                         (srcloc-span srcloc)))]
+                         [(send definitions-text port-name-matches? (srcloc-source srcloc))
+                          (hash-set! ht (srcloc-source srcloc) definitions-text)
+                          (make-srcloc definitions-text
+                                       (srcloc-line srcloc)
+                                       (srcloc-column srcloc)
+                                       (srcloc-position srcloc)
+                                       (srcloc-span srcloc))]
+                         [(port-name-matches? (srcloc-source srcloc))
+                          (hash-set! ht (srcloc-source srcloc) this)
+                          (make-srcloc this
+                                       (srcloc-line srcloc)
+                                       (srcloc-column srcloc)
+                                       (srcloc-position srcloc)
+                                       (srcloc-span srcloc))]
+                         [(and (symbol? (srcloc-source srcloc))
+                               (text:lookup-port-name (srcloc-source srcloc)))
+                          =>
+                          (lambda (editor)
+                            (make-srcloc editor
                                          (srcloc-line srcloc)
                                          (srcloc-column srcloc)
                                          (srcloc-position srcloc)
-                                         (srcloc-span srcloc))]
-                           [(and (symbol? (srcloc-source srcloc))
-                                 (text:lookup-port-name (srcloc-source srcloc)))
-                            =>
-                            (lambda (editor)
-                              (make-srcloc editor
-                                           (srcloc-line srcloc)
-                                           (srcloc-column srcloc)
-                                           (srcloc-position srcloc)
-                                           (srcloc-span srcloc)))]
-                           [else srcloc]))
-                       locs))))
+                                         (srcloc-span srcloc)))]
+                         [else srcloc]))
+                     locs)))
       
       (define highlights-can-be-reset (make-parameter #t))
       (define/public (reset-highlighting)
@@ -803,24 +801,24 @@ TODO
       ;; duplicate arrows point from and to the same place -- only
       ;; need one arrow for each pair of locations they point to.
       (define/private (remove-duplicate-error-arrows error-arrows)
-        (let ([ht (make-hash)])
-          (let loop ([arrs error-arrows]
-                     [n 0])
-            (unless (null? arrs)
-              (hash-set! ht (car arrs) n)
-              (loop (cdr arrs) (+ n 1))))
-          (let* ([unsorted (hash-map ht list)]
-                 [sorted (sort unsorted < #:key cadr)]
-                 [arrs (map car sorted)])
-            arrs)))
+        (define ht (make-hash))
+        (let loop ([arrs error-arrows]
+                   [n 0])
+          (unless (null? arrs)
+            (hash-set! ht (car arrs) n)
+            (loop (cdr arrs) (+ n 1))))
+        (define unsorted (hash-map ht list))
+        (define sorted (sort unsorted < #:key cadr))
+        (define arrs (map car sorted))
+        arrs)
       
       (define/private (embedded-in? txt-inner txt-outer)
         (let loop ([txt-inner txt-inner])
           (cond
             [(eq? txt-inner txt-outer) #t]
-            [else (let ([admin (send txt-inner get-admin)])
-                    (and (is-a? admin editor-snip-editor-admin<%>)
-                         (loop (send (send (send admin get-snip) get-admin) get-editor))))])))
+            [else (define admin (send txt-inner get-admin))
+                  (and (is-a? admin editor-snip-editor-admin<%>)
+                       (loop (send (send (send admin get-snip) get-admin) get-editor)))])))
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;
@@ -829,11 +827,11 @@ TODO
       
       (define/override (after-io-insertion)
         (super after-io-insertion)
-        (let ([frame (get-frame)])
-          (when frame
-            (let ([tab (send definitions-text get-tab)])
-              (when (eq? (send frame get-current-tab) tab)
-                (send context ensure-rep-shown this))))))
+        (define frame (get-frame))
+        (when frame
+          (let ([tab (send definitions-text get-tab)])
+            (when (eq? (send frame get-current-tab) tab)
+              (send context ensure-rep-shown this)))))
       
       (define/augment (after-insert start len)
         (inner (void) after-insert start len)
@@ -911,16 +909,18 @@ TODO
       (define/public (get-in-evaluation?) in-evaluation?)
       
       (define/public-final (insert-warning message)
-        (let ([locked? (is-locked?)])
-          (when locked? (lock #f))
-          (begin-edit-sequence)
-          (let ([start (get-unread-start-point)])
-            (insert-before message)
-            (let ([end (get-unread-start-point)])
-              (change-style (get-warning-style-delta) start end)
-              (insert-before "\n")))
-          (end-edit-sequence)
-          (when locked? (lock #t))))
+        (define locked? (is-locked?))
+        (when locked?
+          (lock #f))
+        (begin-edit-sequence)
+        (let ([start (get-unread-start-point)])
+          (insert-before message)
+          (let ([end (get-unread-start-point)])
+            (change-style (get-warning-style-delta) start end)
+            (insert-before "\n")))
+        (end-edit-sequence)
+        (when locked?
+          (lock #t)))
       
       (field (show-no-user-evaluation-message? #t))
       
@@ -1066,14 +1066,13 @@ TODO
           [else #f]))
       
       (define/private (only-whitespace-after-insertion-point)
-        (let ([start (get-start-position)]
-              [end (get-end-position)])
-          (and (= start end)
-               (let loop ([pos start])
-                 (cond
-                   [(= pos (last-position)) #t]
-                   [else (and (char-whitespace? (get-character pos))
-                              (loop (+ pos 1)))])))))
+        (define start (get-start-position))
+        (define end (get-end-position))
+        (and (= start end)
+             (let loop ([pos start])
+               (cond
+                 [(= pos (last-position)) #t]
+                 [else (and (char-whitespace? (get-character pos)) (loop (+ pos 1)))]))))
       
       (define/augment (on-submit)
         (inner (void) on-submit)
@@ -1103,28 +1102,19 @@ TODO
       
       (inherit get-backward-sexp)
       (define/override (on-local-char key)
-        (let ([start (get-start-position)]
-              [end (get-end-position)]
-              [code (send key get-key-code)])
-          (cond
-            [(not (or (eq? code 'numpad-enter)
-                      (equal? code #\return)
-                      (equal? code #\newline)))
-             (super on-local-char key)]
-            [(not prompt-position) 
-             ;; evaluating? just drop the keypress
-             (void)] 
-            [(and (< end prompt-position)
-                  (= start end)
-                  (get-backward-sexp end))
-             =>
-             (λ (sexp-start)
-               (copy-down sexp-start end))]
-            [(and (< end prompt-position)
-                  (not (= start end)))
-             (copy-down start end)]
-            [else
-             (super on-local-char key)])))
+        (define start (get-start-position))
+        (define end (get-end-position))
+        (define code (send key get-key-code))
+        (cond
+          [(not (or (eq? code 'numpad-enter) (equal? code #\return) (equal? code #\newline)))
+           (super on-local-char key)]
+          ;; evaluating? just drop the keypress
+          [(not prompt-position) (void)]
+          [(and (< end prompt-position) (= start end) (get-backward-sexp end))
+           =>
+           (λ (sexp-start) (copy-down sexp-start end))]
+          [(and (< end prompt-position) (not (= start end))) (copy-down start end)]
+          [else (super on-local-char key)]))
       
       (define/private (copy-down start end)
         (begin-edit-sequence)
@@ -1132,11 +1122,10 @@ TODO
         (split-snip end)
         (let loop ([snip (find-snip start 'after-or-none)])
           (when snip
-            (let ([pos (+ (get-snip-position snip)
-                          (send snip get-count))])
-              (when (<= pos end)
-                (insert (send snip copy) (last-position) (last-position))
-                (loop (send snip next))))))
+            (define pos (+ (get-snip-position snip) (send snip get-count)))
+            (when (<= pos end)
+              (insert (send snip copy) (last-position) (last-position))
+              (loop (send snip next)))))
         (set-position (last-position) (last-position))
         (end-edit-sequence))
       
@@ -1161,9 +1150,9 @@ TODO
               (set! prompt-space (+ prompt-space 1)))
             (insert-between pmt))
           
-          (let ([sp (get-unread-start-point)])
-            (set! prompt-position sp)
-            (reset-regions (append (get-regions) (list (list sp 'end))))))
+          (define sp (get-unread-start-point))
+          (set! prompt-position sp)
+          (reset-regions (append (get-regions) (list (list sp 'end)))))
         (end-edit-sequence)
         (set! inserting-prompt? #f))
       
@@ -1330,21 +1319,19 @@ TODO
         (set! thread-killed
               (thread
                (λ () ; =Kernel=
-                 (let ([ut (get-user-thread)])
-                   (sync (thread-suspend-evt ut)
-                         (thread-dead-evt ut))
-                   (queue-system-callback
-                    ut
-                    (λ () ; =Kernel=, =Handler=
-                      (if need-interaction-cleanup?
-                          (cleanup-interaction)
-                          (cleanup))
-                      ;; HACK: lock the interactions now; the reason for this
-                      ;; is that `cleanup-interaction' invokes
-                      ;; `enable-evaluation', and in "unit.rkt" this is defined
-                      ;; to unlock the interactions which might make sense in
-                      ;; that context.
-                      (lock #t))))))))
+                 (define ut (get-user-thread))
+                 (sync (thread-suspend-evt ut) (thread-dead-evt ut))
+                 (queue-system-callback ut
+                                        (λ () ; =Kernel=, =Handler=
+                                          (if need-interaction-cleanup?
+                                              (cleanup-interaction)
+                                              (cleanup))
+                                          ;; HACK: lock the interactions now; the reason for this
+                                          ;; is that `cleanup-interaction' invokes
+                                          ;; `enable-evaluation', and in "unit.rkt" this is defined
+                                          ;; to unlock the interactions which might make sense in
+                                          ;; that context.
+                                          (lock #t)))))))
       
       (define/public (run-in-evaluation-thread thunk) ; =Kernel=
         (semaphore-wait eval-thread-state-sema)
@@ -1538,13 +1525,12 @@ TODO
             (semaphore-post goahead))))
       
       (define/private (queue-user/wait thnk)
-        (let ([wait (make-semaphore 0)])
-          (parameterize ([current-eventspace (get-user-eventspace)])
-            (queue-callback
-             (λ ()
-               (thnk)
-               (semaphore-post wait))))
-          (semaphore-wait wait)))
+        (define wait (make-semaphore 0))
+        (parameterize ([current-eventspace (get-user-eventspace)])
+          (queue-callback (λ ()
+                            (thnk)
+                            (semaphore-post wait))))
+        (semaphore-wait wait))
       
       (field (shutting-down? #f))
       
@@ -1681,8 +1667,8 @@ TODO
         (update-logger-gui #f))
       
       (define/private (update-logger-gui command)
-        (let ([tab (send definitions-text get-tab)])
-          (send tab update-logger-window command)))
+        (define tab (send definitions-text get-tab))
+        (send tab update-logger-window command))
                         
       (define/private (new-planet-info tag package) 
         (let ([frame (get-frame)])
