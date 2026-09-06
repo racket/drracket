@@ -81,7 +81,9 @@
            (define settings (vector-ref message 3))
            (define pc-status-expanding-place (vector-ref message 4))
            (define currently-open-files (vector-ref message 5))
-           (loop (new-job program-as-string port-name response-pc settings pc-status-expanding-place)
+           (loop (new-job program-as-string port-name response-pc settings
+                          currently-open-files
+                          pc-status-expanding-place)
                  old-registry)]))))))
 
 (define (abort-job job)
@@ -101,7 +103,8 @@
 
 (define sys-namespace (current-namespace))
 
-(define (new-job program-as-string the-source response-pc settings pc-status-expanding-place)
+(define (new-job program-as-string the-source response-pc settings
+                 currently-open-files pc-status-expanding-place)
   (define custodian-limit
     (and (custodian-memory-accounting-available?)
          (preferences:get 'drracket:child-only-memory-limit)))
@@ -166,7 +169,7 @@
          (ep-log-info "expanding-place.rkt: 03 setting module language parameters")
          (set-module-language-parameters settings
                                          module-language-parallel-lock-client
-                                         null
+                                         currently-open-files
                                          #:use-use-current-security-guard? #t)
          (ep-log-info "expanding-place.rkt: 04 setting directories")
          (let ([init-dir (get-init-dir path)])

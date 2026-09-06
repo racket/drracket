@@ -145,8 +145,10 @@
                        (file-or-directory-permissions (pkg-directory/use-cache pkg))))
             (set-add s pkg)
             s)))
+    (when (= 0 (set-count open-pkgs))
+      (log-drracket/cm-info "DrRacket: enabling bytecode-file compilation for no packages"))
     (for ([pkg (in-set open-pkgs)])
-      (log-info "DrRacket: enabling bytecode-file compilation for package ~s" pkg))
+      (log-drracket/cm-info "DrRacket: enabling bytecode-file compilation for package ~s" pkg))
     
     (define skip-path?
       (let* ([cd (find-collects-dir)]
