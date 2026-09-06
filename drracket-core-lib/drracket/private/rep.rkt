@@ -149,12 +149,13 @@ TODO
 
   (let* ([get-frame
           (λ (obj)
-            (and (is-a? obj editor<%>)
-                 (let ([canvas (send obj get-canvas)])
-                   (and canvas
-                        (let ([frame (send canvas get-top-level-window)])
-                          (and (is-a? frame drracket:unit:frame%)
-                               frame))))))]
+            (cond
+              [(is-a? obj editor<%>)
+               (define canvas (send obj get-canvas))
+               (and canvas
+                    (let ([frame (send canvas get-top-level-window)])
+                      (and (is-a? frame drracket:unit:frame%) frame)))]
+              [else #f]))]
          [add-drs-function
           (λ (name f)
             (define (fn obj evt) (cond [(get-frame obj) => f]))
