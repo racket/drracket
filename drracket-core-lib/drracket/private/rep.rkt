@@ -1239,12 +1239,14 @@ TODO
                     ,(drracket:language:simple-settings-show-sharing settings)
                     ,(drracket:language:simple-settings-insert-newlines settings)
                     ,defs-port-name
+                    ,ints-port-name
                     ,path
                     ,(get-output-bytes bp)))]
                 [else
                  (send-to-subprocess
                   `("interaction"
                     ,pretty-print-width
+                    ,defs-port-name
                     ,ints-port-name
                     ,port-line
                     ,port-col
@@ -1482,7 +1484,8 @@ TODO
                              port)])
                          (loop)]
                         [`("error-display-handler" ,msg ,srclocs1 ,srclocs2 ,details)
-                         (parameterize ([current-error-port (get-err-port)])
+                         (parameterize ([current-error-port (get-err-port)]
+                                        [current-rep this]) ;; questionable: should the call to error-display-handler be on a different thread?
                            (drracket:debug:error-display-handler/stacktrace/stacks
                             msg
                             (srclocs->viewable-stack srclocs1 (list definitions-text this))

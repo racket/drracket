@@ -61,12 +61,11 @@ for bugs in this code to hopefully have some useful debugging information.
     (λ (str exn)
       (define srclocs1
         (if (exn? exn)
-            (filter values (map cdr (continuation-mark-set->context (exn-continuation-marks exn))))
+            (map errortrace-stack-item->srcloc (continuation-mark-set->list (exn-continuation-marks exn) drracket-errortrace-key))
             '()))
-      ;; supposed to be the stack from the continuation marks
       (define srclocs2
         (if (exn? exn)
-            (map errortrace-stack-item->srcloc (continuation-mark-set->list (exn-continuation-marks exn) drracket-errortrace-key))
+            (filter values (map cdr (continuation-mark-set->context (exn-continuation-marks exn))))
             '()))
       (define details (exn->error-display-handler-exn-details exn))
       (send-msg `("error-display-handler" ,(exn-message exn) ,srclocs1 ,srclocs2 ,details)))))
@@ -309,6 +308,7 @@ for bugs in this code to hopefully have some useful debugging information.
     (sync (eventspace-handler-thread user-eventspace))
     (exit 0))))
 
+(define special-source-handling-port-names (make-parameter '()))
 (define errortrace-annotate
   (let ()
     (define key-module-name 'drracket/private/drracket-errortrace-key)
@@ -328,7 +328,10 @@ for bugs in this code to hopefully have some useful debugging information.
         [(is-a? src editor<%>) src] ;; can we skip this? ....probably?
         [else #f]))
     ;; it isn't clear what the complex version is actually accomplishing!
-    (define (special-source-handling-for-drr src) #f)
+    (define (special-source-handling-for-drr src)
+      (cond
+        [(member src (special-source-handling-port-names)) src]
+        [else #f]))
     (define with-mark (make-with-mark special-source-handling-for-drr))
 
     (define test-coverage-enabled (make-parameter #f))
@@ -361,10 +364,15 @@ for bugs in this code to hopefully have some useful debugging information.
     [(eof-object? datum-in) (exit 0)]
     [else
      (match (deserialize datum-in)
-       [(list "complete-program" pretty-print-width submodules-to-run annotations prefab-module-settings currently-open-files show-sharing insert-newlines defs-port-name path the-bytes)
+       [(list "complete-program"
+              pretty-print-width submodules-to-run
+              annotations prefab-module-settings currently-open-files
+              show-sharing insert-newlines
+              defs-port-name ints-port-name path the-bytes)
         (parameterize ([current-eventspace user-eventspace])
           (queue-callback
            (λ ()
+             (special-source-handling-port-names (list defs-port-name ints-port-name))
              (drracket-determined-width pretty-print-width)
 
              ;; these are the steps that the language.rkt does `on-execute`;
@@ -494,10 +502,11 @@ for bugs in this code to hopefully have some useful debugging information.
                    (values #f #f))))
              (send-finished-evaluation-message hopeless-exn-raised? suffix))))
         (loop)]
-       [(list "interaction" pretty-print-width ints-port-name port-line port-col port-pos the-bytes)
+       [(list "interaction" pretty-print-width defs-port-name ints-port-name port-line port-col port-pos the-bytes)
         (parameterize ([current-eventspace user-eventspace])
           (queue-callback
            (λ ()
+             (special-source-handling-port-names (list defs-port-name ints-port-name))
              (drracket-determined-width pretty-print-width)
              (define port (open-input-bytes the-bytes ints-port-name))
              (port-count-lines! port)
