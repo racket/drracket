@@ -641,6 +641,10 @@
     (define (compilation-on-checkbox-callback)
       (set! compilation-on? (send compilation-on-check-box get-value))
       (something-changed))
+
+    (define (run-in-separate-process-checkbox-callback)
+      (something-changed)
+      (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))
     
     (define simple-case-lambda
       (drracket:language:simple-module-based-language-config-panel
@@ -656,7 +660,7 @@
        
        #:debugging-radio-box-callback
        (λ ()
-         (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))
+         (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))
        #:lang-default-debugging? #t
 
        #:dynamic-panel-extras
@@ -689,7 +693,8 @@
                             (and keyboard-shortcuts? run-in-separate-process-keystroke))]
                     [callback
                      (λ (_1 _2)
-                       (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))]
+                       (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+                       (run-in-separate-process-checkbox-callback))]
                     [parent dynamic-panel]))
          (set! run-submodules-choice 
                (new (class name-message%
@@ -722,7 +727,7 @@
                        [font normal-control-font]
                        [parent dynamic-panel]
                        [label (string-constant submodules-to-run)])))))))
-    (define (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+    (define (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
       (define compilation-on-allowed?
         (and (not (send run-in-separate-process-checkbox get-value))
              (match* ((send left-debugging-radio-box get-selection)
@@ -731,6 +736,16 @@
                [(1 _) #t]
                [(_ 0) #t]
                [(_ _) #f])))
+      (define profiling-and-test-coverage-allowed?
+        (not (send run-in-separate-process-checkbox get-value)))
+      (cond
+        [profiling-and-test-coverage-allowed?
+         (send right-debugging-radio-box enable #t)]
+        [else
+         (send right-debugging-radio-box enable #f)
+         (when (send right-debugging-radio-box get-selection)
+           (send right-debugging-radio-box set-selection #f)
+           (send left-debugging-radio-box set-selection 0))])
       (cond
         [compilation-on-allowed?
          (send compilation-on-check-box enable #t)
@@ -871,7 +886,7 @@
     
     (install-collection-paths '(default))
     (update-buttons)
-    (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+    (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
 
     (define shortcuts
       (append
@@ -884,13 +899,16 @@
                      (compilation-on-checkbox-callback)))
              (list stacktrace-keystroke
                    (λ ()
-                     (send save-stacktrace-on-check-box set-value (not (send save-stacktrace-on-check-box get-value)))))
+                     (send save-stacktrace-on-check-box set-value (not (send save-stacktrace-on-check-box get-value)))
+                     (something-changed)))
              (list enforce-module-constants-keystroke
                    (λ ()
-                     (send enforce-module-constants-checkbox set-value (not (send enforce-module-constants-checkbox get-value)))))
+                     (send enforce-module-constants-checkbox set-value (not (send enforce-module-constants-checkbox get-value)))
+                     (something-changed)))
              (list run-in-separate-process-keystroke
                    (λ ()
-                     (send run-in-separate-process-checkbox set-value (not (send run-in-separate-process-checkbox get-value))))))))
+                     (send run-in-separate-process-checkbox set-value (not (send run-in-separate-process-checkbox get-value)))
+                     (run-in-separate-process-checkbox-callback))))))
 
     (drracket:language-configuration:config-panel-with-keystrokes
      (case-lambda
@@ -918,7 +936,7 @@
         (install-command-line-args (module-language-settings-command-line-args settings))
         (set! compilation-on? (module-language-settings-compilation-on? settings))
         (send compilation-on-check-box set-value (module-language-settings-compilation-on? settings))
-        (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+        (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
         (send save-stacktrace-on-check-box set-value (module-language-settings-full-trace? settings))
         (set-submodules-to-run (module-language-settings-submodules-to-run settings))
         (send enforce-module-constants-checkbox set-value
