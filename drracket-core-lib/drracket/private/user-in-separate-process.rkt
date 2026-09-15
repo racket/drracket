@@ -265,12 +265,15 @@ for bugs in this code to hopefully have some useful debugging information.
 ;; these two hopeless functions are stub versions of the functions with the same names
 ;; in module-language.rkt. here we never have direct access to the interactions window,
 ;; so we just report the error and then kill the process
+(define hopeless-escape (make-parameter "hopeless-escape uninitialized"))
+
 (define (raise-hopeless-exception exn [suffix #f])
-  ((error-display-handler)
-   (if (exn? exn) (exn-message exn) "Interactions disabled")
-   exn)
+  (define escape (hopeless-escape))
+  (unless escape (if exn (raise exn) (error "\nInteractions disabled")))
+  (when exn ((error-display-handler) (exn-message exn) exn))
+  (flush-output (current-output-port))
   (flush-output (current-error-port))
-  (exit -1))
+  (escape #t suffix))
 
 (define (raise-hopeless-syntax-error . error-args)
   (with-handlers ([exn:fail? raise-hopeless-exception])
@@ -343,14 +346,14 @@ for bugs in this code to hopefully have some useful debugging information.
 
     errortrace-annotate))
 
-(define (send-finished-evaluation-message)
+(define (send-finished-evaluation-message hopeless-exn-raised? suffix)
   (flush-output current-output-pipe-out)
   (flush-output current-error-pipe-out)
   (flush-output current-value-pipe-out)
   (wait-for-stdout-io)
   (wait-for-stderr-io)
   (wait-for-value-io)
-  (send-msg `("finished-evaluation")))
+  (send-msg `("finished-evaluation" ,hopeless-exn-raised? ,suffix)))
 
 (let loop ()
   (define datum-in (read (current-input-port)))
@@ -364,7 +367,8 @@ for bugs in this code to hopefully have some useful debugging information.
            (λ ()
              (drracket-determined-width pretty-print-width)
 
-             ;; these are the steps that the language.rkt does `on-execute`
+             ;; these are the steps that the language.rkt does `on-execute`;
+             ;; but parts commented out here because not all are supported
              (case annotations
                [(debug)
                 ;; errortrace-annotate probably comes from this:
@@ -449,43 +453,46 @@ for bugs in this code to hopefully have some useful debugging information.
                      v
                      (namespace-syntax-introduce v))))
              (define repl-init-thunk (make-thread-cell #f))
-             (define get-sexp/syntax/eof
-               (front-end/complete-program get-reader
-                                           path
-                                           (λ () #f) ;; get-pre-compiled
-                                           submodules-to-run
-                                           'drracket:init:system-eventspace ;; ignored when the-irl is #f
-                                           raise-hopeless-exception raise-hopeless-syntax-error
-                                           repl-init-thunk
+             (define-values (hopeless-exn-raised? suffix)
+               (let/ec escape
+                 (parameterize ([hopeless-escape escape])
+                   (define get-sexp/syntax/eof
+                     (front-end/complete-program get-reader
+                                                 path
+                                                 (λ () #f) ;; get-pre-compiled
+                                                 submodules-to-run
+                                                 'drracket:init:system-eventspace ;; ignored when the-irl is #f
+                                                 raise-hopeless-exception raise-hopeless-syntax-error
+                                                 repl-init-thunk
 
-                                           void ;; call-set-irl-mcli-vec
-                                           ;; we don't need to set-irl-mcli-vec! because we'll get the
-                                           ;; drracket:submit-predicate via read-language, I believe
+                                                 void ;; call-set-irl-mcli-vec
+                                                 ;; we don't need to set-irl-mcli-vec! because we'll get the
+                                                 ;; drracket:submit-predicate via read-language, I believe
 
-                                           (let ([p (open-input-bytes the-bytes defs-port-name)])
-                                             (port-count-lines! p)
-                                             p)
-                                           #f ;; the-irl
-                                           ))
+                                                 (let ([p (open-input-bytes the-bytes defs-port-name)])
+                                                   (port-count-lines! p)
+                                                   p)
+                                                 #f ;; the-irl
+                                                 ))
 
-             (run-some-user-code user-break-parameterization
-                                 outermost
-                                 pretty-print-width
-                                 get-sexp/syntax/eof)
+                   (run-some-user-code user-break-parameterization
+                                       outermost
+                                       pretty-print-width
+                                       get-sexp/syntax/eof)
 
-             ;; this prompt is the same as in rep.rkt in evaluate-from-port
-             (call-with-continuation-prompt
-              (λ ()
-                (call-with-break-parameterization
-                 user-break-parameterization
-                 (λ ()
-                   ;; this is the module language's front-end/finished-complete-program
-                   (cond [(thread-cell-ref repl-init-thunk)
-                          => (λ (t) (thread-cell-set! repl-init-thunk #f) (t))]))))
-              (default-continuation-prompt-tag)
-              (λ args (void)))
-
-             (send-finished-evaluation-message))))
+                   ;; this prompt is the same as in rep.rkt in evaluate-from-port
+                   (call-with-continuation-prompt
+                    (λ ()
+                      (call-with-break-parameterization
+                       user-break-parameterization
+                       (λ ()
+                         ;; this is the module language's front-end/finished-complete-program
+                         (cond [(thread-cell-ref repl-init-thunk)
+                                => (λ (t) (thread-cell-set! repl-init-thunk #f) (t))]))))
+                    (default-continuation-prompt-tag)
+                    (λ args (void)))
+                   (values #f #f))))
+             (send-finished-evaluation-message hopeless-exn-raised? suffix))))
         (loop)]
        [(list "interaction" pretty-print-width ints-port-name port-line port-col port-pos the-bytes)
         (parameterize ([current-eventspace user-eventspace])
@@ -500,5 +507,5 @@ for bugs in this code to hopefully have some useful debugging information.
                                  outermost
                                  pretty-print-width
                                  get-sexp/syntax/eof)
-             (send-finished-evaluation-message))))
+             (send-finished-evaluation-message #f #f))))
         (loop)])]))

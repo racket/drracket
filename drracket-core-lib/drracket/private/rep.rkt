@@ -1224,35 +1224,47 @@ TODO
               (copy-port port bp)
               (cond
                 [complete-program?
-                 (writeln (serialize
-                           `("complete-program"
-                             ,pretty-print-width
-                             ,(drracket:module-language:module-language-settings-submodules-to-run settings)
-                             ,(cond
-                                [(equal? (drracket:language:simple-settings-annotations settings) 'lang-default)
-                                 (call-read-language the-irl
-                                                     'drracket:default-instrumentation
-                                                     'debug)]
-                                [else (drracket:language:simple-settings-annotations settings)])
-                             ,(drracket:module-language:module-language-settings->prefab-module-settings settings #:irl the-irl)
-                             ,currently-open-files
-                             ,(drracket:language:simple-settings-show-sharing settings)
-                             ,(drracket:language:simple-settings-insert-newlines settings)
-                             ,defs-port-name
-                             ,path
-                             ,(get-output-bytes bp)))
-                          stdin)]
+                 (send-to-subprocess
+                  `("complete-program"
+                    ,pretty-print-width
+                    ,(drracket:module-language:module-language-settings-submodules-to-run settings)
+                    ,(cond
+                       [(equal? (drracket:language:simple-settings-annotations settings) 'lang-default)
+                        (call-read-language the-irl
+                                            'drracket:default-instrumentation
+                                            'debug)]
+                       [else (drracket:language:simple-settings-annotations settings)])
+                    ,(drracket:module-language:module-language-settings->prefab-module-settings settings #:irl the-irl)
+                    ,currently-open-files
+                    ,(drracket:language:simple-settings-show-sharing settings)
+                    ,(drracket:language:simple-settings-insert-newlines settings)
+                    ,defs-port-name
+                    ,path
+                    ,(get-output-bytes bp)))]
                 [else
-                 (writeln (serialize`("interaction"
-                                      ,pretty-print-width
-                                      ,ints-port-name
-                                      ,port-line
-                                      ,port-col
-                                      ,port-pos
-                                      ,(get-output-bytes bp)))
-                          stdin)])
+                 (send-to-subprocess
+                  `("interaction"
+                    ,pretty-print-width
+                    ,ints-port-name
+                    ,port-line
+                    ,port-col
+                    ,port-pos
+                    ,(get-output-bytes bp)))])
               (flush-output stdin)
-              (channel-get finished-evaluation-chan)]
+              (match-define (cons hopeless-exn-raised? suffix) (channel-get finished-evaluation-chan))
+              (when hopeless-exn-raised?
+                (define msg (string-append "\nInteractions disabled"
+                                           (if suffix (string-append ": " suffix) ".")))
+                (define s (make-semaphore 0))
+                (queue-system-callback/sync
+                 (current-thread)
+                 (λ ()
+                   (call-without-reset-highlighting
+                    (λ ()
+                      (insert-warning msg)
+                      (set-show-no-user-evaluation-message? #f)))
+                   (semaphore-post s)))
+                (custodian-shutdown-all (current-custodian)))]
              [else
               (define get-sexp/syntax/eof 
                 (if complete-program?
@@ -1292,6 +1304,12 @@ TODO
                 (after-many-evals)
                 (cleanup-interaction))
               (insert-prompt))))))
+
+      (define/private (send-to-subprocess msg)
+        (unless user-subprocess+ports
+          (error 'send-to-subprocess "no subprocess created"))
+        (match-define (list separate-process stdin finished-evaluation-chan) user-subprocess+ports)
+        (writeln (serialize msg) stdin))
       
       ;; =User=, =Handler=
       (define/pubment (on-execute rout) (inner (void) on-execute rout))
@@ -1473,8 +1491,8 @@ TODO
                             #:interactions-text this
                             #:definitions-text definitions-text))
                          (loop)]
-                        [`("finished-evaluation")
-                         (channel-put finished-evaluation-chan (void))
+                        [`("finished-evaluation" ,hopeless-exn-raised? ,suffix)
+                         (channel-put finished-evaluation-chan (cons hopeless-exn-raised? suffix))
                          (loop)])]))))
               (set! user-subprocess+ports (list separate-process stdin finished-evaluation-chan))))
           
