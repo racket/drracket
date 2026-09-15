@@ -26,7 +26,8 @@
     extra-assert  ; (-> (is-a?/c text) (is-a?/c text) boolean)
     line)         ; number or #f: the line number of the test case
   #:name test-struct
-  #:constructor-name make-test)
+  #:constructor-name make-test
+  #:transparent)
 
 (define (in-here/path file) (path->string (build-path (find-system-path 'temp-dir) file)))
 (define (in-here file) (format "~s" (in-here/path file)))
@@ -213,12 +214,14 @@
   (set! interactions-text  (send drs get-interactions-text))
   (set! definitions-text (send drs get-definitions-text)))
 
-(define (run-test)
+(define (run-test #:separate-process? [separate-process? #f])
   (retrieve-drracket-frames!)
   (init-temp-files)
-  (run-use-compiled-file-paths-tests)
+  (run-use-compiled-file-paths-tests #:separate-process? separate-process?)
   (set-module-language! #f)
   (test:set-radio-box-item! #rx"Debugging")
+  (when separate-process?
+    (test:set-check-box! #rx"Run program in separate process" #t))
   (let ([f (queue-callback/res (λ () (test:get-active-top-level-window)))])
     (test:button-push "OK")
     (wait-for-new-frame f))
@@ -229,10 +232,12 @@
     (when (file-exists? file)
       (delete-file file))))
 
-(define (run-use-compiled-file-paths-tests)
+(define (run-use-compiled-file-paths-tests #:separate-process? separate-process?)
   (define (setup-dialog/run proc)
     (set-module-language! #f)
     (proc)
+    (when separate-process?
+      (test:set-check-box! #rx"Run program in separate process" #t))
     (let ([f (test:get-active-top-level-window)])
       (test:button-push "OK")
       (wait-for-new-frame f))
@@ -271,10 +276,10 @@
   (define drs/compiled/et (build-path compiled-dir "drracket" "errortrace"))
   (define drs/compiled (build-path compiled-dir "drracket"))
   (define compiled (build-path compiled-dir))
-  
   (clear-definitions drs)
   (insert-in-definitions drs "#lang scheme\n(use-compiled-file-paths)")
   (run-one-test #rx"No debugging or profiling" (list drs/compiled compiled) (list compiled))
   (run-one-test #rx"^Debugging [(]" (list drs/compiled/et compiled) (list compiled))
-  (run-one-test #rx"Debugging and profiling" (list compiled))
-  (run-one-test #rx"Syntactic test suite coverage" (list compiled)))
+  (unless separate-process?
+    (run-one-test #rx"Debugging and profiling" (list compiled))
+    (run-one-test #rx"Syntactic test suite coverage" (list compiled))))
