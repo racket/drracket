@@ -1485,7 +1485,8 @@ TODO
                          (loop)]
                         [`("error-display-handler" ,msg ,srclocs1 ,srclocs2 ,details)
                          (parameterize ([current-error-port (get-err-port)]
-                                        [current-rep this]) ;; questionable: should the call to error-display-handler be on a different thread?
+                                        [current-rep this]
+                                        [error-print-source-location #f])
                            (drracket:debug:error-display-handler/stacktrace/stacks
                             msg
                             (srclocs->viewable-stack srclocs1 (list definitions-text this))
@@ -1797,7 +1798,6 @@ TODO
       (define/private (initialize-parameters snip-classes) ; =User=
         
         (current-language-settings user-language-settings)
-        (error-print-source-location #f)
         (error-display-handler drracket-error-display-handler)
         (current-load-relative-directory #f)
         (current-custodian user-custodian)

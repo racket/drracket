@@ -62,6 +62,7 @@
     (define (drracket-plain-exit-handler arg)
       (custodian-shutdown-all cust))
     (exit-handler drracket-plain-exit-handler))
+  (error-print-source-location #f)
   (read-accept-reader #f)
   (read-accept-lang #t)
   (read-accept-compiled #f)

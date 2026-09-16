@@ -279,6 +279,7 @@ for bugs in this code to hopefully have some useful debugging information.
     (apply raise-syntax-error '|Module Language|
            error-args)))
 
+(set-basic-parameters/no-gui) ;; run this before creating the eventspace thread
 (define user-custodian (make-custodian))
 (define user-eventspace (parameterize ([current-custodian user-custodian])
                           (make-eventspace)))
