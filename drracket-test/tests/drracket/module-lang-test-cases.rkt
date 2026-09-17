@@ -465,6 +465,10 @@ files for module-lang-test.rkt and separate-process.rkt
          1 2 3}
       #f
       "1\n2\n3")
+(test @t{#lang htdp/bsl
+         (check-expect 1 2)}
+      #f
+      "Ran 1 test.\n0 tests passed.\n\nCheck failures:\n        Actual value . differs from ., the expected value.\n.")
 (test @t{#lang racket
          (require pict)
          (define-values (in out) (make-pipe-with-specials))

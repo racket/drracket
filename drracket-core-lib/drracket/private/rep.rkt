@@ -1485,6 +1485,8 @@ TODO
                             (write-special
                              (new pict-snip% [w width] [h height] [d descent] [a ascent] [recorded-datum recorded-datum])
                              port)]
+                           [(list "markup" markup)
+                            (write-special markup port)]
                            [(list "other" str)
                             (display str port)])
                          (loop)]

@@ -14,7 +14,8 @@
          framework/preferences
          (prefix-in file: file/convertible)
          (prefix-in number-snip: framework/private/number-snip-size)
-         errortrace/stacktrace)
+         errortrace/stacktrace
+         simple-tree-text-markup/data)
 
 #|
 
@@ -85,6 +86,8 @@ for bugs in this code to hopefully have some useful debugging information.
        (cond
          [(well-known-special? spec)
           (send-msg `(,name ,(well-known-special-data spec)))]
+         [(markup? spec)
+          (send-msg `(,name ("markup" ,spec)))]
          [else
           (send-msg `(,name ("other" ,(format "~s" spec))))])]
       [else
