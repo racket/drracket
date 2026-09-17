@@ -183,28 +183,6 @@
         (for-each (λ (x) (namespace-attach-module drracket:init:system-namespace x))
                   to-be-copied-gui-module-names)))
     
-    (define to-be-copied-gui-module-specs
-      (list '(lib "mred/mred.rkt")
-            '(lib "mrlib/cache-image-snip.rkt")
-            '(lib "mrlib/image-core.rkt")
-            '(lib "mrlib/matrix-snip.rkt")))
-    
-    ;; these module specs are copied over to each new user's namespace 
-    (define to-be-copied-module-specs
-      (list ''#%foreign
-            '(lib "mzlib/pconvert-prop.rkt")
-            '(lib "planet/terse-info.rkt")
-            '(lib "drracket/private/drracket-errortrace-key.rkt")
-            '(lib "simple-tree-text-markup/data.rkt")
-            ; srclocs-special<%>
-            '(lib "simple-tree-text-markup/port.rkt")
-            '(lib "errortrace/marks-to-context.rkt")
-            ;; preserve the invariant that:
-            ;;   if a module is shared, so 
-            ;;   are all of its submodules
-            '(submod racket/base reader)
-            '(submod scheme/base reader)))
-    
     ;; ensure that they are all here.
     (for-each (λ (x) (dynamic-require x #f)) to-be-copied-module-specs)
     (for-each (λ (x) (dynamic-require x #f)) to-be-copied-gui-module-specs)

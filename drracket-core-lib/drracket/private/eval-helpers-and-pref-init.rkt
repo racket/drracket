@@ -26,7 +26,9 @@
          make-debug-compile-handler/errortrace-annotate
          current-parallel-lock-shutdown-evt
          (struct-out error-display-handler-exn-details)
-         exn->error-display-handler-exn-details)
+         exn->error-display-handler-exn-details
+         to-be-copied-gui-module-specs
+         to-be-copied-module-specs)
 
 (preferences:set-default 'drracket:child-only-memory-limit
                          (* 1024 1024 128)
@@ -77,6 +79,28 @@
   (current-namespace (make-base-empty-namespace))
   ;; is this wise?
   #;(namespace-attach-module orig-namespace ''#%foreign))
+
+(define to-be-copied-gui-module-specs
+  (list '(lib "mred/mred.rkt")
+        '(lib "mrlib/cache-image-snip.rkt")
+        '(lib "mrlib/image-core.rkt")
+        '(lib "mrlib/matrix-snip.rkt")))
+
+;; these module specs are copied over to each new user's namespace
+(define to-be-copied-module-specs
+  (list ''#%foreign
+        '(lib "mzlib/pconvert-prop.rkt")
+        '(lib "planet/terse-info.rkt")
+        '(lib "drracket/private/drracket-errortrace-key.rkt")
+        '(lib "simple-tree-text-markup/data.rkt")
+        ; srclocs-special<%>
+        '(lib "simple-tree-text-markup/port.rkt")
+        '(lib "errortrace/marks-to-context.rkt")
+        ;; preserve the invariant that:
+        ;;   if a module is shared, so
+        ;;   are all of its submodules
+        '(submod racket/base reader)
+        '(submod scheme/base reader)))
 
 ;; Use this parameter when creating a parallel-lock client,
 ;; so locks can be released when the user custodian is shut down.

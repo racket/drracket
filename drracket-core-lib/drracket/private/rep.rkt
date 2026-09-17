@@ -1221,7 +1221,10 @@ TODO
                       [else #f]))
               (define bp (open-output-bytes))
               (define-values (port-line port-col port-pos) (port-next-location port))
-              (copy-port port bp)
+              (define (special-filter-proc proc bts)
+                (bytes-set! bts 0 (char->integer #\.))
+                1)
+              (copy-port (special-filter-input-port port special-filter-proc #f) bp)
               (cond
                 [complete-program?
                  (send-to-subprocess

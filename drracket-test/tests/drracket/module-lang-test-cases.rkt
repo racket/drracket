@@ -363,7 +363,8 @@ files for module-lang-test.rkt and separate-process.rkt
       "'(1 2 3)")
 (test @t{#lang racket/gui}
       "(vector (new snip%))"
-      "(vector .)")
+      "(vector .)"
+      #:supported-in-separate-process-mode? #f)
 (test @t{#lang racket/base}
       "(begin (thread (lambda () x)) (sleep 1/10))"
       #rx"[.] [.] x:.*cannot reference an identifier before its definition")

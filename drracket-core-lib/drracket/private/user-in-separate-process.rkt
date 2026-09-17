@@ -286,7 +286,28 @@ for bugs in this code to hopefully have some useful debugging information.
     (apply raise-syntax-error '|Module Language|
            error-args)))
 
-(set-basic-parameters/no-gui) ;; run this before creating the eventspace thread
+;; namespace setup is around `set-basic-parameters/no-gui`, which
+;; installs a new namespace
+(let ()
+  (for-each (λ (x) (dynamic-require x #f)) to-be-copied-module-specs)
+  (for-each (λ (x) (dynamic-require x #f)) to-be-copied-gui-module-specs)
+  ;; get the names of those modules.
+  (define-values (to-be-copied-module-names to-be-copied-gui-module-names)
+    (let ([get-name
+           (λ (spec)
+             (if (symbol? spec)
+                 spec
+                 ((current-module-name-resolver) spec #f #f #t)))])
+      (values (map get-name to-be-copied-module-specs)
+              (map get-name to-be-copied-gui-module-specs))))
+  (define system-namespace (current-namespace))
+  (set-basic-parameters/no-gui)
+
+  (for-each (λ (x) (namespace-attach-module system-namespace x))
+            to-be-copied-module-names)
+  (for-each (λ (x) (namespace-attach-module system-namespace x))
+            to-be-copied-gui-module-names))
+
 (define user-custodian (make-custodian))
 (define user-eventspace (parameterize ([current-custodian user-custodian])
                           (make-eventspace)))
