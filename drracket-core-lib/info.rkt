@@ -32,7 +32,7 @@
                ["scribble-lib" #:version "1.11"]
                ["string-constants-lib" #:version "1.57"]
                ["syntax-color-lib" #:version "1.4"]
-               "simple-tree-text-markup-lib"
+               ["simple-tree-text-markup-lib" #:version "1.2"]
                "typed-racket-lib"
                ["typed-racket-more" #:version "1.12"]
                "wxme-lib"))
