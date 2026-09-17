@@ -68,7 +68,8 @@ for bugs in this code to hopefully have some useful debugging information.
             (filter values (map cdr (continuation-mark-set->context (exn-continuation-marks exn))))
             '()))
       (define details (exn->error-display-handler-exn-details exn))
-      (send-msg `("error-display-handler" ,(exn-message exn) ,srclocs1 ,srclocs2 ,details)))))
+      (try-to-push-io-out)
+      (send-msg `("error-display-handler" ,(if (exn? exn) (exn-message exn) (format "uncaught exception: ~s" exn)) ,srclocs1 ,srclocs2 ,details)))))
 
 (define-values (current-output-pipe-in current-output-pipe-out) (make-pipe-with-specials))
 (define-values (current-error-pipe-in current-error-pipe-out) (make-pipe-with-specials))
@@ -81,7 +82,11 @@ for bugs in this code to hopefully have some useful debugging information.
     (cond
       [(procedure? res)
        (define spec (res #f #f #f #f)) ;; pass #f in for the source location as I believe it is ignored anyway?
-       (send-msg `(,name ,spec))]
+       (cond
+         [(well-known-special? spec)
+          (send-msg `(,name ,(well-known-special-data spec)))]
+         [else
+          (send-msg `(,name ("other" ,(format "~s" spec))))])]
       [else
        (send-msg
         `(,name ,(if (= res (bytes-length bts))
@@ -189,15 +194,15 @@ for bugs in this code to hopefully have some useful debugging information.
     (cond
       [(not (port-writes-special? port)) (original-pretty-print-print-hook value display? port)]
       [(pict:convertible? value)
-       (write-special (mk-pict-snip-args value) port)]
+       (write-special (well-known-special (mk-pict-snip-args value)) port)]
       [(and (number? value)
             (number-size value display? port))
-       (write-special (list "number" value (if (pretty-print-show-inexactness) 'always 'never) fraction-view) port)]
+       (write-special (well-known-special (list "number" value (if (pretty-print-show-inexactness) 'always 'never) fraction-view)) port)]
       [(hash-ref convert-table value #f)
        =>
        (λ (backing-scale+bytes)
          (hash-remove! convert-table value)
-         (write-special (cons "bitmap" backing-scale+bytes) port))]
+         (write-special (well-known-special (cons "bitmap" backing-scale+bytes)) port))]
       [else (original-pretty-print-print-hook value display? port)]))
 
   (define original-pretty-print-size-hook (pretty-print-size-hook))
@@ -250,6 +255,8 @@ for bugs in this code to hopefully have some useful debugging information.
        (thunk)))
    drracket-pretty-print-size-hook
    drracket-pretty-print-print-hook))
+
+(struct well-known-special (data))
 
 (define user-break-parameterization
   (parameterize-break
@@ -350,13 +357,16 @@ for bugs in this code to hopefully have some useful debugging information.
 
     errortrace-annotate))
 
-(define (send-finished-evaluation-message hopeless-exn-raised? suffix)
+(define (try-to-push-io-out)
   (flush-output current-output-pipe-out)
   (flush-output current-error-pipe-out)
   (flush-output current-value-pipe-out)
   (wait-for-stdout-io)
   (wait-for-stderr-io)
-  (wait-for-value-io)
+  (wait-for-value-io))
+
+(define (send-finished-evaluation-message hopeless-exn-raised? suffix)
+  (try-to-push-io-out)
   (send-msg `("finished-evaluation" ,hopeless-exn-raised? ,suffix)))
 
 (let loop ()

@@ -24,7 +24,8 @@
     after-test    ; (-> any)
     wait-for-drracket-frame-after-test? ; boolean
     extra-assert  ; (-> (is-a?/c text) (is-a?/c text) boolean)
-    line)         ; number or #f: the line number of the test case
+    line          ; number or #f: the line number of the test case
+    supported-in-separate-process-mode?) ; boolean: if #f, the separate process test suite ignores this test case
   #:name test-struct
   #:constructor-name make-test
   #:transparent)
@@ -42,7 +43,8 @@
                    #:extra-assert [extra-assert (λ (x y) #t)]
                    #:before-execute [before-exec (λ () (void))]
                    #:after-test [after-test (λ () (void))]
-                   #:wait-for-drracket-frame-after-test? [wait-for-drs? #f])
+                   #:wait-for-drracket-frame-after-test? [wait-for-drs? #f]
+                   #:supported-in-separate-process-mode? [supported-in-separate-process-mode? #t])
   (set! tests (cons (make-test definitions
                                interactions 
                                results 
@@ -51,7 +53,8 @@
                                after-test
                                wait-for-drs?
                                extra-assert
-                               line)
+                               line
+                               supported-in-separate-process-mode?)
                     tests)))
 
 (define temp-files '())
@@ -225,7 +228,12 @@
   (let ([f (queue-callback/res (λ () (test:get-active-top-level-window)))])
     (test:button-push "OK")
     (wait-for-new-frame f))
-  (for-each single-test (reverse tests))
+  (for ([test (in-list (reverse tests))])
+    (define skip-test?
+      (and separate-process?
+           (not (test-supported-in-separate-process-mode? test))))
+    (unless skip-test?
+      (single-test test)))
   (clear-definitions drs)
   (queue-callback/res (λ () (send (send drs get-definitions-text) set-modified #f)))
   (for ([file temp-files]) 

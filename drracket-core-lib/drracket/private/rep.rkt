@@ -1481,9 +1481,14 @@ TODO
                            [(list "pict-snip" width height descent ascent recorded-datum)
                             (write-special
                              (new pict-snip% [w width] [h height] [d descent] [a ascent] [recorded-datum recorded-datum])
-                             port)])
+                             port)]
+                           [(list "other" str)
+                            (display str port)])
                          (loop)]
                         [`("error-display-handler" ,msg ,srclocs1 ,srclocs2 ,details)
+                         (flush-output (get-out-port))
+                         (flush-output (get-err-port))
+                         (flush-output (get-value-port))
                          (parameterize ([current-error-port (get-err-port)]
                                         [current-rep this]
                                         [error-print-source-location #f])
@@ -1496,6 +1501,9 @@ TODO
                             #:definitions-text definitions-text))
                          (loop)]
                         [`("finished-evaluation" ,hopeless-exn-raised? ,suffix)
+                         (flush-output (get-out-port))
+                         (flush-output (get-err-port))
+                         (flush-output (get-value-port))
                          (channel-put finished-evaluation-chan (cons hopeless-exn-raised? suffix))
                          (loop)])]))))
               (set! user-subprocess+ports (list separate-process stdin finished-evaluation-chan))))

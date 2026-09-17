@@ -318,7 +318,8 @@ files for module-lang-test.rkt and separate-process.rkt
       #rx"[.] [.] expt: contract violation.*given: #f\n15")
 (test @t{#lang racket/base}
       "(write (list (syntax x)))"
-      "(.)")
+      "(.)"
+      #:supported-in-separate-process-mode? #f)
 (test @t{#lang racket/base}
       "(parameterize ([current-output-port (open-output-string)]) (write #'1))"
       "")
