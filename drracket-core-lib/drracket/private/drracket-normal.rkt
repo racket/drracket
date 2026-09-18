@@ -175,7 +175,7 @@
        (define rgn (new region% [dc dc]))
        (define pen (send dc get-pen))
        (define brush (send dc get-brush))
-       (define offset 4) ;; this offset seems to make a tight fit around the actual logo
+       (define offset 2) ;; this offset seems to make a tight fit around the actual logo
        (send rgn set-ellipse
              offset offset
              (- mb-plain-width offset offset)

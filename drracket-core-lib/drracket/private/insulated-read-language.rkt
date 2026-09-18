@@ -136,8 +136,12 @@ Will not work with the definitions text surrogate interposition that
   (call-irl-proc an-irl
                  (λ () #f)
                  'get-definitions-text-surrogate/inside))
+(module mcli racket/base
+  (require racket/contract)
+  (provide mcli?)
+  (define mcli? (vector/c module-path? symbol? any/c #:flat? #t)))
+(require (submod "." mcli))
 
-(define mcli? (vector/c module-path? symbol? any/c #:flat? #t))
 (define (get-insulated-submit-predicate an-irl)
   (define submit-predicate
     (call-irl-proc an-irl

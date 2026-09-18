@@ -2,7 +2,6 @@
 (require racket/class
          racket/draw
          racket/list
-         racket/unit
          racket/set
          compiler/cm
          setup/dirs
@@ -14,7 +13,8 @@
          "drracket-errortrace-key.rkt"
          (prefix-in *** '#%foreign) ;; just to make sure it is here
          "compiled-dir.rkt"
-         (submod "stack-checkpoint.rkt" item->srcloc))
+         (submod "stack-checkpoint.rkt" item->srcloc)
+         racket/serialize)
 
 (provide set-basic-parameters/no-gui
          set-module-language-parameters
@@ -24,7 +24,11 @@
          should-annotate?
          make-with-mark
          make-debug-compile-handler/errortrace-annotate
-         current-parallel-lock-shutdown-evt)
+         current-parallel-lock-shutdown-evt
+         (struct-out error-display-handler-exn-details)
+         exn->error-display-handler-exn-details
+         to-be-copied-gui-module-specs
+         to-be-copied-module-specs)
 
 (preferences:set-default 'drracket:child-only-memory-limit
                          (* 1024 1024 128)
@@ -60,6 +64,7 @@
     (define (drracket-plain-exit-handler arg)
       (custodian-shutdown-all cust))
     (exit-handler drracket-plain-exit-handler))
+  (error-print-source-location #f)
   (read-accept-reader #f)
   (read-accept-lang #t)
   (read-accept-compiled #f)
@@ -74,6 +79,28 @@
   (current-namespace (make-base-empty-namespace))
   ;; is this wise?
   #;(namespace-attach-module orig-namespace ''#%foreign))
+
+(define to-be-copied-gui-module-specs
+  (list '(lib "mred/mred.rkt")
+        '(lib "mrlib/cache-image-snip.rkt")
+        '(lib "mrlib/image-core.rkt")
+        '(lib "mrlib/matrix-snip.rkt")))
+
+;; these module specs are copied over to each new user's namespace
+(define to-be-copied-module-specs
+  (list ''#%foreign
+        '(lib "mzlib/pconvert-prop.rkt")
+        '(lib "planet/terse-info.rkt")
+        '(lib "drracket/private/drracket-errortrace-key.rkt")
+        '(lib "simple-tree-text-markup/data.rkt")
+        ; srclocs-special<%>
+        '(lib "simple-tree-text-markup/port.rkt")
+        '(lib "errortrace/marks-to-context.rkt")
+        ;; preserve the invariant that:
+        ;;   if a module is shared, so
+        ;;   are all of its submodules
+        '(submod racket/base reader)
+        '(submod scheme/base reader)))
 
 ;; Use this parameter when creating a parallel-lock client,
 ;; so locks can be released when the user custodian is shut down.
@@ -267,3 +294,23 @@
          e)
      immediate-eval?))
   drracket-debug-compile-handler)
+
+(serializable-struct error-display-handler-exn-details (exn-srclocs
+                                                        exn:fail?-exn
+                                                        exn:fail:user?-exn
+                                                        exn:fail:syntax?-exn
+                                                        exn:fail:syntax-strings
+                                                        exn-missing-module))
+
+
+(define (exn->error-display-handler-exn-details exn)
+  (define exn:fail:syntax?-exn (exn:fail:syntax? exn))
+  (error-display-handler-exn-details
+   (and (exn:srclocs? exn) ((exn:srclocs-accessor exn) exn))
+   (exn:fail? exn)
+   (exn:fail:user? exn)
+   exn:fail:syntax?-exn
+   (and exn:fail:syntax?-exn
+        (for/list ([expr (in-list (exn:fail:syntax-exprs exn))])
+          ((error-syntax->string-handler) expr #f)))
+   (and (exn:missing-module? exn) ((exn:missing-module-accessor exn) exn))))

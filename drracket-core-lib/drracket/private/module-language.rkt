@@ -28,6 +28,7 @@
          "local-member-names.rkt"
          (prefix-in lmn: "local-member-names.rkt")
          "insulated-read-language.rkt"
+         (prefix-in rmlp: "run-module-language-program.rkt")
          drracket/private/rectangle-intersect
          pkg/lib
          pkg/gui
@@ -140,7 +141,7 @@
   ;; auto-text : #f -- this is now ignored
   (define-struct (module-language-settings lmn:drracket:language:simple-settings)
     (collection-paths command-line-args auto-text compilation-on? full-trace? submodules-to-run
-                      enforce-module-constants))
+                      enforce-module-constants run-in-separate-process))
   
   (define (module-language-settings->prefab-module-settings settings #:irl the-irl)
     (prefab-module-settings (module-language-settings-command-line-args settings)
@@ -160,6 +161,7 @@
   (define default-full-trace? #t)
   (define default-submodules-to-run (list '(test) '(main)))
   (define default-enforce-module-constants #t)
+  (define default-run-in-separate-process #f)
 
   (define (disable-debugging-et-al language-settings)
     (define lang
@@ -278,7 +280,8 @@
            default-compilation-on?
            default-full-trace?
            default-submodules-to-run
-           default-enforce-module-constants)))
+           default-enforce-module-constants
+           default-run-in-separate-process)))
       
       ;; default-settings? : -> boolean
       (define/override (default-settings? settings)
@@ -307,7 +310,10 @@
              (equal? (module-language-settings-submodules-to-run settings)
                      default-submodules-to-run)
              (equal? (module-language-settings-enforce-module-constants settings)
-                     default-enforce-module-constants)))
+                     default-enforce-module-constants)
+             (equal? (module-language-settings-run-in-separate-process settings)
+                     default-run-in-separate-process)
+             ))
       
       (define/override (marshall-settings settings)
         (let ([super-marshalled (super marshall-settings settings)])
@@ -318,7 +324,8 @@
                 (module-language-settings-compilation-on? settings)
                 (module-language-settings-full-trace? settings)
                 (module-language-settings-submodules-to-run settings)
-                (module-language-settings-enforce-module-constants settings))))
+                (module-language-settings-enforce-module-constants settings)
+                (module-language-settings-run-in-separate-process settings))))
       
       (define/override (unmarshall-settings marshalled)
         (and (list? marshalled)
@@ -341,7 +348,10 @@
                                                  (list-ref marshalled 6))]
                           [enforce-module-constants (if (<= marshalled-len 7)
                                                         default-enforce-module-constants
-                                                        (list-ref marshalled 7))])
+                                                        (list-ref marshalled 7))]
+                          [run-in-separate-process (if (<= marshalled-len 8)
+                                                       default-run-in-separate-process
+                                                       (list-ref marshalled 8))])
                       (and (list? collection-paths)
                            (andmap (λ (x) (or (string? x) (symbol? x)))
                                    collection-paths)
@@ -380,7 +390,8 @@
                                           
                                           full-trace?
                                           submodules-to-run
-                                          enforce-module-constants)))))))))))
+                                          enforce-module-constants
+                                          run-in-separate-process)))))))))))
 
       ;; drracket will always supply `the-irl`, when running the program,
       ;; but some tools might call this, and they might not supply it
@@ -422,143 +433,32 @@
       ;; drracket will always supply `the-irl`, but some tools might call this,
       ;; and they might not supply it
       (define/override (front-end/complete-program port settings [the-irl #f])
-        (define (super-thunk) 
-          (define reader (get-reader))
-          (reader (object-name port) port))
         (define path
-          (cond [(get-filename port) => (compose simplify-path cleanse-path)]
+          (cond [(get-filename-from-definitions port) => (compose simplify-path cleanse-path)]
                 [else #f]))
-        (define resolved-modpath (and path (module-path-index-resolve
-                                            (module-path-index-join
-                                             path
-                                             #f))))
-
-        (define-values (name lang module-expr)
-          (cond
-            [(and (equal? (drracket:language:get-simple-settings-annotations settings the-irl) 'none)
-                  (drracket:rep:current-pre-compiled-transform-module-results))
-             =>
-             (λ (transform-module-results)
-               (define compiled-expression
-                 (parameterize ([read-accept-compiled #t])
-                   (read (open-input-bytes (vector-ref transform-module-results 2)))))
-               (values
-                (vector-ref transform-module-results 0)
-                (vector-ref transform-module-results 1)
-                (with-syntax ([x compiled-expression]) #'x)))]
-            [else
-             (define expr
-               ;; just reading the definitions might be a syntax error,
-               ;; possibly due to bad language (eg, no foo/lang/reader)
-               (with-handlers ([exn:fail? (λ (e) (raise-hopeless-exception e))])
-                 (super-thunk)))
-             (when (eof-object? expr)
-               (raise-hopeless-syntax-error (string-append
-                                             "There must be a valid module in the\n"
-                                             "definitions window.  Try starting your program with\n"
-                                             "\n"
-                                             "  #lang racket\n"
-                                             "or\n"
-                                             "  #lang htdp/bsl\n"
-                                             "\n"
-                                             "and clicking ‘Run’.")))
-             (let ([more (super-thunk)])
-               (unless (eof-object? more)
-                 (raise-hopeless-syntax-error
-                  "there can only be one expression in the definitions window"
-                  more)))
-             (transform-module path expr raise-hopeless-syntax-error)]))
-
-        (define modspec (or path `',name))
-        (define (check-interactive-language)
-          (unless (memq '#%top-interaction (namespace-mapped-symbols))
-            (raise-hopeless-exception
-             #f ; no error message, just a suffix
-             (format "~s does not support a REPL (no #%top-interaction)"
-                     lang))))
-        ;; We're about to send the module expression to drracket now, the rest
-        ;; of the setup is done in `front-end/finished-complete-program' below,
-        ;; so use `repl-init-thunk' to store an appropriate continuation for
-        ;; this setup.  Once we send the expression, we'll be called again only
-        ;; if it was evaluated (or expanded) with no errors, so begin with a
-        ;; continuation that deals with an error, and if we're called again,
-        ;; change it to a continuation that initializes the repl for the
-        ;; module.  So the code is split among several thunks that follow.
-        (define (*pre)
-          (thread-cell-set! repl-init-thunk *error)
-          (current-module-declare-name resolved-modpath)
-          (current-module-declare-source path))
-        (define (*post)
-          (current-module-declare-name #f)
-          (current-module-declare-source #f)
-          (when path ((current-module-name-resolver) resolved-modpath #f))
-          (thread-cell-set! repl-init-thunk *init))
-        (define (*error)
-          (current-module-declare-name #f)
-          (current-module-declare-source #f)
-          ;; syntax error => try to require the language to get a working repl
-          (with-handlers ([void (λ (e)
-                                  (raise-hopeless-syntax-error
-                                   "invalid language specification"
-                                   lang))])
-            (namespace-require lang))
-          (check-interactive-language))
-        (define (*init)
-          (parameterize ([current-namespace (current-namespace)])
-            ;; the prompt makes it continue after an error
-            (call-with-continuation-prompt
-             (λ () (with-stack-checkpoint 
-                    (begin
-                      (*do-module-specified-configuration)
-                      (namespace-require modspec)
-                      (for ([submod (in-list (module-language-settings-submodules-to-run settings))])
-                        (define submod-spec `(submod ,modspec ,@submod))
-                        (when (module-declared? submod-spec)
-                          (dynamic-require submod-spec #f))))))))
-          (current-namespace (module->namespace modspec))
-          (check-interactive-language))
-        (define (*do-module-specified-configuration)
-          (define info (module->language-info modspec #t))
-          (unless (mcli? info) (set! info #f))
-          (when the-irl
-            (parameterize ([current-eventspace drracket:init:system-eventspace])
-              (queue-callback
-               (λ () (set-irl-mcli-vec! the-irl info)))))
-          (when info
-            (let ([get-info
-                   ((dynamic-require (vector-ref info 0)
-                                     (vector-ref info 1))
-                    (vector-ref info 2))])
-              (let ([configs (get-info 'configure-runtime '())])
-                (for ([config (in-list configs)])
-                  ((dynamic-require (vector-ref config 0)
-                                    (vector-ref config 1))
-                   (vector-ref config 2))))))
-          (define cr-submod `(submod ,modspec configure-runtime))
-          (when (module-declared? cr-submod)
-            (dynamic-require cr-submod #f)))
-        ;; here's where they're all combined with the module expression
-        (expr-getter *pre module-expr *post))
+        (rmlp:front-end/complete-program
+         (λ () (get-reader)) path
+         (λ () (and (equal? (drracket:language:get-simple-settings-annotations settings the-irl) 'none)
+                    (drracket:rep:current-pre-compiled-transform-module-results)))
+         (module-language-settings-submodules-to-run settings)
+         drracket:init:system-eventspace
+         raise-hopeless-exception raise-hopeless-syntax-error
+         repl-init-thunk
+         (let ([call-set-irl-mcli-vec
+                (λ (info)
+                  (when the-irl
+                    (parameterize ([current-eventspace drracket:init:system-eventspace])
+                      (queue-callback
+                       (λ () (set-irl-mcli-vec! the-irl info))))))])
+           call-set-irl-mcli-vec)
+         port the-irl))
       
       (define/override (front-end/finished-complete-program settings)
         (cond [(thread-cell-ref repl-init-thunk)
                => (λ (t) (thread-cell-set! repl-init-thunk #f) (t))]))
       
       (define/override (front-end/interaction port settings)
-        (λ ()
-          (let ([v (parameterize ([read-accept-reader #t]
-                                  [read-accept-lang #f])
-                     (with-stack-checkpoint
-                      ((current-read-interaction) 
-                       (object-name port)
-                       port)))])
-            (if (eof-object? v)
-                v
-                (let ([w (cons '#%top-interaction v)])
-                  (if (syntax? v)
-                      (namespace-syntax-introduce
-                       (datum->syntax #f w v))
-                      v))))))
+        (rmlp:front-end/interaction port))
 
       (define/override (render-value/format value settings port width)
         (do-print value settings port width))
@@ -711,6 +611,7 @@
            [stretchable-width #f]))
     (define compilation-on-check-box #f)
     (define enforce-module-constants-checkbox #f)
+    (define run-in-separate-process-checkbox #f)
     (define compilation-on? #t)
     (define save-stacktrace-on-check-box #f)
     (define run-submodules-choice #f)
@@ -735,10 +636,15 @@
     (define automatically-compile-kestroke #\a)
     (define stacktrace-keystroke #\s)
     (define enforce-module-constants-keystroke #\k)
+    (define run-in-separate-process-keystroke #\e)
 
     (define (compilation-on-checkbox-callback)
       (set! compilation-on? (send compilation-on-check-box get-value))
       (something-changed))
+
+    (define (run-in-separate-process-checkbox-callback)
+      (something-changed)
+      (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))
     
     (define simple-case-lambda
       (drracket:language:simple-module-based-language-config-panel
@@ -754,7 +660,7 @@
        
        #:debugging-radio-box-callback
        (λ ()
-         (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))
+         (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box))
        #:lang-default-debugging? #t
 
        #:dynamic-panel-extras
@@ -779,6 +685,16 @@
                     [label (drracket:language:add-menu-shortcut
                             (string-constant enforce-module-constants-checkbox-label)
                             (and keyboard-shortcuts? enforce-module-constants-keystroke))]
+                    [parent dynamic-panel]))
+         (set! run-in-separate-process-checkbox
+               (new check-box%
+                    [label (drracket:language:add-menu-shortcut
+                            (string-constant run-in-separate-process-checkbox-label)
+                            (and keyboard-shortcuts? run-in-separate-process-keystroke))]
+                    [callback
+                     (λ (_1 _2)
+                       (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+                       (run-in-separate-process-checkbox-callback))]
                     [parent dynamic-panel]))
          (set! run-submodules-choice 
                (new (class name-message%
@@ -811,14 +727,25 @@
                        [font normal-control-font]
                        [parent dynamic-panel]
                        [label (string-constant submodules-to-run)])))))))
-    (define (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+    (define (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
       (define compilation-on-allowed?
-        (match* ((send left-debugging-radio-box get-selection)
-                 (send bottom-debugging-radio-box get-selection))
-          [(0 _) #t]
-          [(1 _) #t]
-          [(_ 0) #t]
-          [(_ _) #f]))
+        (and (not (send run-in-separate-process-checkbox get-value))
+             (match* ((send left-debugging-radio-box get-selection)
+                      (send bottom-debugging-radio-box get-selection))
+               [(0 _) #t]
+               [(1 _) #t]
+               [(_ 0) #t]
+               [(_ _) #f])))
+      (define profiling-and-test-coverage-allowed?
+        (not (send run-in-separate-process-checkbox get-value)))
+      (cond
+        [profiling-and-test-coverage-allowed?
+         (send right-debugging-radio-box enable #t)]
+        [else
+         (send right-debugging-radio-box enable #f)
+         (when (send right-debugging-radio-box get-selection)
+           (send right-debugging-radio-box set-selection #f)
+           (send left-debugging-radio-box set-selection 0))])
       (cond
         [compilation-on-allowed?
          (send compilation-on-check-box enable #t)
@@ -959,7 +886,7 @@
     
     (install-collection-paths '(default))
     (update-buttons)
-    (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+    (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
 
     (define shortcuts
       (append
@@ -972,10 +899,16 @@
                      (compilation-on-checkbox-callback)))
              (list stacktrace-keystroke
                    (λ ()
-                     (send save-stacktrace-on-check-box set-value (not (send save-stacktrace-on-check-box get-value)))))
+                     (send save-stacktrace-on-check-box set-value (not (send save-stacktrace-on-check-box get-value)))
+                     (something-changed)))
              (list enforce-module-constants-keystroke
                    (λ ()
-                     (send enforce-module-constants-checkbox set-value (not (send enforce-module-constants-checkbox get-value))))))))
+                     (send enforce-module-constants-checkbox set-value (not (send enforce-module-constants-checkbox get-value)))
+                     (something-changed)))
+             (list run-in-separate-process-keystroke
+                   (λ ()
+                     (send run-in-separate-process-checkbox set-value (not (send run-in-separate-process-checkbox get-value)))
+                     (run-in-separate-process-checkbox-callback))))))
 
     (drracket:language-configuration:config-panel-with-keystrokes
      (case-lambda
@@ -995,18 +928,21 @@
                              [else #f])])
                         (send save-stacktrace-on-check-box get-value)
                         submodules-to-run
-                        (send enforce-module-constants-checkbox get-value)))))]
+                        (send enforce-module-constants-checkbox get-value)
+                        (send run-in-separate-process-checkbox get-value)))))]
        [(settings)
         (simple-case-lambda settings)
         (install-collection-paths (module-language-settings-collection-paths settings))
         (install-command-line-args (module-language-settings-command-line-args settings))
         (set! compilation-on? (module-language-settings-compilation-on? settings))
         (send compilation-on-check-box set-value (module-language-settings-compilation-on? settings))
-        (update-compilation-checkbox left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
+        (update-compilation-checkbox-and-annotations-choices left-debugging-radio-box right-debugging-radio-box bottom-debugging-radio-box)
         (send save-stacktrace-on-check-box set-value (module-language-settings-full-trace? settings))
         (set-submodules-to-run (module-language-settings-submodules-to-run settings))
         (send enforce-module-constants-checkbox set-value
               (module-language-settings-enforce-module-constants settings))
+        (send run-in-separate-process-checkbox set-value
+              (module-language-settings-run-in-separate-process settings))
         (update-buttons)])
      (if keyboard-shortcuts? shortcuts '())))
 
@@ -1101,9 +1037,9 @@
        submods]
       [else #f]))
   
-  ;; get-filename : port -> (union string #f)
+  ;; get-filename-from-definitions : port -> (union string #f)
   ;; extracts the file the definitions window is being saved in, if any.
-  (define (get-filename port)
+  (define (get-filename-from-definitions port)
     (let ([source (object-name port)])
       (cond
         [(path? source) source]

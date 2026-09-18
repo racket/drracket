@@ -22,17 +22,22 @@ TODO
          racket/list
          racket/port
          racket/set
-         
+         racket/match
          string-constants
          setup/xref
          racket/gui/base
+         racket/serialize
          framework
+         pict
          browser/external
          drracket/private/drsig
+         "eval-helpers-and-pref-init.rkt"
          "local-member-names.rkt"
          "stack-checkpoint.rkt"
          "parse-logger-args.rkt"
          "insulated-read-language.rkt"
+         "run-module-language-program.rkt"
+         "pict-snip.rkt"
          
          ;; the dynamic-require below loads this module, 
          ;; so we make the dependency explicit here, even
@@ -486,6 +491,7 @@ TODO
                get-in-box-port
                get-insertion-point
                get-out-port
+               get-port-name
                get-regions
                get-snip-position
                get-start-position
@@ -889,6 +895,7 @@ TODO
                                    (preferences:get 'drracket:child-only-memory-limit)))
              (user-eventspace-box (make-weak-box #f))
              (user-namespace-box (make-weak-box #f))
+             (user-subprocess+ports #f)
              (user-eventspace-main-thread #f)
              (user-break-parameterization #f)
              (user-logger drracket:init:system-logger) ;; for now, just let all messages be everywhere
@@ -903,6 +910,7 @@ TODO
       (define/public (get-user-eventspace) (weak-box-value user-eventspace-box))
       (define/public (get-user-thread) user-eventspace-main-thread)
       (define/public (get-user-namespace) (weak-box-value user-namespace-box))
+      (define/public (get-user-subprocess+ports) user-subprocess+ports)
       (define/pubment (get-user-break-parameterization) user-break-parameterization) ;; final method
       (define/pubment (get-custodian-limit) custodian-limit)
       (define/pubment (set-custodian-limit c) (set! custodian-limit c))
@@ -933,7 +941,9 @@ TODO
         (define memory-killed? (not (custodian-box-value memory-killed-cust-box)))
         (set! gc-on-run? memory-killed?)
         (update-running #f)
-        (unless (and (get-user-thread) (thread-running? (get-user-thread)))
+        (unless (if user-subprocess+ports
+                    (equal? (subprocess-status (list-ref user-subprocess+ports 0)) 'running)
+                    (and (get-user-thread) (thread-running? (get-user-thread))))
           (lock #t)
           (when (and show-no-user-evaluation-message? (not shutting-down?))
             (no-user-evaluation-message
@@ -944,19 +954,19 @@ TODO
       (field (need-interaction-cleanup? #f))
       
       (define/private (no-user-evaluation-message exit-code memory-killed?)  ;; =Kernel=, =Handler=
+        (define ut (get-user-thread))
         (define-values (vs1 vs2)
-          (let ([ut (get-user-thread)])
-            (cond
-              [ut
-               (define cms (continuation-marks ut))
-               (define interesting-editors
-                 (list definitions-text this))
-               (define a-viewable-stack (cms->errortrace-viewable-stack cms interesting-editors))
-               (values a-viewable-stack
-                       (cms->builtin-viewable-stack cms interesting-editors
-                                                    #:share-cache a-viewable-stack))]
-              [else (values (empty-viewable-stack)
-                            (empty-viewable-stack))])))
+          (cond
+            [(and (not user-subprocess+ports) ut)
+             (define cms (continuation-marks ut))
+             (define interesting-editors
+               (list definitions-text this))
+             (define a-viewable-stack (cms->errortrace-viewable-stack cms interesting-editors))
+             (values a-viewable-stack
+                     (cms->builtin-viewable-stack cms interesting-editors
+                                                  #:share-cache a-viewable-stack))]
+            [else (values (empty-viewable-stack)
+                          (empty-viewable-stack))]))
         (no-user-evaluation-dialog (get-frame) exit-code memory-killed? #t)
         (set-insertion-point (last-position))
         (define have-some-stack? (not (and (empty-viewable-stack? vs1)
@@ -1014,6 +1024,13 @@ TODO
                  (append
                   (if program-terminated?
                       (list (string-constant evaluation-terminated-explanation))
+                      '())
+                  (if user-subprocess+ports
+                      (match (subprocess-status (list-ref user-subprocess+ports 0))
+                        ['running '()]
+                        [0 (list (string-constant separate-executable-terminated))]
+                        [_ (list (format (string-constant separate-executable-terminated-abnormally)
+                                         (subprocess-status (list-ref user-subprocess+ports 0))))])
                       '())
                   (if exit-code
                       (list (if (zero? exit-code)
@@ -1189,107 +1206,115 @@ TODO
              (send (send definitions-text get-tab) get-pre-compiled-transform-module-results)]
             [else #f]))
         (define the-irl (send definitions-text get-irl))
+        (define currently-open-files (drracket:module-language:get-currently-open-files))
+        (define defs-port-name (send definitions-text get-port-name))
+        (define ints-port-name (get-port-name))
         (run-in-evaluation-thread
          (λ () ; =User=, =Handler=, =No-Breaks=
-           (let* ([settings (current-language-settings)]
-                  [lang (drracket:language-configuration:language-settings-language settings)]
-                  [settings (drracket:language-configuration:language-settings-settings settings)]
-                  [dummy-value (box #f)]
-                  [get-sexp/syntax/eof 
-                   (if complete-program?
-                       (parameterize ([current-pre-compiled-transform-module-results
-                                       pre-compiled-transform-module-results])
-                         (if (is-a? lang drracket:module-language:module-language<%>)
-                             (send lang front-end/complete-program port settings the-irl)
-                             (send lang front-end/complete-program port settings)))
-                       (send lang front-end/interaction port settings))])
-             
-             ; Evaluate the user's expression. We're careful to turn on
-             ;   breaks as we go in and turn them off as we go out.
-             ;   (Actually, we adjust breaks however the user wanted it.)
-             
-             
-             ;; this binding of last-results is to catch the results 
-             ;; that come from throwing to the prompt instead of
-             ;; a normal exit
-             (define last-results
-               (call-with-values
-                (λ ()
-                  (call-with-continuation-prompt
-                   (λ ()
-                     (call-with-break-parameterization
-                      user-break-parameterization
-                      (λ ()
-                        (let loop ()
-                          (define sexp/syntax/eof (with-stack-checkpoint (get-sexp/syntax/eof)))
-                          (cond
-                            [(eof-object? sexp/syntax/eof) (abort-current-continuation 
-                                                            (default-continuation-prompt-tag)
-                                                            (λ () (values)))]
-                            [else
-                             (define results
-                               (call-with-values
-                                (λ ()
-                                  (parameterize ([outermost #t])
-                                    (with-stack-checkpoint
-                                        (eval-syntax sexp/syntax/eof))))
-                                list))
-                             (parameterize ([pretty-print-columns pretty-print-width])
-                               (for ([x (in-list results)])
-                                 ((current-print) x)))
-                             (loop)])))))
-                   (default-continuation-prompt-tag)
-                   (letrec ([me
-                             (λ args
-                               (cond
-                                 [(and (pair? args)
-                                       (null? (cdr args))
-                                       (procedure? (car args))
-                                       (procedure-arity-includes? (car args) 0))
-                                  (call-with-continuation-prompt (car args) 
-                                                                 (default-continuation-prompt-tag)
-                                                                 me)]
-                                 [else
-                                  (call-with-continuation-prompt
-                                   (λ ()
-                                     (call-with-continuation-prompt
-                                      (λ ()
-                                        (apply
-                                         abort-current-continuation 
-                                         (default-continuation-prompt-tag)
-                                         args)))))]))])
-                     me)))
-                list))
-             (parameterize ([pretty-print-columns pretty-print-width])
-               (for ([x (in-list last-results)])
-                 ((current-print) x)))
-             
-             (when complete-program?
-               (call-with-continuation-prompt
-                (λ ()
-                  (call-with-break-parameterization
-                   user-break-parameterization
-                   (λ ()
-                     (send lang front-end/finished-complete-program settings))))
-                (default-continuation-prompt-tag)
-                (λ args (void))))
-             
-             (when the-after-expression 
-               (call-with-continuation-prompt
-                (λ () 
-                  (the-after-expression))))
-             
-             (set! in-evaluation? #f)
-             (update-running #f)
-             (cleanup)
-             (flush-output (get-value-port))
-             (queue-system-callback/sync
-              (get-user-thread)
-              (λ () ; =Kernel=, =Handler= 
-                (parameterize ([module-language-initial-run current-module-language-initial-run])
-                  (after-many-evals)
-                  (cleanup-interaction))
-                (insert-prompt)))))))
+           (define lang (drracket:language-configuration:language-settings-language (current-language-settings)))
+           (define settings (drracket:language-configuration:language-settings-settings (current-language-settings)))
+           (cond
+             [user-subprocess+ports
+              (match-define (list separate-process stdin finished-evaluation-chan) user-subprocess+ports)
+              (define path
+                (cond [(drracket:module-language:get-filename-from-definitions port) => (compose simplify-path cleanse-path)]
+                      [else #f]))
+              (define bp (open-output-bytes))
+              (define-values (port-line port-col port-pos) (port-next-location port))
+              (define (special-filter-proc proc bts)
+                (bytes-set! bts 0 (char->integer #\.))
+                1)
+              (copy-port (special-filter-input-port port special-filter-proc #f) bp)
+              (cond
+                [complete-program?
+                 (send-to-subprocess
+                  `("complete-program"
+                    ,pretty-print-width
+                    ,(drracket:module-language:module-language-settings-submodules-to-run settings)
+                    ,(cond
+                       [(equal? (drracket:language:simple-settings-annotations settings) 'lang-default)
+                        (call-read-language the-irl
+                                            'drracket:default-instrumentation
+                                            'debug)]
+                       [else (drracket:language:simple-settings-annotations settings)])
+                    ,(drracket:module-language:module-language-settings->prefab-module-settings settings #:irl the-irl)
+                    ,currently-open-files
+                    ,(drracket:language:simple-settings-show-sharing settings)
+                    ,(drracket:language:simple-settings-insert-newlines settings)
+                    ,defs-port-name
+                    ,ints-port-name
+                    ,path
+                    ,(get-output-bytes bp)))]
+                [else
+                 (send-to-subprocess
+                  `("interaction"
+                    ,pretty-print-width
+                    ,defs-port-name
+                    ,ints-port-name
+                    ,port-line
+                    ,port-col
+                    ,port-pos
+                    ,(get-output-bytes bp)))])
+              (flush-output stdin)
+              (match-define (cons hopeless-exn-raised? suffix) (channel-get finished-evaluation-chan))
+              (when hopeless-exn-raised?
+                (define msg (string-append "\nInteractions disabled"
+                                           (if suffix (string-append ": " suffix) ".")))
+                (define s (make-semaphore 0))
+                (queue-system-callback/sync
+                 (current-thread)
+                 (λ ()
+                   (call-without-reset-highlighting
+                    (λ ()
+                      (insert-warning msg)
+                      (set-show-no-user-evaluation-message? #f)))
+                   (semaphore-post s)))
+                (custodian-shutdown-all (current-custodian)))]
+             [else
+              (define get-sexp/syntax/eof 
+                (if complete-program?
+                    (parameterize ([current-pre-compiled-transform-module-results
+                                    pre-compiled-transform-module-results])
+                      (if (is-a? lang drracket:module-language:module-language<%>)
+                          (send lang front-end/complete-program port settings the-irl)
+                          (send lang front-end/complete-program port settings)))
+                    (send lang front-end/interaction port settings)))
+
+              (run-some-user-code user-break-parameterization outermost pretty-print-width
+                                  get-sexp/syntax/eof)
+
+              (when complete-program?
+                (call-with-continuation-prompt
+                 (λ ()
+                   (call-with-break-parameterization
+                    user-break-parameterization
+                    (λ ()
+                      (send lang front-end/finished-complete-program settings))))
+                 (default-continuation-prompt-tag)
+                 (λ args (void))))])
+
+           (when the-after-expression
+             (call-with-continuation-prompt
+              (λ ()
+                (the-after-expression))))
+
+           (set! in-evaluation? #f)
+           (update-running #f)
+           (cleanup)
+           (flush-output (get-value-port))
+           (queue-system-callback/sync
+            (get-user-thread)
+            (λ () ; =Kernel=, =Handler=
+              (parameterize ([module-language-initial-run current-module-language-initial-run])
+                (after-many-evals)
+                (cleanup-interaction))
+              (insert-prompt))))))
+
+      (define/private (send-to-subprocess msg)
+        (unless user-subprocess+ports
+          (error 'send-to-subprocess "no subprocess created"))
+        (match-define (list separate-process stdin finished-evaluation-chan) user-subprocess+ports)
+        (writeln (serialize msg) stdin))
       
       ;; =User=, =Handler=
       (define/pubment (on-execute rout) (inner (void) on-execute rout))
@@ -1307,6 +1332,7 @@ TODO
           (when user-custodian
             (custodian-shutdown-all user-custodian))
           (set! user-custodian #f)
+          (set! user-subprocess+ports #f)
           (set! user-eventspace-main-thread #f)))
       
       (define/public (kill-evaluation) ; =Kernel=, =Handler=
@@ -1315,7 +1341,8 @@ TODO
         (clear-input-port)
         (clear-box-input-port)
         (clear-output-ports)
-        (set! user-custodian #f))
+        (set! user-custodian #f)
+        (set! user-subprocess+ports #f))
       
       (field (eval-thread-thunks null)
              (eval-thread-state-sema 'not-yet-state-sema)
@@ -1332,7 +1359,10 @@ TODO
                (λ () ; =Kernel=
                  (let ([ut (get-user-thread)])
                    (sync (thread-suspend-evt ut)
-                         (thread-dead-evt ut))
+                         (thread-dead-evt ut)
+                         (if user-subprocess+ports
+                             (list-ref user-subprocess+ports 0)
+                             never-evt))
                    (queue-system-callback
                     ut
                     (λ () ; =Kernel=, =Handler=
@@ -1354,6 +1384,8 @@ TODO
       
       (define/private (init-evaluation-thread) ; =Kernel=
         (set! user-language-settings (send definitions-text get-next-settings))
+        (define lang (drracket:language-configuration:language-settings-language user-language-settings))
+        (define settings (drracket:language-configuration:language-settings-settings user-language-settings))
         
         (set! user-custodian-parent (make-custodian))
         (set! user-custodian (parameterize ([current-custodian user-custodian-parent])
@@ -1399,6 +1431,87 @@ TODO
                  [else
                   (oe sexp/syntax)]))
              drracket-eval-handler))
+
+          (when (and (is-a? lang drracket:module-language:module-language<%>)
+                     (drracket:module-language:module-language-settings-run-in-separate-process settings))
+            (parameterize ([current-custodian user-custodian]
+                           [current-directory (or (send context get-directory) drracket:init:first-dir)]
+                           [current-directory-for-user (or (send context get-directory) drracket:init:first-dir)])
+              (define-values (separate-process stdout stdin stderr)
+                (subprocess #f #f #f 'new drracket:init:system-exec-file-path #"-l" #"drracket/private/user-in-separate-process.rkt"))
+              (file-stream-buffer-mode stderr 'none) ;; stderr isn't supposed to be used; it'll show error messages from bugs, tho
+              (define finished-evaluation-chan (make-channel))
+              (thread
+               (λ ()
+                 ;; when there is output on stderr of the process, it might be a useful
+                 ;; message from the OS (segmentation fault?) or it might be a bug in
+                 ;; the code in drracket that manages up the separate process; lets
+                 ;; try to make it show up somewhere!
+                 (copy-port stderr drracket:init:original-error-port (get-err-port))))
+              (thread
+               (λ ()
+                 (let loop ()
+                   (define serialized-msg (read stdout))
+                   (cond
+                     [(eof-object? serialized-msg)
+                      (void)]
+                     [else
+                      (define msg (deserialize serialized-msg))
+                      (match msg
+                        [`(,(or "stdout" "stderr" "value") ,bytes-or-special)
+                         (define port
+                           (match (car msg)
+                             ["stdout" (get-out-port)]
+                             ["stderr" (get-err-port)]
+                             ["value" (get-value-port)]))
+                         (match bytes-or-special
+                           [(? bytes?)
+                            (write-bytes bytes-or-special port)]
+                           [(list "bitmap" (? integer? backing-scale) (? bytes? bitmap-bytes))
+                            (write-special (make-object image-snip%
+                                             (read-bitmap (open-input-bytes bitmap-bytes)
+                                                          #:backing-scale backing-scale))
+                                           port)]
+                           [(list "number" (? number? n) inexact-prefix fraction-view)
+                            (define snip/string
+                              (number-snip:number->string/snip n
+                                                               #:exact-prefix 'never
+                                                               #:inexact-prefix inexact-prefix
+                                                               #:fraction-view fraction-view))
+                            (if (string? snip/string)
+                                (display snip/string port)
+                                (write-special snip/string port))]
+                           [(list "pict-snip" width height descent ascent recorded-datum)
+                            (write-special
+                             (new pict-snip% [w width] [h height] [d descent] [a ascent] [recorded-datum recorded-datum])
+                             port)]
+                           [(list "markup" markup)
+                            (write-special markup port)]
+                           [(list "other" str)
+                            (display str port)])
+                         (loop)]
+                        [`("error-display-handler" ,msg ,srclocs1 ,srclocs2 ,details)
+                         (flush-output (get-out-port))
+                         (flush-output (get-err-port))
+                         (flush-output (get-value-port))
+                         (parameterize ([current-error-port (get-err-port)]
+                                        [current-rep this]
+                                        [error-print-source-location #f])
+                           (drracket:debug:error-display-handler/stacktrace/stacks
+                            msg
+                            (srclocs->viewable-stack srclocs1 (list definitions-text this))
+                            (srclocs->viewable-stack srclocs2 (list definitions-text this))
+                            details
+                            #:interactions-text this
+                            #:definitions-text definitions-text))
+                         (loop)]
+                        [`("finished-evaluation" ,hopeless-exn-raised? ,suffix)
+                         (flush-output (get-out-port))
+                         (flush-output (get-err-port))
+                         (flush-output (get-value-port))
+                         (channel-put finished-evaluation-chan (cons hopeless-exn-raised? suffix))
+                         (loop)])]))))
+              (set! user-subprocess+ports (list separate-process stdin finished-evaluation-chan))))
           
           (let* ([init-thread-complete (make-semaphore 0)]
                  [goahead (make-semaphore)])
@@ -1460,8 +1573,6 @@ TODO
                  (λ ()
                    (with-handlers ((exn? (λ (x) (oprintf "~s\n" (exn-message x)))))
                      (t)))))
-              (define lang (drracket:language-configuration:language-settings-language user-language-settings))
-              (define settings (drracket:language-configuration:language-settings-settings user-language-settings))
               (cond
                 [(is-a? lang drracket:module-language:module-language<%>)
                  (send lang
@@ -1700,7 +1811,6 @@ TODO
       (define/private (initialize-parameters snip-classes) ; =User=
         
         (current-language-settings user-language-settings)
-        (error-print-source-location #f)
         (error-display-handler drracket-error-display-handler)
         (current-load-relative-directory #f)
         (current-custodian user-custodian)

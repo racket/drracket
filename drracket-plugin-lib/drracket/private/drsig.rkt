@@ -96,8 +96,6 @@
    test-coverage-off-style-name
    
    ;show-error-and-highlight
-   ;print-bug-to-stderr
-   ;display-srclocs-in-error
    ;show-syntax-error-context
    ))
 
@@ -105,7 +103,12 @@
   (make-note-to-print-to-stderr
    get-editions
    cms->srclocs
-   srcloc->edition/pair))
+   srcloc->edition/pair
+   print-bug-to-stderr
+   display-error-message
+   display-srclocs-in-error
+   error-display-handler/stacktrace/stacks
+   ))
 
 (define-signature drracket:module-language-cm^
   (module-language<%>))
@@ -129,7 +132,12 @@
    error-message%
 
    disable-debugging-et-al
-   get-preferred-lang-line))
+   get-preferred-lang-line
+   get-filename-from-definitions
+   module-language-settings-submodules-to-run
+   module-language-settings-run-in-separate-process
+   module-language-settings->prefab-module-settings
+   get-currently-open-files))
 
 (define-signature drracket:module-language-tools-cm^
   (frame-mixin
@@ -178,6 +186,7 @@
    system-namespace
    system-security-guard
    system-inspector
+   system-exec-file-path
    first-dir))
 
 (define-signature drracket:language-configuration-cm^

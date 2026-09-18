@@ -88,6 +88,13 @@
                            viewable-stack?
                            (listof srcloc?))]))
 
+(module with-stack-checkpoint racket/base
+  (require racket/contract)
+  (provide
+   with-stack-checkpoint
+   (contract-out
+    [cut-stack-at-checkpoint (-> continuation-mark-set? (listof srcloc?))]))
+
 ;; run a proc, and if an exception is raised, make it possible to cut the
 ;; stack so that the surrounding context is hidden
 (define checkpoints (make-weak-hasheq))
@@ -124,7 +131,8 @@
 (define-syntax-rule (with-stack-checkpoint expr)
   (call-with-stack-checkpoint (λ (ccm-receiver)
                                 (ccm-receiver (current-continuation-marks))
-                                expr)))
+                                expr))))
+(require (submod "." with-stack-checkpoint))
 
 (module+ test
 
@@ -600,9 +608,9 @@
                               (cons a 7))
                         #f))))
 
-(define (get-exn-source-locs defs exn a-viewable-stack1 a-viewable-stack2)
+(define (get-exn-source-locs defs exn-srclocs a-viewable-stack1 a-viewable-stack2)
   (cond
-    [(exn:srclocs? exn) ((exn:srclocs-accessor exn) exn)]
+    [exn-srclocs => values]
     [(pick-first-defs defs a-viewable-stack1) => list]
     [(pick-first-defs defs a-viewable-stack2) => list]
     [(viewable-stack-first-srcloc a-viewable-stack1) => list]

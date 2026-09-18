@@ -340,7 +340,7 @@
               (orig-error-display-handler msg exn)])))))
     debug-error-display-handler)
   
-  ;; error-display-handler/stacktrace : string any (or/c #f viewable-stack? (listof srcloc)) -> void
+;; error-display-handler/stacktrace : string any (or/c #f viewable-stack? (listof srcloc)) -> void
   ;; =User=
   (define (error-display-handler/stacktrace 
            msg exn 
@@ -364,23 +364,43 @@
                                        (filter values (list ints defs))
                                        #:share-cache stack1)
           (empty-viewable-stack)))
-    (define port-name-matches-cache (make-hasheq))
-    (define src-locs (get-exn-source-locs defs exn stack1 stack2))
-
     (print-planet-icon-to-stderr exn)
-    (unless (exn:fail:user? exn)
-      (unless (exn:fail:syntax? exn)
+    (error-display-handler/stacktrace/stacks
+     msg stack1 stack2
+     (exn->error-display-handler-exn-details exn)
+     #:interactions-text ints
+     #:definitions-text defs))
+
+  ;; this should be called from the replacement error-display-handler
+  ;; that's used during run-in-separate-process mode;
+  ;; it takes as arguments all the useful stuff from the exception record
+  (define (error-display-handler/stacktrace/stacks
+           msg stack1 stack2 an-error-display-handler-exn-details
+           #:interactions-text ints
+           #:definitions-text defs)
+
+    (match-define (error-display-handler-exn-details exn-srclocs
+                                                     exn:fail?-exn
+                                                     exn:fail:user?-exn
+                                                     exn:fail:syntax?-exn
+                                                     exn:fail:syntax-strings
+                                                     exn-missing-module)
+      an-error-display-handler-exn-details)
+
+    (define src-locs (get-exn-source-locs defs exn-srclocs stack1 stack2))
+    (unless exn:fail:user?-exn
+      (unless exn:fail:syntax?-exn
         (unless (and (empty-viewable-stack? stack1) (empty-viewable-stack? stack2))
           (unless (zero? (error-print-context-length))
             (print-bug-to-stderr msg stack1 stack2)))))
-    (when (or (not (exn:fail:user? exn))
-              (exn:srclocs? exn))
+    (when (or (not exn:fail:user?-exn)
+              exn-srclocs)
       (display-srclocs-in-error src-locs stack1))
-    (display-error-message exn msg)
-    (when (exn:fail:syntax? exn)
+    (display-error-message exn:fail?-exn msg)
+    (when exn:fail:syntax?-exn
       (unless (error-print-source-location)
-        (show-syntax-error-context (current-error-port) exn)))
-    (print-pkg-icon-to-stderr exn)
+        (show-syntax-error-context (current-error-port) exn:fail:syntax-strings)))
+    (print-pkg-icon-to-stderr exn-missing-module)
     (newline (current-error-port))
     (flush-output (current-error-port))
     (when (and ints
@@ -488,10 +508,9 @@
       [else #f]))
   
   ;; =User=
-  (define (print-pkg-icon-to-stderr exn)
-    (when (exn:missing-module? exn)
-      (define mod ((exn:missing-module-accessor exn) exn))
-      (define pkgs (pkg-catalog-suggestions-for-module mod))
+  (define (print-pkg-icon-to-stderr missing-module)
+    (when missing-module
+      (define pkgs (pkg-catalog-suggestions-for-module missing-module))
       (define update-pkgs-node (new clickable-string-snip% [str "[update catalog]"]))
       (define (get-tlw snp)
         (define admin (send snp get-admin))
@@ -538,11 +557,13 @@
   
   ;; =User=
   (define (print-bug-to-stderr msg viewable-stack1 viewable-stack2)
-    (when (port-writes-special? (current-error-port))
-      (define note (make-note-to-print-to-stderr msg viewable-stack1 viewable-stack2))
-      (when note
-        (write-special note (current-error-port))
-        (display #\space (current-error-port)))))
+    (unless (and (empty-viewable-stack? viewable-stack1) (empty-viewable-stack? viewable-stack2))
+      (unless (zero? (error-print-context-length))
+        (when (port-writes-special? (current-error-port))
+          (define note (make-note-to-print-to-stderr msg viewable-stack1 viewable-stack2))
+          (when note
+            (write-special note (current-error-port))
+            (display #\space (current-error-port)))))))
 
   ;; =Kernel= =User=
   (define (make-note-to-print-to-stderr msg viewable-stack1 viewable-stack2)
@@ -636,7 +657,7 @@
   
   ;; show-syntax-error-context : 
   ;; display the source information associated with a syntax error (if present)
-  (define (show-syntax-error-context port exn)
+  (define (show-syntax-error-context port error-syntax-strs)
     (let ([error-text-style-delta (make-object style-delta%)]
           [send-out
            (λ (msg f) 
@@ -663,9 +684,6 @@
                           (send (editor:get-standard-style-list) find-or-create-style
                                 (send (editor:get-standard-style-list) find-named-style "Standard")
                                 error-text-style-delta)))))
-      (define exprs (exn:fail:syntax-exprs exn))
-      (define strs (for/list ([expr (in-list exprs)])
-                     ((error-syntax->string-handler) expr #f)))
       (define (show-in)
         (send-out " in:"
                   (λ (snp)
@@ -673,17 +691,17 @@
                           (send (editor:get-standard-style-list) find-named-style
                                 (editor:get-default-color-style-name))))))
       (cond
-        [(null? strs) (void)]
-        [(and (null? (cdr strs))
-              (not (regexp-match? #rx"\n" (car strs))))
+        [(null? error-syntax-strs) (void)]
+        [(and (null? (cdr error-syntax-strs))
+              (not (regexp-match? #rx"\n" (car error-syntax-strs))))
          (show-in)
-         (show-one (car strs))]
+         (show-one (car error-syntax-strs))]
         [else
          (show-in)
          (for-each (λ (str)
                      (display "\n " (current-error-port))
                      (show-one str))
-                   strs)])))
+                   error-syntax-strs)])))
   
   
   ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)

@@ -34,7 +34,16 @@
     (make-parameter (string-constant drscheme-internal-error)))
   
   (define system-security-guard (current-security-guard))
-  
+
+  (define system-exec-file-path
+    (let ([d (find-system-path 'exec-file)])
+      (cond
+        [(relative-path? d)
+         (define-values (base name dir?) (split-path d))
+         (or (find-executable-path name)
+             (build-path first-dir d))]
+        [else d])))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
   ;;  internal error display support
