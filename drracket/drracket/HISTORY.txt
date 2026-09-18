@@ -2,6 +2,11 @@
        Version 9.4
 ------------------------------
 
+ . Added support for running the program in a seprate process to help
+   when developing programs that use unsafe libraries (such as the
+   FFI). Enable it with the checkbox "Run program in separate process"
+   in the details section of the language dialog
+
  . The file format for files that contain 2htdp/image snips changed to
    improve the performance. The change is not backwards
    compatible. New versions can open files from old verisons, but not

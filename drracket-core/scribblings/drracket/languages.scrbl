@@ -101,6 +101,13 @@ of various libraries).
         The @italic{Enforce constant definitions (enables some inlining)} option
         corresponds to calling @racket[compile-enforce-module-constants];
         checking it passes @racket[#t] and leaving it unchecked passes @racket[#f].
+
+        The @italic{Run program in separate process} option
+        uses a separate OS-level process to run the program in the definitions window
+        when clicking @onscreen{Run}. Starting the program is slower in this mode, but
+        it provides additional protections when developing unsafe libraries (e.g., when
+        using the FFI).
+
         }
  @item{@bold{Output Syntax}: The output syntax options correspond to settings in the @racketmodname[racket/pretty] library 
        and the @racketmodname[mzlib/pconvert #:indirect] library.}
