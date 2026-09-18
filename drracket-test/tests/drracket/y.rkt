@@ -1,5 +1,5 @@
 #lang racket/base
-(require "drracket-test-util.rkt"
+(require "private/drracket-test-util.rkt"
          framework
          drracket/private/stack-checkpoint
          racket/string
@@ -19,17 +19,14 @@
   (definitions    ; Rec X = (or/c string 'xml-box (listof X))
     interactions  ; (union #f string)
     result        ; (or/c string regexp)
-    separate-process-result ; (or/c string regexp) -- used when in separate process mode
     all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
     before-exec   ; (-> any)
     after-test    ; (-> any)
     wait-for-drracket-frame-after-test? ; boolean
     extra-assert  ; (-> (is-a?/c text) (is-a?/c text) boolean)
-    line          ; number or #f: the line number of the test case
-    supported-in-separate-process-mode?) ; boolean: if #f, the separate process test suite ignores this test case
+    line)         ; number or #f: the line number of the test case
   #:name test-struct
-  #:constructor-name make-test
-  #:transparent)
+  #:constructor-name make-test)
 
 (define (in-here/path file) (path->string (build-path (find-system-path 'temp-dir) file)))
 (define (in-here file) (format "~s" (in-here/path file)))
@@ -44,20 +41,16 @@
                    #:extra-assert [extra-assert (λ (x y) #t)]
                    #:before-execute [before-exec (λ () (void))]
                    #:after-test [after-test (λ () (void))]
-                   #:wait-for-drracket-frame-after-test? [wait-for-drs? #f]
-                   #:supported-in-separate-process-mode? [supported-in-separate-process-mode? #t]
-                   #:separate-process-results [separate-process-results results])
+                   #:wait-for-drracket-frame-after-test? [wait-for-drs? #f])
   (set! tests (cons (make-test definitions
                                interactions 
-                               results
-                               separate-process-results
+                               results 
                                all?
                                before-exec
                                after-test
                                wait-for-drs?
                                extra-assert
-                               line
-                               supported-in-separate-process-mode?)
+                               line)
                     tests)))
 
 (define temp-files '())
@@ -78,9 +71,12 @@
     [(_ (module name lang x ...) ...)
      (begin (write-test-modules* 'name '(module name lang x ...)) ...)]))
 
-(define (single-test test #:separate-process? separate-process?)
+(define (single-test test)
+  (printf "test ~s ~s\n" (test-line test) (test-definitions test))
   (let/ec k
+    (printf "1\n")
     (clear-definitions drs)
+    (printf "2\n")
     (let loop ([to-handle (test-definitions test)])
       (cond
         [(list? to-handle)
@@ -98,9 +94,10 @@
          (error 'module-lang-test-utils.rkt
                 "unknown thing in test-definitions field ~s"
                 to-handle)]))
+    (printf "3\n")
     ((test-before-exec test))
     (do-execute drs)
-    
+    (printf "4\n")
     (define ints (test-interactions test))
     
     (define output-start-paragraph 2)
@@ -132,6 +129,7 @@
                         1))))
         (test:keystroke #\return '(alt))
         (wait-for-computation drs)))
+    (printf "5\n")
     
     (define text
       (queue-callback/res
@@ -149,23 +147,30 @@
                    get-text
                    (send interactions-text paragraph-start-position output-start-paragraph)
                    (send interactions-text paragraph-end-position para-before-prompt))))))
+    (printf "6\n")
     (define stacks
       (queue-callback/res 
        (λ ()
          (let loop ([snip (send interactions-text find-first-snip)])
+           (printf "6.1\n")
            (cond
              [(not snip) '()]
              [else
+              (printf "6.2\n")
               (cond
                 [(method-in-interface? 'get-stacks (object-interface snip))
+                 (printf "6.4\n")
                  (define-values (s1 s2) (send snip get-stacks))
+                 (printf "6.5\n")
                  (list* s1 s2 (loop (send snip next)))]
                 [else
-                 (loop (send snip next))])])))))
+                 (printf "6.6 ~s ~s\n" snip (send snip get-text 0 (send snip get-count)))
+                 (loop (let ([ans (send snip next)])
+                         (printf "6.7 ~s\n" ans)
+                         ans))])])))))
+    (printf "7\n")
     (define output-passed?
-      (let ([r (if separate-process?
-                   (test-separate-process-result test)
-                   (test-result test))])
+      (let ([r (test-result test)])
         ((cond [(string? r) string=?]
                [(regexp? r) regexp-match?]
                [else 'module-lang-test "bad test value: ~e" r])
@@ -222,77 +227,24 @@
   (set! interactions-text  (send drs get-interactions-text))
   (set! definitions-text (send drs get-definitions-text)))
 
-(define (run-test #:separate-process? [separate-process? #f])
+(define (run-test)
+  (printf "run-test.1\n")
   (retrieve-drracket-frames!)
+  (printf "run-test.2\n")
   (init-temp-files)
-  (run-use-compiled-file-paths-tests #:separate-process? separate-process?)
+  (printf "run-test.3\n")
   (set-module-language! #f)
-  (test:set-radio-box-item! #rx"Debugging")
-  (when separate-process?
-    (test:set-check-box! #rx"Run program in separate process" #t))
+  (printf "run-test.5\n")
+  (test:set-radio-box-item! "Debugging")
+  (printf "run-test.6\n")
   (let ([f (queue-callback/res (λ () (test:get-active-top-level-window)))])
     (test:button-push "OK")
     (wait-for-new-frame f))
-  (for ([test (in-list (reverse tests))])
-    (define skip-test?
-      (and separate-process?
-           (not (test-supported-in-separate-process-mode? test))))
-    (unless skip-test?
-      (single-test test #:separate-process? separate-process?)))
+  (printf "run-test.7\n")
+  (for-each single-test (reverse tests))
   (clear-definitions drs)
   (queue-callback/res (λ () (send (send drs get-definitions-text) set-modified #f)))
   (for ([file temp-files]) 
     (when (file-exists? file)
       (delete-file file))))
 
-(define (run-use-compiled-file-paths-tests #:separate-process? separate-process?)
-  (define (setup-dialog/run proc)
-    (set-module-language! #f)
-    (proc)
-    (when separate-process?
-      (test:set-check-box! #rx"Run program in separate process" #t))
-    (let ([f (test:get-active-top-level-window)])
-      (test:button-push "OK")
-      (wait-for-new-frame f))
-    (do-execute drs)
-    (fetch-output drs))
-    
-  (define (run-one-test radio-box expected [no-check-expected #f])
-    (let ([got (setup-dialog/run (λ () (test:set-radio-box-item! radio-box)))])
-      (unless (spaces-equal? got (format "~s" expected))
-        (error 'r-u-c-f-p-t "test failed\n  got: ~s\n  expected: ~s\n  radio-box: ~s"
-               got
-               (format "~s" expected)
-               radio-box)))
-    
-    (when no-check-expected
-      (define got
-        (setup-dialog/run 
-         (λ () 
-           (test:set-radio-box-item! radio-box)
-           (test:set-check-box! #rx"Populate “compiled” directories" #f))))
-      (unless (spaces-equal? got (format "~s" no-check-expected))
-        (error 'r-u-c-f-p-t.2 "test-failed\n  got: ~s\n  expected: ~s\n  radio-box: ~s"
-               got
-               (format "~s" no-check-expected)
-               radio-box))))
-
-  (define (spaces-equal? a b)
-    (equal? (regexp-replace* #rx"[\n\t ]+" a " ")
-            (regexp-replace* #rx"[\n\t ]+" b " ")))
-
-  (define compiled-dir (let ([l (use-compiled-file-paths)])
-                         (if (null? l)
-                             "compiled"
-                             (car l))))
-  
-  (define drs/compiled/et (build-path compiled-dir "drracket" "errortrace"))
-  (define drs/compiled (build-path compiled-dir "drracket"))
-  (define compiled (build-path compiled-dir))
-  (clear-definitions drs)
-  (insert-in-definitions drs "#lang scheme\n(use-compiled-file-paths)")
-  (run-one-test #rx"No debugging or profiling" (list drs/compiled compiled) (list compiled))
-  (run-one-test #rx"^Debugging [(]" (list drs/compiled/et compiled) (list compiled))
-  (unless separate-process?
-    (run-one-test #rx"Debugging and profiling" (list compiled))
-    (run-one-test #rx"Syntactic test suite coverage" (list compiled))))

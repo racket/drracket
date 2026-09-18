@@ -437,7 +437,8 @@ files for module-lang-test.rkt and separate-process.rkt
 
 (test '("#lang racket\n" xml-box)
       #f
-      @t{'(a () "x")})
+      @t{'(a () "x")}
+      #:supported-in-separate-process-mode? #f)
 
 
 (test @t{#lang racket/base
@@ -529,6 +530,19 @@ files for module-lang-test.rkt and separate-process.rkt
 }
       #f
       @t{
+f: contract violation
+  expected: string?
+  given: 1
+  argument position: 2nd
+  other arguments...:
+   0
+   2
+   3
+}
+      ;; separate proces mode doesn't use `with-stack-checkpoint`
+      ;; so just test that the main part of the message is the same
+      #:separate-process-results
+      @rx{
 f: contract violation
   expected: string?
   given: 1

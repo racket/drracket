@@ -57,20 +57,45 @@ for bugs in this code to hopefully have some useful debugging information.
      (custodian-shutdown-all user-custodian)
      (o-e-h x))))
 
+(current-eval
+ (let ([oe (current-eval)])
+   (define (drracket-eval-handler sexp/syntax)
+     (cond
+       [(and (outermost)
+             (syntax? sexp/syntax)
+             (not (compiled-expression? (syntax-e sexp/syntax))))
+        (parameterize ([outermost #f])
+          (call-with-continuation-prompt
+           (λ ()
+             ;; used to call with-stack-checkpoint here
+             (oe sexp/syntax))
+           (default-continuation-prompt-tag)
+           (λ args
+             (apply
+              abort-current-continuation
+              (default-continuation-prompt-tag)
+              args))))]
+       [else
+        (oe sexp/syntax)]))
+   drracket-eval-handler))
+
 (define debug-error-display-handler
   (let ([original-error-display-hander (error-display-handler)])
     (λ (str exn)
-      (define srclocs1
-        (if (exn? exn)
-            (map errortrace-stack-item->srcloc (continuation-mark-set->list (exn-continuation-marks exn) drracket-errortrace-key))
-            '()))
-      (define srclocs2
-        (if (exn? exn)
-            (filter values (map cdr (continuation-mark-set->context (exn-continuation-marks exn))))
-            '()))
-      (define details (exn->error-display-handler-exn-details exn))
-      (try-to-push-io-out)
-      (send-msg `("error-display-handler" ,(if (exn? exn) (exn-message exn) (format "uncaught exception: ~s" exn)) ,srclocs1 ,srclocs2 ,details)))))
+      (cond
+        [(equal? (current-error-port) current-error-pipe-out)
+         (define srclocs1
+           (if (exn? exn)
+               (map errortrace-stack-item->srcloc (continuation-mark-set->list (exn-continuation-marks exn) drracket-errortrace-key))
+               '()))
+         (define srclocs2
+           (if (exn? exn)
+               (filter values (map cdr (continuation-mark-set->context (exn-continuation-marks exn))))
+               '()))
+         (define details (exn->error-display-handler-exn-details exn))
+         (try-to-push-io-out)
+         (send-msg `("error-display-handler" ,(if (exn? exn) (exn-message exn) (format "uncaught exception: ~s" exn)) ,srclocs1 ,srclocs2 ,details))]
+        [else (original-error-display-hander str exn)]))))
 
 (define-values (current-output-pipe-in current-output-pipe-out) (make-pipe-with-specials))
 (define-values (current-error-pipe-in current-error-pipe-out) (make-pipe-with-specials))
