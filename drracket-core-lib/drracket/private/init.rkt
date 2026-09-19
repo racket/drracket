@@ -4,6 +4,7 @@
            racket/gui/base
            racket/list
            racket/class
+           compiler/find-exe
            framework)
   
   (import [prefix drracket: drracket:interface^]
@@ -35,14 +36,7 @@
   
   (define system-security-guard (current-security-guard))
 
-  (define system-exec-file-path
-    (let ([d (find-system-path 'exec-file)])
-      (cond
-        [(relative-path? d)
-         (define-values (base name dir?) (split-path d))
-         (or (find-executable-path name)
-             (build-path first-dir d))]
-        [else d])))
+  (define system-exec-file-path (find-exe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
