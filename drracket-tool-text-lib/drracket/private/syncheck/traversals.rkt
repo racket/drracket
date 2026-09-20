@@ -947,8 +947,8 @@
   (color-range source start end unused-require-style-name))
 
 (define (self-module? mpi)
-  (let-values ([(a b) (module-path-index-split mpi)])
-    (and (not a) (not b))))
+  (define-values (a b) (module-path-index-split mpi))
+  (and (not a) (not b)))
 
 ;; connect-identifier : syntax
 ;;                      (or/c #f (listof symbol)) -- name of enclosing sub-modules
@@ -1137,22 +1137,29 @@
       [else #f])))
 
 ;; color/connect-top : namespace directory id-set syntax connections[see defn for ctc] -> void
-(define (color/connect-top user-namespace user-directory binders var connections
-                           module-lang-requires)
-  (let ([top-bound?
-         (or (get-ids binders var)
-             (parameterize ([current-namespace user-namespace])
-               (let/ec k
-                 (namespace-variable-value (syntax-e var) #t (λ () (k #f)))
-                 #t)))])
-    (cond
-      [top-bound?
-       (color var lexically-bound-variable-style-name)]
-      [else
-       (add-mouse-over var (format "~s is a free variable" (syntax-e var)))
-       (color var free-variable-style-name)])
-    (connect-identifier var #f binders #f #f 0 user-namespace user-directory #t connections
-                        module-lang-requires)))
+(define (color/connect-top user-namespace user-directory binders var connections module-lang-requires)
+  (define top-bound?
+    (or (get-ids binders var)
+        (parameterize ([current-namespace user-namespace])
+          (let/ec k
+            (namespace-variable-value (syntax-e var) #t (λ () (k #f)))
+            #t))))
+  (cond
+    [top-bound? (color var lexically-bound-variable-style-name)]
+    [else
+     (add-mouse-over var (format "~s is a free variable" (syntax-e var)))
+     (color var free-variable-style-name)])
+  (connect-identifier var
+                      #f
+                      binders
+                      #f
+                      #f
+                      0
+                      user-namespace
+                      user-directory
+                      #t
+                      connections
+                      module-lang-requires))
 
 ;; annotate-counts : connections[see defn] -> void
 ;; this function doesn't try to show the number of uses at
@@ -1316,22 +1323,19 @@
 ;; popup menu in this area allows the programmer to jump
 ;; to the definition of the id.
 (define (add-jump-to-definition stx id filename submods phase-level+space)
-  (let ([source (find-source-editor stx)]
-        [defs-text (current-annotations)])
-    (when (and source
-               defs-text
-               (syntax-position stx)
-               (syntax-span stx))
-      (let* ([pos-left (- (syntax-position stx) 1)]
-             [pos-right (+ pos-left (syntax-span stx))])
-        (send defs-text syncheck:add-jump-to-definition/phase-level+space
-              source
-              pos-left
-              pos-right
-              id
-              filename
-              submods
-              phase-level+space)))))
+  (define source (find-source-editor stx))
+  (define defs-text (current-annotations))
+  (when (and source defs-text (syntax-position stx) (syntax-span stx))
+    (let* ([pos-left (- (syntax-position stx) 1)]
+           [pos-right (+ pos-left (syntax-span stx))])
+      (send defs-text syncheck:add-jump-to-definition/phase-level+space
+            source
+            pos-left
+            pos-right
+            id
+            filename
+            submods
+            phase-level+space))))
 
 ;; annotate-require-open : namespace string -> (stx -> void)
 ;; relies on current-module-name-resolver, which in turn depends on
@@ -1407,10 +1411,10 @@
           (unless (and (len . >= . 4)
                        (bytes=? #".rkt" (subbytes bts (- len 4))))
             (k rkt-path/f))
-          (let ([ss-path (bytes->path (bytes-append (subbytes bts 0 (- len 4)) #".ss"))])
-            (unless (file-exists? ss-path)
-              (k rkt-path/f))
-            ss-path))))
+          (define ss-path (bytes->path (bytes-append (subbytes bts 0 (- len 4)) #".ss")))
+          (unless (file-exists? ss-path)
+            (k rkt-path/f))
+          ss-path)))
     (values cleaned-up-path rkt-submods)))
 
 ;; add-origins : syntax? id-set exact-integer? -> void
