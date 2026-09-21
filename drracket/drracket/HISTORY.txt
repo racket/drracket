@@ -7,6 +7,9 @@
    FFI). Enable it with the checkbox "Run program in separate process"
    in the details section of the language dialog
 
+ . Added a checkbox that, when checked, shows stacktraces for
+   exn:fail:syntax exceptions
+
  . The file format for files that contain 2htdp/image snips changed to
    improve the performance. The change is not backwards
    compatible. New versions can open files from old verisons, but not

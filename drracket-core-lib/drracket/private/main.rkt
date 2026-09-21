@@ -87,6 +87,8 @@
   (and (string? s)
        (regexp-match? #rx"\n$" s)))
 
+(preferences:set-default 'drracket:show-stacktraces-in-syntax-exns? #f boolean?)
+
 (preferences:set-default 'drracket:restore-previously-opened-files 'ask (or/c 'ask boolean?))
 
 (preferences:set-default 'drracket:most-recent-lang-line "#lang racket\n"
@@ -402,6 +404,9 @@
                      (string-constant dont-ask-about-saving-after-switching-tabs)
                      editor-panel
                      (λ (nv) (send save-files-on-tab-switch-check-box enable (not nv))))
+     (make-check-box 'drracket:show-stacktraces-in-syntax-exns?
+                     (string-constant show-stacktraces-in-syntax-exns?)
+                     editor-panel)
      (void)))
   
   (preferences:add-to-editor-checkbox-panel

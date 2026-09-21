@@ -319,6 +319,15 @@ The @onscreen{Editing} panel consists of several sub-panels:
   the files automatically. If this is checked, the previous
   checkbox's value is ignored.}
 
+ @item{@PrefItem{Show stacktrace for exn:fail:syntax
+   exceptions?} --- If checked, DrRacket will include the
+  multi-stop sign icon that, when clicked, shows the
+  stacktraces at the point where syntax errors are raised.
+  This is off by default as, for most languages, these
+  correspond to internal implementation information, not
+  helpful debugging information. When debugging macros,
+  however turning this on can be useful.}
+
 ]
 
 

@@ -389,7 +389,8 @@
 
     (define src-locs (get-exn-source-locs defs exn-srclocs stack1 stack2))
     (unless exn:fail:user?-exn
-      (unless exn:fail:syntax?-exn
+      (when (or (not exn:fail:syntax?-exn)
+                (preferences:get 'drracket:show-stacktraces-in-syntax-exns?))
         (unless (and (empty-viewable-stack? stack1) (empty-viewable-stack? stack2))
           (unless (zero? (error-print-context-length))
             (print-bug-to-stderr msg stack1 stack2)))))
