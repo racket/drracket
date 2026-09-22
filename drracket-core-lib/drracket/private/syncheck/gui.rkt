@@ -2182,10 +2182,10 @@ If the namespace does not, they are colored the unbound color.
                                    ;; might produce numbers that are out of range, so we
                                    ;; just give up on the curved arrows in that case.
                                    #:%age (if (and (number? %age) (not (<= -1 %age 1))) #f %age)
-                                   #:bb (list 0
-                                              0
-                                              max-width-for-arrow
-                                              max-height-for-arrow))
+                                   #:bb (list (+ dx 0)
+                                              (+ dy 0)
+                                              (+ dy max-width-for-arrow)
+                                              (+ dy max-height-for-arrow)))
         (when (and (var-arrow? arrow) (not (var-arrow-actual? arrow)))
           (define old-font (send dc get-font))
           (send dc set-font
