@@ -5664,8 +5664,6 @@
               (λ (x y)
                 (send frame choose-language-callback))]))
 
-      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
-      
       (super-new [label ""]
                  [font small-control-font]
                  [string-constant-untitled (string-constant untitled)]
