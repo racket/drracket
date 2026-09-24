@@ -1188,8 +1188,6 @@
                       (send item check #t))
                     (loop (cdr defns))))))))
 
-      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
-      
       (super-new (label "(define ...)") ;; this default is quickly changed
                  [string-constant-untitled (string-constant untitled)]
                  [string-constant-no-full-name-since-not-saved 
@@ -5881,7 +5879,6 @@
                                      (send this get-top-level-window))])
           (when file
             (handler:edit-file file))))
-      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
       (super-new 
        [string-constant-untitled (string-constant untitled)]
        [string-constant-no-full-name-since-not-saved 

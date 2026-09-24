@@ -698,7 +698,6 @@
                     [parent dynamic-panel]))
          (set! run-submodules-choice 
                (new (class name-message%
-                      (define/override (wob?) (color-prefs:white-on-black-color-scheme?))
                       (define/override (fill-popup menu reset)
                         (for ([item (in-list (preferences:get 'drracket:submodules-to-choose-from))]
                               [x (in-naturals)])
