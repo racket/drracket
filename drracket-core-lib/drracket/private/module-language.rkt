@@ -980,12 +980,18 @@
                                        (preferences:set 'drracket:module-language:auto-text
                                                         (get-auto-text)))]))
     (define (turn-on/off-auto-text-text-box on?)
+      (define wob? (white-on-black-panel-scheme?))
       (send auto-text-text-box enable on?)
       (send auto-text-text-box set-field-background
-            (color-prefs:lookup-in-color-scheme
-             (if on?
-                 'framework:basic-canvas-background
-                 'framework:disabled-background-color))))
+            (send the-color-database
+                  find-color
+                  (cond
+                    ;; default of 'framework:basic-canvas-background
+                    [(and on? wob?)       "black"]
+                    [(and on?)            "white"]
+                    ;; default of 'framework:disabled-background-color
+                    [(and (not on?) wob?) "dim gray"]
+                    [(and (not on?)       "gray")]))))
 
     (define (get-auto-text)
       (case (send auto-text-rb get-selection)

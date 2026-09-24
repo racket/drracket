@@ -5555,10 +5555,10 @@
         (send txt change-style sd 0 (send txt last-position))))
 
     (send clear-sd set-delta-background
-          (if (color-prefs:white-on-black-color-scheme?) "black" "white"))
+          (if (white-on-black-panel-scheme?) "black" "white"))
     (send yellow-sd set-delta-background "yellow")
     (send black-foreground-sd set-delta-foreground
-          (if (color-prefs:white-on-black-color-scheme?) "white" "black"))
+          (if (white-on-black-panel-scheme?) "white" "black"))
     (send gray-foreground-sd set-delta-foreground "gray")
     (send d set-alignment 'left 'center)
     (send bp set-alignment 'right 'center)
