@@ -200,20 +200,17 @@
     ;; constructs an input port for the load handler. Also
     ;; returns a value representing the source of code read from the file.
     (define (build-input-port filename)
-      (let* ([p (open-input-file filename)]
-             [chars (list (read-char p)
-                          (read-char p)
-                          (read-char p)
-                          (read-char p))])
-        (close-input-port p)
-        (cond
-          [(equal? chars (string->list "WXME"))
-           (define text (make-object text%))
-           (send text load-file filename)
-           (define port (open-input-text-editor text))
-           (port-count-lines! port)
-           (values port text)]
-          [else
-           (define port (open-input-file filename))
-           (port-count-lines! port)
-           (values port filename)]))))
+      (define p (open-input-file filename))
+      (define chars (list (read-char p) (read-char p) (read-char p) (read-char p)))
+      (close-input-port p)
+      (cond
+        [(equal? chars (string->list "WXME"))
+         (define text (make-object text%))
+         (send text load-file filename)
+         (define port (open-input-text-editor text))
+         (port-count-lines! port)
+         (values port text)]
+        [else
+         (define port (open-input-file filename))
+         (port-count-lines! port)
+         (values port filename)])))
