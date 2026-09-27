@@ -301,7 +301,8 @@
   
   (define (wait-for-button button)
     (not-on-eventspace-handler-thread 'wait-for-button)
-    (define wait-for-button-pred (lambda () (queue-callback/res (λ () (send button is-enabled?)))))
+    (define (wait-for-button-pred)
+      (queue-callback/res (λ () (send button is-enabled?))))
     (poll-until wait-for-button-pred))
   
   (define (push-button-and-wait button)
