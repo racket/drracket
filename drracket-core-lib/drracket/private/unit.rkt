@@ -45,6 +45,7 @@
          setup/xref
          scribble/tag
          (only-in scribble/base doc-prefix))
+(module+ test (require rackunit))
 
 (provide unit@)
 
@@ -5972,7 +5973,6 @@
                     (char-whitespace? (string-ref last-char 0))))))))
 
 (module+ test
-  (require rackunit)
   (check-equal? (compute-label-string (string->path "x"))
                 (format (string-constant module-browser-in-file) "x"))
   (check-equal? (compute-label-string #f)
@@ -5998,3 +5998,102 @@
   (check-true (is-lang-line? "#!r6rs"))
   (check-true (is-lang-line? "#!r6rs "))
   (check-false (is-lang-line? "#!/bin/sh")))
+
+(define (pick-new-language text all-languages module-language
+                           module-language-settings)
+  (with-handlers ([exn:fail:read? (λ (x) (values #f #f))])
+    (define found-language? #f)
+    (define settings #f)
+    (for ([lang (in-list all-languages)])
+      (define lang-spec (send lang get-reader-module))
+      (when lang-spec
+        (define lines (send lang get-metadata-lines))
+        (define str
+          (send text get-text
+                0
+                (send text paragraph-end-position (- lines 1))))
+        (define sp (open-input-string str))
+        (when (regexp-match #rx"#reader" sp)
+          (define spec-in-file (read sp))
+          (when (equal? lang-spec spec-in-file)
+            (set! found-language? lang)
+            (set! settings (send lang metadata->settings str))
+            (send text while-unlocked
+                  (λ () 
+                    (send text delete 0
+                          (send text paragraph-start-position lines))))))))
+      
+    ;; check to see if it looks like the module language.
+    (unless found-language?
+      (when module-language
+        (when (looks-like-module? text)
+          (set! found-language? module-language)
+          (set! settings module-language-settings))))
+    (values found-language?
+            settings)))
+
+(define (looks-like-module? text)
+  (or (looks-like-new-module-style? text)
+      (looks-like-old-module-style? text)))
+
+(define (looks-like-old-module-style? text)
+  (with-handlers ([exn:fail:read? (λ (x) #f)])
+    (define tp (open-input-text-editor text 0 'end (lambda (s) s) text #t))
+    (define r1 (parameterize ([read-accept-reader #f]) (read tp)))
+    (define r2 (parameterize ([read-accept-reader #f]) (read tp)))
+    (and (eof-object? r2)
+         (pair? r1)
+         (eq? (car r1) 'module))))
+
+(define (looks-like-new-module-style? text)
+  (looks-like-new-module-style?/port
+    (open-input-text-editor text 0 'end (lambda (s) s) text #t)))
+
+(define (looks-like-new-module-style?/port special-tp)
+  (define (special-filter f bytes)
+    ;; @ is not accepted anywhere in either of the regexps below
+    (bytes-set! bytes 0 (char->integer #\@))
+    1)
+  (define tp (special-filter-input-port special-tp special-filter))
+  (skip-past-comments tp)
+  (or (regexp-match? #rx"^#lang " (peeking-input-port tp))
+      (regexp-match? #rx"^#![a-zA-Z0-9+-_]" tp)))
+
+(module+ test
+  (let ()
+    (define-values (in out) (make-pipe-with-specials))
+    (thread
+     (λ ()
+       (write-special '(x) out)
+       (display "\n1" out)
+       (close-output-port out)))
+    (check-false (looks-like-new-module-style?/port in)))
+
+  (check-equal? (let ([t (new text%)])
+                  (send t insert "#lang racket/base")
+                  (looks-like-new-module-style? t))
+                #t)
+  (check-equal? (let ([t (new text%)])
+                  (send t insert "#ang racket/base")
+                  (looks-like-new-module-style? t))
+                #f)
+  (check-equal? (let ([t (new text%)])
+                  (send t insert ";; abc\n#lang racket/base")
+                  (looks-like-new-module-style? t))
+                #t)
+  (check-equal? (let ([t (new text%)])
+                  (send t insert ";; abc\n #lang racket/base")
+                  (looks-like-new-module-style? t))
+                #t)
+  (check-equal? (let ([t (new text%)])
+                  (send t insert ";; abc\n #!r6rs")
+                  (looks-like-new-module-style? t))
+                #t)
+  
+  (check-false (looks-like-new-module-style?/port
+                (open-input-string "(module m racket/base")))
+  (check-true (looks-like-new-module-style?/port
+               (open-input-string "#lang racket/base")))
+  (check-true (looks-like-new-module-style?/port (open-input-string "#!r")))
+  (check-false (looks-like-new-module-style?/port (open-input-string "#langg")))
+  (check-false (looks-like-new-module-style?/port (open-input-string "#la"))))
