@@ -486,26 +486,26 @@
           (when (and (send (get-tab) debug?) (not before))
             ;; render breakpoints
             (let ([breakpoints (send (get-tab) get-breakpoints)])
-              (for ([(pos enabled?) (in-hash breakpoints)])
-                (when (and (>= pos 0) (or enabled? (and mouse-over-pos (= mouse-over-pos pos))))
-                  (define-values (xl yl xr yr) (find-char-box this pos))
-                  (define diameter (- xr xl))
-                  (define yoff (/ (- yr yl diameter) 2))
-                  (define op (send dc get-pen))
-                  (define ob (send dc get-brush))
-                  (case enabled?
-                    [(#t)
-                     (send dc set-pen bp-pen)
-                     (send dc set-brush bp-brush)]
-                    [(#f)
-                     (send dc set-pen bp-mo-pen)
-                     (send dc set-brush bp-mo-brush)]
-                    [else
-                     (send dc set-pen bp-tmp-pen)
-                     (send dc set-brush bp-tmp-brush)])
-                  (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
-                  (send dc set-pen op)
-                  (send dc set-brush ob))))
+              (for ([(pos enabled?) (in-hash breakpoints)]
+                    #:when (and (>= pos 0) (or enabled? (and mouse-over-pos (= mouse-over-pos pos)))))
+                (define-values (xl yl xr yr) (find-char-box this pos))
+                (define diameter (- xr xl))
+                (define yoff (/ (- yr yl diameter) 2))
+                (define op (send dc get-pen))
+                (define ob (send dc get-brush))
+                (case enabled?
+                  [(#t)
+                   (send dc set-pen bp-pen)
+                   (send dc set-brush bp-brush)]
+                  [(#f)
+                   (send dc set-pen bp-mo-pen)
+                   (send dc set-brush bp-mo-brush)]
+                  [else
+                   (send dc set-pen bp-tmp-pen)
+                   (send dc set-brush bp-tmp-brush)])
+                (send dc draw-ellipse (+ xl dx) (+ yl dy yoff) diameter diameter)
+                (send dc set-pen op)
+                (send dc set-brush ob)))
             ;; mark the boundaries of the current stack frame
             ;; unless we're at the end of the expression and looking at the top frame,
             ;; in which case just mark the current location
