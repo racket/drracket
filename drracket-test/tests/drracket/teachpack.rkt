@@ -25,22 +25,16 @@
            (cond
              [(null? tp-exps) null]
              [else
-              (let ([tp-name 
-                     (normal-case-path
-                      (normalize-path
-                       (collection-file-path
-                        (string-append
-                         (format good-teachpack-name n)
-                         ".ss")
-                        "tests" "drracket")))])
-                (call-with-output-file tp-name
-                  (lambda (port) (write (car tp-exps) port))
-                  'truncate)
-                (use-get/put-dialog
-                 (lambda ()
-                   (fw:test:menu-select "Language" "Add Teachpack…"))
-                 tp-name)
-                (cons tp-name (loop (cdr tp-exps) (+ n 1))))]))])
+              (define tp-name
+                (normal-case-path (normalize-path (collection-file-path
+                                                   (string-append (format good-teachpack-name n)
+                                                                  ".ss")
+                                                   "tests"
+                                                   "drracket"))))
+              (call-with-output-file tp-name (lambda (port) (write (car tp-exps) port)) 'truncate)
+              (use-get/put-dialog (lambda () (fw:test:menu-select "Language" "Add Teachpack…"))
+                                  tp-name)
+              (cons tp-name (loop (cdr tp-exps) (+ n 1)))]))])
     
     (do-execute drs-frame)
     
