@@ -177,9 +177,9 @@
    little-fin-bottom-y))
 
 (define (add-dot path x y)
-  (let ([p (new dc-path%)])
-    (send p ellipse (- x 2) (- y 2) 4 4)
-    (send path append p)))
+  (define p (new dc-path%))
+  (send p ellipse (- x 2) (- y 2) 4 4)
+  (send path append p))
 
 (define (same-side-add x1 y1 x2 y2 x3 y3 x4 y4) 
   (send body-path curve-to x2 y2 x3 y3 x4 y4))
@@ -193,11 +193,12 @@
   (add-dot body-path x3 y3))
 
 (define (opposite-side-add x1 y1 x2 y2 x3 y3 x4 y4)
-  (let ([conv (lambda (x y) (values (+ (- x) body-width) y))])
-    (let-values ([(cx1 cy1) (conv x1 y1)]
-                 [(cx2 cy2) (conv x2 y2)]
-                 [(cx3 cy3) (conv x3 y3)])
-      (send body-path curve-to cx3 cy3 cx2 cy2 cx1 cy1))))
+  (define (conv x y)
+    (values (+ (- x) body-width) y))
+  (define-values (cx1 cy1) (conv x1 y1))
+  (define-values (cx2 cy2) (conv x2 y2))
+  (define-values (cx3 cy3) (conv x3 y3))
+  (send body-path curve-to cx3 cy3 cx2 cy2 cx1 cy1))
 
 (define (opposite-side-add/dot x1 y1 x2 y2 x3 y3 x4 y4)
   (let ([conv (lambda (x y) (values (+ (- x) body-width) y))])
