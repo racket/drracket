@@ -97,64 +97,33 @@ for bugs in this code to hopefully have some useful debugging information.
          (send-msg `("error-display-handler" ,(if (exn? exn) (exn-message exn) (format "uncaught exception: ~s" exn)) ,srclocs1 ,srclocs2 ,details))]
         [else (original-error-display-hander str exn)]))))
 
-(define-values (current-output-pipe-in current-output-pipe-out) (make-pipe-with-specials))
-(define-values (current-error-pipe-in current-error-pipe-out) (make-pipe-with-specials))
-(define-values (current-value-pipe-in current-value-pipe-out) (make-pipe-with-specials))
-
-(define (forward-output-back from-port name)
-  (define chan (make-channel))
-  (define bts (make-bytes 256))
-  (define (send-something res)
+;; Each port sends every write to DrRacket immediately, so output reaches the
+;; interactions window in the order the program wrote it, even when it
+;; alternates between ports.
+(define (make-forwarding-port name)
+  (define (send-special spec)
     (cond
-      [(procedure? res)
-       (define spec (res #f #f #f #f)) ;; pass #f in for the source location as I believe it is ignored anyway?
-       (cond
-         [(well-known-special? spec)
-          (send-msg `(,name ,(well-known-special-data spec)))]
-         [(markup? spec)
-          (send-msg `(,name ("markup" ,spec)))]
-         [else
-          (send-msg `(,name ("other" ,(format "~s" spec))))])]
+      [(well-known-special? spec)
+       (send-msg `(,name ,(well-known-special-data spec)))]
+      [(markup? spec)
+       (send-msg `(,name ("markup" ,spec)))]
       [else
-       (send-msg
-        `(,name ,(if (= res (bytes-length bts))
-                     bts
-                     (subbytes bts 0 res))))]))
-  (void
-   (thread
-    (λ ()
-      (let loop ()
-        (sync
-         (handle-evt
-          (read-bytes-avail!-evt bts from-port)
-          (λ (res)
-            (cond
-              [(eof-object? res)
-               ;;; stop forwarding data if the pipe is closed
-               (void)]
-              [else
-               (send-something res)
-               (loop)])))
-         (handle-evt
-          chan
-          (λ (resp-chan)
-            (let get-all-bytes-loop ()
-              (define b (read-bytes-avail!* bts from-port))
-              (cond
-                [(equal? b 0)
-                 (channel-put resp-chan (void))
-                 (loop)]
-                [else
-                 (send-something b)
-                 (get-all-bytes-loop)])))))))))
-  (λ ()
-    (define c (make-channel))
-    (channel-put chan c)
-    (channel-get c)))
+       (send-msg `(,name ("other" ,(format "~s" spec))))]))
+  (make-output-port
+   (string->symbol name)
+   always-evt
+   (λ (bs start end non-block? enable-breaks?)
+     (unless (= start end)
+       (send-msg `(,name ,(subbytes bs start end))))
+     (- end start))
+   void
+   (λ (spec non-block? enable-breaks?)
+     (send-special spec)
+     #t)))
 
-(define wait-for-stdout-io (forward-output-back current-output-pipe-in "stdout"))
-(define wait-for-stderr-io (forward-output-back current-error-pipe-in "stderr"))
-(define wait-for-value-io (forward-output-back current-value-pipe-in "value"))
+(define current-output-pipe-out (make-forwarding-port "stdout"))
+(define current-error-pipe-out (make-forwarding-port "stderr"))
+(define current-value-pipe-out (make-forwarding-port "value"))
 
 (define default-pretty-print-current-style-table (pretty-print-current-style-table))
 
@@ -409,10 +378,7 @@ for bugs in this code to hopefully have some useful debugging information.
 (define (try-to-push-io-out)
   (flush-output current-output-pipe-out)
   (flush-output current-error-pipe-out)
-  (flush-output current-value-pipe-out)
-  (wait-for-stdout-io)
-  (wait-for-stderr-io)
-  (wait-for-value-io))
+  (flush-output current-value-pipe-out))
 
 (define (send-finished-evaluation-message hopeless-exn-raised? suffix)
   (try-to-push-io-out)
