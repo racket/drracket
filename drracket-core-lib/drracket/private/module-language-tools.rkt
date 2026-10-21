@@ -231,11 +231,15 @@
                    (define pos (paragraph-start-position line))
                    (define del-amt (caar substs))
                    (define insert-str (cadar substs))
+                   (define move-insertion-point?
+                     (and (= start end)
+                          (for/and ([i (in-range pos start)])
+                            (equal? (get-character i) #\space))))
                    (unless (zero? del-amt)
                      (delete pos (+ pos del-amt)))
                    (unless (equal? insert-str "")
                      (insert insert-str pos))
-                   (when (= start end)
+                   (when move-insertion-point?
                      (define para-end (paragraph-end-position start-line))
                      (let loop ([pos pos])
                        (cond
