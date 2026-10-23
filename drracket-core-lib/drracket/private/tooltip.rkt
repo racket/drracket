@@ -129,13 +129,35 @@
                   #t)))
     
     ;; ls may contain strings that have newlines; break up the strings here
+    ;; also, ls may be absurdly long or have absurdly long lines; discard data if so
     (: set-tooltip (-> (Listof String) Void))
     (define/public (set-tooltip ls)
+      (define max-number-of-lines 100)
+      (define max-width-of-line 100)
+      (define ellipsis "...")
       (define broken-up-lines
         (apply
          append
          (for/list #;#;: (Listof (Listof (List String String))) ([str #;#;: String (in-list ls)])
-           (strings->strings+spacers (regexp-split #rx"\n" str)))))
+           (define lines (regexp-split #rx"\n" str))
+           (define not-too-many-lines
+             (cond
+               [(<= (length lines) max-number-of-lines)
+                lines]
+               [else
+                (append (take lines max-number-of-lines)
+                        (list ellipsis))]))
+           (define not-too-long-lines
+             (for/list ([line (in-list not-too-many-lines)])
+               (cond
+                 [(<= (string-length line) max-width-of-line)
+                  line]
+                 [else
+                  (string-append (substring line 0
+                                            (- max-width-of-line (+ 1 (string-length ellipsis))))
+                                 " "
+                                 ellipsis)])))
+           (strings->strings+spacers not-too-long-lines))))
       (send yellow-message set-lab broken-up-lines))
     
     (define/override (show on?)
