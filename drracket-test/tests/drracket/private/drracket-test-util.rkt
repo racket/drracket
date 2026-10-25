@@ -477,25 +477,25 @@
          (cond
            [(<= end pos) #f]
            [else
-            (let ([snip (send interactions-text find-snip pos 'after-or-none)])
-              (cond
-                [(not snip) #f]
-                [else
-                 (let ([color (send (send snip get-style) get-foreground)])
-                   (if (and (= 255 (send color red)) (= 0 (send color blue) (send color green)))
-       
-                       ;; return the text of the entire line containing the red text
-                       (let ([para (send interactions-text position-paragraph pos)])
-                         (unless (exact-nonnegative-integer? para)
-                           (error 'has-error?
-                                  "got back a bad result from position-paragraph: ~s ~s\n"
-                                  para
-                                  (list pos (send interactions-text last-position))))
-                         (send interactions-text get-text
-                               (send interactions-text paragraph-start-position para)
-                               (send interactions-text paragraph-end-position para)))
-       
-                       (loop (+ pos (send snip get-count)))))]))])))))
+            (define snip (send interactions-text find-snip pos 'after-or-none))
+            (cond
+              [(not snip) #f]
+              [else
+               (let ([color (send (send snip get-style) get-foreground)])
+                 (if (and (= 255 (send color red)) (= 0 (send color blue) (send color green)))
+            
+                     ;; return the text of the entire line containing the red text
+                     (let ([para (send interactions-text position-paragraph pos)])
+                       (unless (exact-nonnegative-integer? para)
+                         (error 'has-error?
+                                "got back a bad result from position-paragraph: ~s ~s\n"
+                                para
+                                (list pos (send interactions-text last-position))))
+                       (send interactions-text get-text
+                             (send interactions-text paragraph-start-position para)
+                             (send interactions-text paragraph-end-position para)))
+            
+                     (loop (+ pos (send snip get-count)))))])])))))
 
   (define fetch-output
     (case-lambda
