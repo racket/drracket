@@ -45,7 +45,8 @@ the same ones that drracket is using.
   (λ ()
     (let loop ([i 10])
       (when (zero? i)
-        (error 'errortrace-startup.rkt "never saw the drracket frame"))
+        (eprintf "errortrace-startup.rkt: never saw the drracket frame\n")
+        (exit 1))
       (define actives (get-top-level-windows))
       (define drracket-frame-found?
         (for/or ([active (in-list actives)])
