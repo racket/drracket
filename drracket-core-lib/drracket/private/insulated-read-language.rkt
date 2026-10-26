@@ -23,6 +23,7 @@ Will not work with the definitions text surrogate interposition that
          racket/port
          syntax-color/racket-lexer
          syntax-color/lexer-contract
+         drracket/syncheck-drracket-button ;; not used directly but needed for the irl namespace (below)
          (for-syntax racket/base))
 
 (define recognized-read-language-symbol/c
