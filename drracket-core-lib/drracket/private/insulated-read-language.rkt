@@ -369,7 +369,12 @@ Will not work with the definitions text surrogate interposition that
     ;; is in the invocation of the local-member-name in the callback
     ;; that passes the drracket frame there that requires this to be
     ;; in the irl namespace.
-    (namespace-attach-module trusted-namespace 'drracket/syncheck-drracket-button))
+    (namespace-attach-module trusted-namespace 'drracket/syncheck-drracket-button)
+    ;; Instantiate in-irl-namespace.rkt now, while only this thread can see
+    ;; `ns`. Otherwise the first `call-irl-proc` instantiates it, and a REPL
+    ;; thread (via `call-read-language`) can race the eventspace thread
+    ;; there; one then sees a partly instantiated module.
+    (dynamic-require in-irl-namespace.rkt #f))
   ns)
 
 (module skip-past-comments racket/base
