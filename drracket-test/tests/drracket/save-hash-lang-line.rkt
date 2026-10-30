@@ -4,6 +4,20 @@
          framework/test
          racket/gui/base)
 
+;; When a #lang's reader fails, DrRacket shows the error only in its
+;; language-error panel, formatting it with the error display handler in
+;; effect when DrRacket starts. Copy any error formatted for somewhere other
+;; than stderr to stderr, so that a failure here shows the reader's error
+;; and not only the later errors it leads to.
+(define original-error-display-handler (error-display-handler))
+(define original-error-port (current-error-port))
+(error-display-handler
+ (λ (msg exn)
+   (original-error-display-handler msg exn)
+   (unless (eq? (current-error-port) original-error-port)
+     (parameterize ([current-error-port original-error-port])
+       (original-error-display-handler msg exn)))))
+
 (fire-up-drracket-and-run-tests
  #:prefs '([plt:framework-pref:framework:autosaving-on? #f])
  (λ ()
