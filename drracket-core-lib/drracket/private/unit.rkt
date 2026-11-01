@@ -742,13 +742,27 @@
                          get-reader-module))
               (set-modified #t))
             (set! next-settings _next-settings)
+
+            (define lang (drracket:language-configuration:language-settings-language next-settings))
+
+            (let ((metadata (send lang get-metadata "should-not-matter" next-settings)))
+              ;; language wants to be a regular #lang
+              (when (and metadata
+                         (regexp-match #rx"#lang " metadata))
+                (define-values (module-language module-language-settings)
+                  (get-module-language/settings))
+                (set! next-settings (drracket:language-configuration:language-settings module-language
+                                                                                       (send module-language default-settings)))
+                ;; this determines the #lang line inserted into the buffer
+                (preferences:set 'drracket:most-recent-lang-line metadata)))
+
             (let ([f (get-top-level-window)])
               (when (and f
                          (is-a? f drracket:unit:frame<%>))
                 (send f language-changed)))
             
             (highlight-first-line
-             (is-a? (drracket:language-configuration:language-settings-language _next-settings)
+             (is-a? (drracket:language-configuration:language-settings-language next-settings)
                     drracket:module-language:module-language<%>))
             
             (let ([lang (drracket:language-configuration:language-settings-language next-settings)]

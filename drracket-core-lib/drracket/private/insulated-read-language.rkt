@@ -55,7 +55,8 @@ Will not work with the definitions text surrogate interposition that
   #:∀ S
   [pick-new-language
    (-> (is-a?/c text%)
-       (listof (object/c [metadata->settings (->m string? S)]))
+       (listof (object/c [metadata->settings (->m string? S)]
+                         [get-metadata (->m string? S string?)]))
        (or/c #f object?)
        S
        (values (or/c #f object?)
@@ -395,12 +396,23 @@ Will not work with the definitions text surrogate interposition that
         (when (regexp-match #rx"#reader" sp)
           (define spec-in-file (read sp))
           (when (equal? lang-spec spec-in-file)
-            (set! found-language? lang)
-            (set! settings (send lang metadata->settings str))
             (send text while-unlocked
                   (λ () 
                     (send text delete 0
-                          (send text paragraph-start-position lines))))))))
+                          (send text paragraph-start-position lines))))
+            ;; this language wants to be converted to a #lang
+            (write (list 'pick-a-new-language lang str (send lang metadata->settings str))
+                   (current-error-port))
+            (newline (current-error-port))
+            (define metadata (send lang get-metadata "should-not-matter" (send lang metadata->settings str)))
+            (if (regexp-match #rx"#lang " metadata)
+                (begin
+                  (set! found-language? module-language)
+                  (set! settings module-language-settings)
+                  (send text insert metadata))
+                (begin
+                  (set! found-language? lang)
+                  (set! settings (send lang metadata->settings str))))))))
       
     ;; check to see if it looks like the module language.
     (unless found-language?
