@@ -1097,7 +1097,8 @@ This produces an ACK message
                                                   (- (send defs-text get-start-position) 1)
                                                   (- (send defs-text get-start-position) 1))))]
                      [(pair? item) (apply test:menu-select item)]))
-                 program)])
+                 program)]
+      [else (void)])
   
     (do-execute drr-frame #f)
   
