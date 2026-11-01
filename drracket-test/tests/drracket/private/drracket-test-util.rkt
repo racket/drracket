@@ -532,16 +532,16 @@
                  (loop (send snip previous)
                        (cons (send snip get-text 0 (send snip get-count)) strings))]
                 [(is-a? snip editor-snip%)
-                 (let ([editor (send snip get-editor)])
-                   (cond
-                     [(is-a? editor pasteboard%)
-                      (loop (send snip previous) (cons "<pasteboard>" strings))]
-                     [(is-a? editor text%)
-                      (loop (send snip previous)
-                            (list* "{embedded \""
-                                   (fetch-text-content editor 0 (send editor last-position))
-                                   "\"}"
-                                   strings))]))]
+                 (define editor (send snip get-editor))
+                 (cond
+                   [(is-a? editor pasteboard%)
+                    (loop (send snip previous) (cons "<pasteboard>" strings))]
+                   [(is-a? editor text%)
+                    (loop (send snip previous)
+                          (list* "{embedded \""
+                                 (fetch-text-content editor 0 (send editor last-position))
+                                 "\"}"
+                                 strings))])]
                 [(is-a? snip image-snip%)
                  (loop (send snip previous)
                        (cons (with-handlers ([exn:fail? (lambda (x) "{image}")])
