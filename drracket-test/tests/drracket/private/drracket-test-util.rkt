@@ -354,40 +354,41 @@
       (queue-callback/res (λ () (send language-choice focus)))
       (let loop ([list-item language-choice]
                  [language-spec in-language-spec])
-        (let* ([name (car language-spec)]
-               [which (queue-callback/res
-                       (λ ()
-                         (filter (lambda (child)
-                                   (let* ([text (send (send child get-editor) get-text)]
-                                          [matches (or (and (regexp? name) (regexp-match name text))
-                                                       (and (string? name) (string=? name text)))])
-                                     (and matches child)))
-                                 (send list-item get-items))))])
-          (unless (null? which)
-            (unless (= 1 (length which))
-              (error 'set-language-level!
-                     "couldn't find language: ~e, double match ~e"
-                     in-language-spec
-                     name))
-            (let ([next-item (car which)])
-              (cond
-                [(null? (cdr language-spec))
-                 (when (is-a? next-item hierarchical-list-compound-item<%>)
-                   (error 'set-language-level!
-                          "expected no more languages after ~e, but still are, input ~e"
-                          name
-                          in-language-spec))
-                 (set! found-language? #t)
-                 (click-on-snip (send next-item get-clickable-snip))]
-                [else
-                 (unless (is-a? next-item hierarchical-list-compound-item<%>)
-                   (error 'set-language-level!
-                          "expected more languages after ~e, but got to end, input ~e"
-                          name
-                          in-language-spec))
-                 (unless (queue-callback/res (λ () (send next-item is-open?)))
-                   (click-on-snip (send next-item get-arrow-snip)))
-                 (loop next-item (cdr language-spec))]))))))
+        (define name (car language-spec))
+        (define which
+          (queue-callback/res
+           (λ ()
+             (filter (lambda (child)
+                       (let* ([text (send (send child get-editor) get-text)]
+                              [matches (or (and (regexp? name) (regexp-match name text))
+                                           (and (string? name) (string=? name text)))])
+                         (and matches child)))
+                     (send list-item get-items)))))
+        (unless (null? which)
+          (unless (= 1 (length which))
+            (error 'set-language-level!
+                   "couldn't find language: ~e, double match ~e"
+                   in-language-spec
+                   name))
+          (let ([next-item (car which)])
+            (cond
+              [(null? (cdr language-spec))
+               (when (is-a? next-item hierarchical-list-compound-item<%>)
+                 (error 'set-language-level!
+                        "expected no more languages after ~e, but still are, input ~e"
+                        name
+                        in-language-spec))
+               (set! found-language? #t)
+               (click-on-snip (send next-item get-clickable-snip))]
+              [else
+               (unless (is-a? next-item hierarchical-list-compound-item<%>)
+                 (error 'set-language-level!
+                        "expected more languages after ~e, but got to end, input ~e"
+                        name
+                        in-language-spec))
+               (unless (queue-callback/res (λ () (send next-item is-open?)))
+                 (click-on-snip (send next-item get-arrow-snip)))
+               (loop next-item (cdr language-spec))])))))
     
     (unless found-language?
       (error 'set-language-level! "couldn't find language: ~e" in-language-spec))
