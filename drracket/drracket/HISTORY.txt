@@ -21,6 +21,11 @@
    #689, #481, 2870b7f2, and 8ffa8041). The menu-based teaching language
    tests still remain part of tests/drracket/language-test.rkt.
 
+ . improvements to the modes where the OS and DrRacket's dark mode 
+   settings are not the same
+
+ . refactorings and bug fixes
+
 ------------------------------
        Version 9.3
 ------------------------------
