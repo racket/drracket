@@ -420,11 +420,16 @@
       ;; included; when done with the list, send eof.
       (define (expr-getter . exprs/thunks)
         (define (loop)
-          (if (null? exprs/thunks)
-            eof
-            (let ([x (car exprs/thunks)])
-              (set! exprs/thunks (cdr exprs/thunks))
-              (if (procedure? x) (begin (x) (loop)) x))))
+          (cond
+            [(null? exprs/thunks) eof]
+            [else
+             (define x (car exprs/thunks))
+             (set! exprs/thunks (cdr exprs/thunks))
+             (if (procedure? x)
+                 (begin
+                   (x)
+                   (loop))
+                 x)]))
         loop)
       
       (inherit get-reader)
@@ -572,7 +577,9 @@
     ;; Throw an error as usual if we don't have the drracket rep, then we just
     ;; raise the exception as normal.  (It can happen in some rare cases like
     ;; having a single empty scheme box in the definitions.)
-    (unless rep (if exn (raise exn) (error "\nInteractions disabled")))
+    (unless rep (when exn
+                  (raise exn))
+                (error "\nInteractions disabled"))
     (when exn ((error-display-handler) (exn-message exn) exn))
     ;; these are needed, otherwise the warning can appear before the output
     (flush-output (current-output-port))
