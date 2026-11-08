@@ -29,24 +29,32 @@
       [_ (void)]))
   
   ;; fill in the coloring-plans table for boundary contracts
-  (for ([(start-k start-val) (in-hash boundary-start-map)])
-    (for ([start-stx (in-list start-val)])
-      (do-contract-traversal start-stx #t
-                             coloring-plans already-jumped-ids
-                             low-binders binding-inits
-                             domain-map range-map
-                             #t
-                             binder+mods-binder)))
+  (for* ([(start-k start-val) (in-hash boundary-start-map)]
+         [start-stx (in-list start-val)])
+    (do-contract-traversal start-stx
+                           #t
+                           coloring-plans
+                           already-jumped-ids
+                           low-binders
+                           binding-inits
+                           domain-map
+                           range-map
+                           #t
+                           binder+mods-binder))
   
   ;; fill in the coloring-plans table for internal contracts
-  (for ([(start-k start-val) (in-hash internal-start-map)])
-    (for ([start-stx (in-list start-val)])
-      (do-contract-traversal start-stx #f
-                             coloring-plans already-jumped-ids
-                             low-binders binding-inits
-                             domain-map range-map
-                             #f
-                             binder+mods-binder)))
+  (for* ([(start-k start-val) (in-hash internal-start-map)]
+         [start-stx (in-list start-val)])
+    (do-contract-traversal start-stx
+                           #f
+                           coloring-plans
+                           already-jumped-ids
+                           low-binders
+                           binding-inits
+                           domain-map
+                           range-map
+                           #f
+                           binder+mods-binder))
   
   ;; enact the coloring plans
   (for ([(stx colors) (in-hash coloring-plans)])
