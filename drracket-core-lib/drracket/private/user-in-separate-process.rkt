@@ -277,7 +277,9 @@ for bugs in this code to hopefully have some useful debugging information.
 
 (define (raise-hopeless-exception exn [suffix #f])
   (define escape (hopeless-escape))
-  (unless escape (if exn (raise exn) (error "\nInteractions disabled")))
+  (unless escape (when exn
+                   (raise exn))
+                 (error "\nInteractions disabled"))
   (when exn ((error-display-handler) (exn-message exn) exn))
   (flush-output (current-output-port))
   (flush-output (current-error-port))
