@@ -93,7 +93,13 @@ for bugs in this code to hopefully have some useful debugging information.
                '()))
          (define details (exn->error-display-handler-exn-details exn))
          (try-to-push-io-out)
-         (send-msg `("error-display-handler" ,(if (exn? exn) (exn-message exn) (format "uncaught exception: ~s" exn)) ,srclocs1 ,srclocs2 ,details))]
+         (send-msg (list "error-display-handler"
+                         (if (exn? exn)
+                             (exn-message exn)
+                             (format "uncaught exception: ~s" exn))
+                         srclocs1
+                         srclocs2
+                         details))]
         [else (original-error-display-hander str exn)]))))
 
 ;; Each port sends every write to DrRacket immediately, so output reaches the
@@ -103,7 +109,7 @@ for bugs in this code to hopefully have some useful debugging information.
   (define (send-special spec)
     (cond
       [(well-known-special? spec)
-       (send-msg `(,name ,(well-known-special-data spec)))]
+       (send-msg (list name (well-known-special-data spec)))]
       [(markup? spec)
        (send-msg `(,name ("markup" ,spec)))]
       [else
@@ -113,7 +119,7 @@ for bugs in this code to hopefully have some useful debugging information.
    always-evt
    (λ (bs start end non-block? enable-breaks?)
      (unless (= start end)
-       (send-msg `(,name ,(subbytes bs start end))))
+       (send-msg (list name (subbytes bs start end))))
      (- end start))
    void
    (λ (spec non-block? enable-breaks?)
@@ -381,7 +387,7 @@ for bugs in this code to hopefully have some useful debugging information.
 
 (define (send-finished-evaluation-message hopeless-exn-raised? suffix)
   (try-to-push-io-out)
-  (send-msg `("finished-evaluation" ,hopeless-exn-raised? ,suffix)))
+  (send-msg (list "finished-evaluation" hopeless-exn-raised? suffix)))
 
 (let loop ()
   (define datum-in (read (current-input-port)))
