@@ -139,62 +139,58 @@
      (λ (menu text event)
        (old menu text event)
        (when (and (is-a? text text%)
-                  (or (is-a? text (get-definitions-text%))
-                      (is-a? text drracket:rep:text%))
+                  (or (is-a? text (get-definitions-text%)) (is-a? text drracket:rep:text%))
                   (is-a? event mouse-event%))
-         
-         (let ([add-sep
-                (let ([added? #f])
-                  (λ ()
-                    (unless added?
-                      (set! added? #t)
-                      (new separator-menu-item% [parent menu]))))])
-           (add-search-help-desk-menu-item text menu
-                                           (let-values ([(x y)
-                                                         (send text dc-location-to-editor-location
-                                                               (send event get-x)
-                                                               (send event get-y))])
-                                             (send text find-position x y))
-                                           add-sep)
-           
-           (when (is-a? text editor:basic<%>)
-             (let-values ([(pos text) (send text get-pos/text event)])
-               (when (and pos (is-a? text text%))
-                 (send text split-snip pos)
-                 (send text split-snip (+ pos 1))
-                 (let ([snip (send text find-snip pos 'after-or-none)])
-                   (when (or (is-a? snip image-snip%)
-                             (is-a? snip image-core:image%)
-                             (is-a? snip cache-image-snip%)
-                             (is-a? snip pict-snip:pict-snip%))
-                     (add-sep)
-                     (define (save-image-callback _1 _2)
-                       (define fn
-                         (put-file #f 
-                                   (send text get-top-level-window)
-                                   #f "untitled.png" "png"))
-                       (when fn
-                         (define kind (filename->kind fn))
-                         (cond
-                           [kind
-                            (cond
-                              [(or (is-a? snip image-snip%)
-                                   (is-a? snip cache-image-snip%)
-                                   (is-a? snip pict-snip:pict-snip%))
-                               (send (send snip get-bitmap) save-file fn kind)]
-                              [else
-                               (image-core:save-image-as-bitmap snip fn kind)])]
-                           [else
-                            (message-box 
-                             (string-constant drscheme)
-                             "Must choose a filename that ends with either .png, .jpg, .xbm, or .xpm"
-                             #:dialog-mixin frame:focus-table-mixin)])))
-                     (new menu-item%
-                          [parent menu]
-                          [label (string-constant save-image)]
-                          [callback save-image-callback]))))))
-           
-           (void))))))
+       
+         (define add-sep
+           (let ([added? #f])
+             (λ ()
+               (unless added?
+                 (set! added? #t)
+                 (new separator-menu-item% [parent menu])))))
+         (add-search-help-desk-menu-item text
+                                         menu
+                                         (let-values ([(x y) (send text dc-location-to-editor-location
+                                                                   (send event get-x)
+                                                                   (send event get-y))])
+                                           (send text find-position x y))
+                                         add-sep)
+       
+         (when (is-a? text editor:basic<%>)
+           (let-values ([(pos text) (send text get-pos/text event)])
+             (when (and pos (is-a? text text%))
+               (send text split-snip pos)
+               (send text split-snip (+ pos 1))
+               (let ([snip (send text find-snip pos 'after-or-none)])
+                 (when (or (is-a? snip image-snip%)
+                           (is-a? snip image-core:image%)
+                           (is-a? snip cache-image-snip%)
+                           (is-a? snip pict-snip:pict-snip%))
+                   (add-sep)
+                   (define (save-image-callback _1 _2)
+                     (define fn
+                       (put-file #f (send text get-top-level-window) #f "untitled.png" "png"))
+                     (when fn
+                       (define kind (filename->kind fn))
+                       (cond
+                         [kind
+                          (cond
+                            [(or (is-a? snip image-snip%)
+                                 (is-a? snip cache-image-snip%)
+                                 (is-a? snip pict-snip:pict-snip%))
+                             (send (send snip get-bitmap) save-file fn kind)]
+                            [else (image-core:save-image-as-bitmap snip fn kind)])]
+                         [else
+                          (message-box
+                           (string-constant drscheme)
+                           "Must choose a filename that ends with either .png, .jpg, .xbm, or .xpm"
+                           #:dialog-mixin frame:focus-table-mixin)])))
+                   (new menu-item%
+                        [parent menu]
+                        [label (string-constant save-image)]
+                        [callback save-image-callback]))))))
+       
+         (void)))))
   
   (define (add-search-help-desk-menu-item text menu position [add-sep void])
     (define irl (cond
@@ -203,49 +199,45 @@
                   [(is-a? text (get-definitions-text%))
                    (send text get-irl)]
                   [else (drracket:frame:try-to-find-an-irl)]))
-    (let* ([end (send text get-end-position)]
-           [start (send text get-start-position)])
-      (unless (= 0 (send text last-position))
-        (let* ([str (if (= end start)
-                        (find-symbol text position)
-                        (send text get-text start end))]
-               ;; almost the same code as "search-help-desk" in "rep.rkt"
-               [l (send text get-canvas)]
-               [l (and l (send l get-top-level-window))]
-               [l (and l (is-a? l drracket:unit:frame<%>) (send l get-definitions-text))]
-               [l (and l (send l get-next-settings))]
-               [l (and l (drracket:language-configuration:language-settings-language l))]
-               [ctxt (and l
-                          (drracket:module-language-tools:call-capability-value
-                           l
-                           (if (is-a? text drracket:rep:text%)
-                               (send text get-definitions-text)
-                               text)
-                           'drscheme:help-context-term))]
-               [name (and l (send l get-language-name))])
-          (unless (string=? str "")
-            (add-sep)
-            (let ([short-str (shorten-str str 50)])
-              (make-object menu-item%
-                (gui-utils:format-literal-label
-                 (string-constant search-help-desk-for) 
-                 (if (equal? short-str str)
-                     str
-                     (string-append short-str "...")))
-                menu
-                (λ x
-                  (define fam
-                    (drracket:frame:try-to-find-a-language-family irl))
-                  (help-desk:help-desk str (list ctxt name)
-                                          #:language-family fam)))
-              (void)))))))
+    (define end (send text get-end-position))
+    (define start (send text get-start-position))
+    (unless (= 0 (send text last-position))
+      (let* ([str (if (= end start)
+                      (find-symbol text position)
+                      (send text get-text start end))]
+             ;; almost the same code as "search-help-desk" in "rep.rkt"
+             [l (send text get-canvas)]
+             [l (and l (send l get-top-level-window))]
+             [l (and l (is-a? l drracket:unit:frame<%>) (send l get-definitions-text))]
+             [l (and l (send l get-next-settings))]
+             [l (and l (drracket:language-configuration:language-settings-language l))]
+             [ctxt (and l
+                        (drracket:module-language-tools:call-capability-value
+                         l
+                         (if (is-a? text drracket:rep:text%)
+                             (send text get-definitions-text)
+                             text)
+                         'drscheme:help-context-term))]
+             [name (and l (send l get-language-name))])
+        (unless (string=? str "")
+          (add-sep)
+          (let ([short-str (shorten-str str 50)])
+            (make-object menu-item%
+                         (gui-utils:format-literal-label (string-constant search-help-desk-for)
+                                                         (if (equal? short-str str)
+                                                             str
+                                                             (string-append short-str "...")))
+                         menu
+                         (λ x
+                           (define fam (drracket:frame:try-to-find-a-language-family irl))
+                           (help-desk:help-desk str (list ctxt name) #:language-family fam)))
+            (void))))))
   
   (define (filename->kind fn)
-    (let ([ext (filename-extension fn)])
-      (and ext
-           (let ([sym (string->symbol (bytes->string/utf-8 ext))])
-             (ormap (λ (pr) (and (equal? sym (car pr)) (cadr pr)))
-                    allowed-extensions)))))
+    (define ext (filename-extension fn))
+    (and ext
+         (let ([sym (string->symbol (bytes->string/utf-8 ext))])
+           (ormap (λ (pr) (and (equal? sym (car pr)) (cadr pr))) allowed-extensions))))
   
   (define allowed-extensions '((png png)
                                (jpg jpeg)
