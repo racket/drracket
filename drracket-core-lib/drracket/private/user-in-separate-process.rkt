@@ -43,10 +43,9 @@ for bugs in this code to hopefully have some useful debugging information.
 
 (file-stream-buffer-mode original-error-port 'none) ;; stderr isn't supposed to be used; it'll show error messages from bugs, tho
 
-(define oprintf
-  (λ args
-    (apply fprintf original-error-port args)
-    (flush-output original-error-port)))
+(define (oprintf . args)
+  (apply fprintf original-error-port args)
+  (flush-output original-error-port))
 
 (let ([o-e-h (exit-handler)])
   (exit-handler
