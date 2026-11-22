@@ -229,10 +229,8 @@
                           [current-error-port out])
              (expand transformed-stx)))
          (ep-log-info "expanding-place.rkt: 10 finished expansion")
-         (define no-io-happened?
-           (begin
-             (close-output-port out)
-             (channel-get the-io)))
+         (close-output-port out)
+         (define no-io-happened? (channel-get the-io))
          (channel-put old-registry-chan 
                       (namespace-module-registry (current-namespace)))
          (place-channel-put pc-status-expanding-place 'finished-expansion)

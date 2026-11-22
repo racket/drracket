@@ -43,10 +43,9 @@ for bugs in this code to hopefully have some useful debugging information.
 
 (file-stream-buffer-mode original-error-port 'none) ;; stderr isn't supposed to be used; it'll show error messages from bugs, tho
 
-(define oprintf
-  (λ args
-    (apply fprintf original-error-port args)
-    (flush-output original-error-port)))
+(define (oprintf . args)
+  (apply fprintf original-error-port args)
+  (flush-output original-error-port))
 
 (let ([o-e-h (exit-handler)])
   (exit-handler
@@ -94,7 +93,13 @@ for bugs in this code to hopefully have some useful debugging information.
                '()))
          (define details (exn->error-display-handler-exn-details exn))
          (try-to-push-io-out)
-         (send-msg `("error-display-handler" ,(if (exn? exn) (exn-message exn) (format "uncaught exception: ~s" exn)) ,srclocs1 ,srclocs2 ,details))]
+         (send-msg (list "error-display-handler"
+                         (if (exn? exn)
+                             (exn-message exn)
+                             (format "uncaught exception: ~s" exn))
+                         srclocs1
+                         srclocs2
+                         details))]
         [else (original-error-display-hander str exn)]))))
 
 ;; Each port sends every write to DrRacket immediately, so output reaches the
@@ -104,7 +109,7 @@ for bugs in this code to hopefully have some useful debugging information.
   (define (send-special spec)
     (cond
       [(well-known-special? spec)
-       (send-msg `(,name ,(well-known-special-data spec)))]
+       (send-msg (list name (well-known-special-data spec)))]
       [(markup? spec)
        (send-msg `(,name ("markup" ,spec)))]
       [else
@@ -114,7 +119,7 @@ for bugs in this code to hopefully have some useful debugging information.
    always-evt
    (λ (bs start end non-block? enable-breaks?)
      (unless (= start end)
-       (send-msg `(,name ,(subbytes bs start end))))
+       (send-msg (list name (subbytes bs start end))))
      (- end start))
    void
    (λ (spec non-block? enable-breaks?)
@@ -272,7 +277,9 @@ for bugs in this code to hopefully have some useful debugging information.
 
 (define (raise-hopeless-exception exn [suffix #f])
   (define escape (hopeless-escape))
-  (unless escape (if exn (raise exn) (error "\nInteractions disabled")))
+  (unless escape (when exn
+                   (raise exn))
+                 (error "\nInteractions disabled"))
   (when exn ((error-display-handler) (exn-message exn) exn))
   (flush-output (current-output-port))
   (flush-output (current-error-port))
@@ -382,7 +389,7 @@ for bugs in this code to hopefully have some useful debugging information.
 
 (define (send-finished-evaluation-message hopeless-exn-raised? suffix)
   (try-to-push-io-out)
-  (send-msg `("finished-evaluation" ,hopeless-exn-raised? ,suffix)))
+  (send-msg (list "finished-evaluation" hopeless-exn-raised? suffix)))
 
 (let loop ()
   (define datum-in (read (current-input-port)))
@@ -478,14 +485,13 @@ for bugs in this code to hopefully have some useful debugging information.
               #f ;; module-language-parallel-lock-client -- we don't support this
               currently-open-files)
 
-             (define (get-reader)
-               (λ (src port)
-                 (define v
-                   (parameterize ([read-accept-reader #t])
-                     (read-syntax src port)))
-                 (if (eof-object? v)
-                     v
-                     (namespace-syntax-introduce v))))
+             (define ((get-reader) src port)
+               (define v
+                 (parameterize ([read-accept-reader #t])
+                   (read-syntax src port)))
+               (if (eof-object? v)
+                   v
+                   (namespace-syntax-introduce v)))
              (define repl-init-thunk (make-thread-cell #f))
              (define-values (hopeless-exn-raised? suffix)
                (let/ec escape

@@ -68,8 +68,7 @@
          (for ([name (in-list (syntax->list (syntax (name ...))))]
                #:unless (identifier? name))
            (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name))
-         (for ([str (in-list (apply append
-                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))]
+         (for ([str (in-list (syntax->list #'(strs ... ...)))]
                #:unless (string? (syntax->datum str)))
            (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))]))
   
@@ -80,7 +79,7 @@
             (andmap (λ (x) (not (string? (syntax->datum x))))
                     (syntax->list (syntax (type-names ...))))
             (andmap (λ (x) (string? (syntax->datum x)))
-                    (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))
+                    (syntax->list #'(strs ... ...))))
        (with-syntax ([wrap-tool-inputs (datum->syntax stx 'wrap-tool-inputs #'here)])
          (syntax/loc stx
            (#%module-begin
@@ -121,7 +120,6 @@
          (for ([name (in-list (syntax->list (syntax (name ...))))]
                #:unless (identifier? name))
            (raise-syntax-error 'tool-contract-language.rkt "expected identifier" stx name))
-         (for ([str (in-list (apply append
-                                    (map syntax->list (syntax->list (syntax ((strs ...) ...))))))]
+         (for ([str (in-list (syntax->list #'(strs ... ...)))]
                #:unless (string? (syntax->datum str)))
            (raise-syntax-error 'tool-contract-language.rkt "expected docs string" stx str)))]))
