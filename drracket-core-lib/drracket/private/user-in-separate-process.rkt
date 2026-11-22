@@ -485,14 +485,13 @@ for bugs in this code to hopefully have some useful debugging information.
               #f ;; module-language-parallel-lock-client -- we don't support this
               currently-open-files)
 
-             (define (get-reader)
-               (λ (src port)
-                 (define v
-                   (parameterize ([read-accept-reader #t])
-                     (read-syntax src port)))
-                 (if (eof-object? v)
-                     v
-                     (namespace-syntax-introduce v))))
+             (define ((get-reader) src port)
+               (define v
+                 (parameterize ([read-accept-reader #t])
+                   (read-syntax src port)))
+               (if (eof-object? v)
+                   v
+                   (namespace-syntax-introduce v)))
              (define repl-init-thunk (make-thread-cell #f))
              (define-values (hopeless-exn-raised? suffix)
                (let/ec escape
