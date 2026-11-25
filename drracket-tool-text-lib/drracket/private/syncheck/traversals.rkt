@@ -798,35 +798,34 @@
     (for ([k (in-hash-keys requires)])
       (hash-set! new-hash k #t)))
 
-  (for ([(level binders) (in-hash phase-to-binders)])
-    (for ([(_ binder+modss) (in-dict binders)])
-      (for ([binder+mods (in-list binder+modss)])
-        (define var (binder+mods-binder binder+mods))
-        (define varset (lookup-phase-to-mapping phase-to-varsets level))
-        (color-variable var level varset)
-        (document-variable var level))))
+  (for* ([(level binders) (in-hash phase-to-binders)]
+         [(_ binder+modss) (in-dict binders)]
+         [binder+mods (in-list binder+modss)])
+    (define var (binder+mods-binder binder+mods))
+    (define varset (lookup-phase-to-mapping phase-to-varsets level))
+    (color-variable var level varset)
+    (document-variable var level))
 
   (for ([(level+mods varrefs) (in-hash phase-to-varrefs)])
-    (define level (list-ref level+mods 0))
-    (define mods (list-ref level+mods 1))
+    (match-define (list level mods) level+mods)
     (define binders (lookup-phase-to-mapping phase-to-binders level))
     (define varsets (lookup-phase-to-mapping phase-to-varsets level))
     (initialize-binder-connections binders connections)
-    (for ([vars (in-list (get-idss varrefs))])
-      (for ([var (in-list vars)])
-        (color-variable var level varsets)
-        (document-variable var level)
-        (connect-identifier var
-                            mods
-                            binders
-                            unused/phases
-                            phase-to-requires
-                            level
-                            user-namespace
-                            user-directory
-                            #t
-                            connections
-                            module-lang-requires))))
+    (for* ([vars (in-list (get-idss varrefs))]
+           [var (in-list vars)])
+      (color-variable var level varsets)
+      (document-variable var level)
+      (connect-identifier var
+                          mods
+                          binders
+                          unused/phases
+                          phase-to-requires
+                          level
+                          user-namespace
+                          user-directory
+                          #t
+                          connections
+                          module-lang-requires)))
 
 
   ;; build a set of all of the known phases
@@ -835,8 +834,7 @@
   (for ([phase (in-hash-keys phase-to-binders)])
     (set! phases (set-add phases phase)))
   (for ([(phase+mod _) (in-hash phase-to-requires)])
-    (define phase (list-ref phase+mod 0))
-    (define mod (list-ref phase+mod 1))
+    (match-define (list phase mod) phase+mod)
     (set! phases (set-add phases phase))
     (set! all-mods (set-add all-mods mod)))
 
@@ -862,10 +860,9 @@
 
   (for ([(level tops) (in-hash phase-to-tops)])
     (define binders (lookup-phase-to-mapping phase-to-binders level))
-    (for ([vars (in-list (get-idss tops))])
-      (for ([var (in-list vars)])
-        (color/connect-top user-namespace user-directory binders var connections
-                           module-lang-requires))))
+    (for* ([vars (in-list (get-idss tops))]
+           [var (in-list vars)])
+      (color/connect-top user-namespace user-directory binders var connections module-lang-requires)))
 
   (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
     ;; don't mark for-label requires as unused until we can properly handle them
@@ -874,8 +871,7 @@
       (color-unused require-hash unused-hash module-lang-requires)))
 
   (for ([(level+mods directives) (in-hash sub-identifier-binding-directives)])
-    (define phase-level (list-ref level+mods 0))
-    (define mods (list-ref level+mods 1))
+    (match-define (list phase-level mods) level+mods)
     (for ([directive (in-list directives)])
       (match-define (vector binding-id to-start to-span to-dx to-dy
                             new-binding-id from-start from-span from-dx from-dy)
@@ -948,8 +944,8 @@
   (color-range source start end unused-require-style-name))
 
 (define (self-module? mpi)
-  (let-values ([(a b) (module-path-index-split mpi)])
-    (and (not a) (not b))))
+  (define-values (a b) (module-path-index-split mpi))
+  (and (not a) (not b)))
 
 ;; connect-identifier : syntax
 ;;                      (or/c #f (listof symbol)) -- name of enclosing sub-modules
@@ -1116,7 +1112,7 @@
     (define phase-shift (if (pair? phase+space-shift) (car phase+space-shift) phase+space-shift))
     (define phase+space (list-ref binding 6))
     (define phase (if (pair? phase+space) (car phase+space) phase+space))
-    (define space (if (pair? phase+space) (cdr phase+space) #f))
+    (define space (and (pair? phase+space) (cdr phase+space)))
     (when (and (number? phase-level)
                (not (= phase-level
                        (+ phase-shift
@@ -1138,22 +1134,29 @@
       [else #f])))
 
 ;; color/connect-top : namespace directory id-set syntax connections[see defn for ctc] -> void
-(define (color/connect-top user-namespace user-directory binders var connections
-                           module-lang-requires)
-  (let ([top-bound?
-         (or (get-ids binders var)
-             (parameterize ([current-namespace user-namespace])
-               (let/ec k
-                 (namespace-variable-value (syntax-e var) #t (λ () (k #f)))
-                 #t)))])
-    (cond
-      [top-bound?
-       (color var lexically-bound-variable-style-name)]
-      [else
-       (add-mouse-over var (format "~s is a free variable" (syntax-e var)))
-       (color var free-variable-style-name)])
-    (connect-identifier var #f binders #f #f 0 user-namespace user-directory #t connections
-                        module-lang-requires)))
+(define (color/connect-top user-namespace user-directory binders var connections module-lang-requires)
+  (define top-bound?
+    (or (get-ids binders var)
+        (parameterize ([current-namespace user-namespace])
+          (let/ec k
+            (namespace-variable-value (syntax-e var) #t (λ () (k #f)))
+            #t))))
+  (cond
+    [top-bound? (color var lexically-bound-variable-style-name)]
+    [else
+     (add-mouse-over var (format "~s is a free variable" (syntax-e var)))
+     (color var free-variable-style-name)])
+  (connect-identifier var
+                      #f
+                      binders
+                      #f
+                      #f
+                      0
+                      user-namespace
+                      user-directory
+                      #t
+                      connections
+                      module-lang-requires))
 
 ;; annotate-counts : connections[see defn] -> void
 ;; this function doesn't try to show the number of uses at
@@ -1171,39 +1174,39 @@
 ;; records the src locs of each 'end' position of each arrow)
 ;; to do this, but maybe lets leave that for another day.
 (define (annotate-counts connections)
-  (for ([(key val) (in-hash connections)])
-    (when (list? val)
-      (define start (first val))
-      (define end (second val))
-      (define color? (third val))
-      (define (show-starts)
-        (when (zero? start)
-          (define defs-text (current-annotations))
-          (when defs-text
-            (send defs-text syncheck:unused-binder
-                  (list-ref key 0) (list-ref key 1) (list-ref key 2))))
-        (add-mouse-over/loc (list-ref key 0) (list-ref key 1) (list-ref key 2)
-                            (cond
-                              [(zero? start)
-                               (string-constant cs-zero-varrefs)]
-                              [(= 1 start)
-                               (string-constant cs-one-varref)]
-                              [else
-                               (format (string-constant cs-n-varrefs) start)])))
-      (define (show-ends)
-        (unless (= 1 end)
-          (add-mouse-over/loc (list-ref key 0) (list-ref key 1) (list-ref key 2)
-                              (format (string-constant cs-binder-count) end))))
-      (cond
-        [(zero? end)   ;; assume this is a binder, show uses
-         #;(when (and color? (zero? start))
-             (color-unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2)))
-         (show-starts)]
-        [(zero? start) ;; assume this is a use, show bindings (usually just one, so do nothing)
-         (show-ends)]
-        [else          ;; crazyness, show both
-         (show-starts)
-         (show-ends)]))))
+  (for ([(key val) (in-hash connections)]
+        #:when (list? val))
+    (define start (first val))
+    (define end (second val))
+    (define color? (third val))
+    (define (show-starts)
+      (when (zero? start)
+        (define defs-text (current-annotations))
+        (when defs-text
+          (send defs-text syncheck:unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2))))
+      (add-mouse-over/loc (list-ref key 0)
+                          (list-ref key 1)
+                          (list-ref key 2)
+                          (cond
+                            [(zero? start) (string-constant cs-zero-varrefs)]
+                            [(= 1 start) (string-constant cs-one-varref)]
+                            [else (format (string-constant cs-n-varrefs) start)])))
+    (define (show-ends)
+      (unless (= 1 end)
+        (add-mouse-over/loc (list-ref key 0)
+                            (list-ref key 1)
+                            (list-ref key 2)
+                            (format (string-constant cs-binder-count) end))))
+    (cond
+      ;; assume this is a binder, show uses
+      #;(when (and color? (zero? start))
+          (color-unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2)))
+      [(zero? end) (show-starts)]
+      ;; assume this is a use, show bindings (usually just one, so do nothing)
+      [(zero? start) (show-ends)]
+      [else ;; crazyness, show both
+       (show-starts)
+       (show-ends)])))
 
 ;; color-variable : syntax phase-level identifier-mapping -> void
 (define (color-variable var phase-level varsets)
@@ -1219,10 +1222,11 @@
     (define (is-lexical? b)
       (or (not b)
           (eq? b 'lexical)
-          (and (pair? b)
-               (let ([path (caddr b)])
-                 (and (module-path-index? path)
-                      (self-module? path))))))
+          (cond
+            [(pair? b)
+             (define path (caddr b))
+             (and (module-path-index? path) (self-module? path))]
+            [else #f])))
 
 ;; initialize-binder-connections : id-set connections -> void
 (define (initialize-binder-connections binders connections)
@@ -1317,22 +1321,19 @@
 ;; popup menu in this area allows the programmer to jump
 ;; to the definition of the id.
 (define (add-jump-to-definition stx id filename submods phase-level+space)
-  (let ([source (find-source-editor stx)]
-        [defs-text (current-annotations)])
-    (when (and source
-               defs-text
-               (syntax-position stx)
-               (syntax-span stx))
-      (let* ([pos-left (- (syntax-position stx) 1)]
-             [pos-right (+ pos-left (syntax-span stx))])
-        (send defs-text syncheck:add-jump-to-definition/phase-level+space
-              source
-              pos-left
-              pos-right
-              id
-              filename
-              submods
-              phase-level+space)))))
+  (define source (find-source-editor stx))
+  (define defs-text (current-annotations))
+  (when (and source defs-text (syntax-position stx) (syntax-span stx))
+    (let* ([pos-left (- (syntax-position stx) 1)]
+           [pos-right (+ pos-left (syntax-span stx))])
+      (send defs-text syncheck:add-jump-to-definition/phase-level+space
+            source
+            pos-left
+            pos-right
+            id
+            filename
+            submods
+            phase-level+space))))
 
 ;; annotate-require-open : namespace string -> (stx -> void)
 ;; relies on current-module-name-resolver, which in turn depends on
@@ -1408,10 +1409,10 @@
           (unless (and (len . >= . 4)
                        (bytes=? #".rkt" (subbytes bts (- len 4))))
             (k rkt-path/f))
-          (let ([ss-path (bytes->path (bytes-append (subbytes bts 0 (- len 4)) #".ss"))])
-            (unless (file-exists? ss-path)
-              (k rkt-path/f))
-            ss-path))))
+          (define ss-path (bytes->path (bytes-append (subbytes bts 0 (- len 4)) #".ss")))
+          (unless (file-exists? ss-path)
+            (k rkt-path/f))
+          ss-path)))
     (values cleaned-up-path rkt-submods)))
 
 ;; add-origins : syntax? id-set exact-integer? -> void
