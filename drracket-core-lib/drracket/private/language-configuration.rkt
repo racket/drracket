@@ -707,7 +707,8 @@
         (define get/set-selected-language-settings #f)
 
         ;; selected-get-keystrokes : -> (listof (list char (-> any)))
-        (define selected-get-keystrokes (λ () '()))
+        (define (selected-get-keystrokes)
+          '())
         
         (define details-computed? #f)
         

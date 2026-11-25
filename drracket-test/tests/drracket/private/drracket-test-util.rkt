@@ -301,7 +301,8 @@
   
   (define (wait-for-button button)
     (not-on-eventspace-handler-thread 'wait-for-button)
-    (define wait-for-button-pred (lambda () (queue-callback/res (λ () (send button is-enabled?)))))
+    (define (wait-for-button-pred)
+      (queue-callback/res (λ () (send button is-enabled?))))
     (poll-until wait-for-button-pred))
   
   (define (push-button-and-wait button)
@@ -326,84 +327,84 @@
              "expected a non-empty list of regexps and strings for language, got: ~e"
              in-language-spec))
     (not-on-eventspace-handler-thread 'set-language-level!)
-    (let ([drs-frame (fw:test:get-active-top-level-window)])
-      (fw:test:menu-select "Language" "Choose Language…")
-      (define language-dialog (wait-for-new-frame drs-frame))
-      (fw:test:set-radio-box-item! #rx"Other Languages")
-      (define language-choices
-        (find-labelled-windows #f hierarchical-list% (fw:test:get-active-top-level-window)))
-      (define (click-on-snip snip)
-        (define-values (x y)
-          (queue-callback/res (λ ()
-                                (define b1 (box 0))
-                                (define b2 (box 0))
-                                (define editor (send (send snip get-admin) get-editor))
-                                (define between-threshold (send editor get-between-threshold))
-                                (send editor get-snip-location snip b1 b2)
-                                (define-values (gx gy)
-                                  (send editor editor-location-to-dc-location (unbox b1) (unbox b2)))
-                                (define x (inexact->exact (floor (+ gx between-threshold 1))))
-                                (define y (inexact->exact (floor (+ gy between-threshold 1))))
-                                (values x y))))
-        (fw:test:mouse-click 'left x y))
-  
-      (define found-language? #f)
-  
-      (for ([language-choice (in-list language-choices)])
-        (queue-callback/res (λ () (send language-choice focus)))
-        (let loop ([list-item language-choice]
-                   [language-spec in-language-spec])
-          (let* ([name (car language-spec)]
-                 [which (queue-callback/res
-                         (λ ()
-                           (filter (lambda (child)
-                                     (let* ([text (send (send child get-editor) get-text)]
-                                            [matches (or (and (regexp? name) (regexp-match name text))
-                                                         (and (string? name) (string=? name text)))])
-                                       (and matches child)))
-                                   (send list-item get-items))))])
-            (unless (null? which)
-              (unless (= 1 (length which))
-                (error 'set-language-level!
-                       "couldn't find language: ~e, double match ~e"
-                       in-language-spec
-                       name))
-              (let ([next-item (car which)])
-                (cond
-                  [(null? (cdr language-spec))
-                   (when (is-a? next-item hierarchical-list-compound-item<%>)
-                     (error 'set-language-level!
-                            "expected no more languages after ~e, but still are, input ~e"
-                            name
-                            in-language-spec))
-                   (set! found-language? #t)
-                   (click-on-snip (send next-item get-clickable-snip))]
-                  [else
-                   (unless (is-a? next-item hierarchical-list-compound-item<%>)
-                     (error 'set-language-level!
-                            "expected more languages after ~e, but got to end, input ~e"
-                            name
-                            in-language-spec))
-                   (unless (queue-callback/res (λ () (send next-item is-open?)))
-                     (click-on-snip (send next-item get-arrow-snip)))
-                   (loop next-item (cdr language-spec))]))))))
-  
-      (unless found-language?
-        (error 'set-language-level! "couldn't find language: ~e" in-language-spec))
-  
-      (with-handlers ([exn:fail? (lambda (x) (void))])
-        (fw:test:button-push #rx"Show Details"))
-  
-      (fw:test:button-push "Revert to Language Defaults")
-  
-      (when close-dialog?
-        (fw:test:button-push "OK")
-        (let ([new-frame (wait-for-new-frame language-dialog)])
-          (unless (eq? new-frame drs-frame)
-            (error 'set-language-level!
-                   "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
-                   new-frame
-                   drs-frame))))))
+    (define drs-frame (fw:test:get-active-top-level-window))
+    (fw:test:menu-select "Language" "Choose Language…")
+    (define language-dialog (wait-for-new-frame drs-frame))
+    (fw:test:set-radio-box-item! #rx"Other Languages")
+    (define language-choices
+      (find-labelled-windows #f hierarchical-list% (fw:test:get-active-top-level-window)))
+    (define (click-on-snip snip)
+      (define-values (x y)
+        (queue-callback/res (λ ()
+                              (define b1 (box 0))
+                              (define b2 (box 0))
+                              (define editor (send (send snip get-admin) get-editor))
+                              (define between-threshold (send editor get-between-threshold))
+                              (send editor get-snip-location snip b1 b2)
+                              (define-values (gx gy)
+                                (send editor editor-location-to-dc-location (unbox b1) (unbox b2)))
+                              (define x (inexact->exact (floor (+ gx between-threshold 1))))
+                              (define y (inexact->exact (floor (+ gy between-threshold 1))))
+                              (values x y))))
+      (fw:test:mouse-click 'left x y))
+    
+    (define found-language? #f)
+    
+    (for ([language-choice (in-list language-choices)])
+      (queue-callback/res (λ () (send language-choice focus)))
+      (let loop ([list-item language-choice]
+                 [language-spec in-language-spec])
+        (let* ([name (car language-spec)]
+               [which (queue-callback/res
+                       (λ ()
+                         (filter (lambda (child)
+                                   (let* ([text (send (send child get-editor) get-text)]
+                                          [matches (or (and (regexp? name) (regexp-match name text))
+                                                       (and (string? name) (string=? name text)))])
+                                     (and matches child)))
+                                 (send list-item get-items))))])
+          (unless (null? which)
+            (unless (= 1 (length which))
+              (error 'set-language-level!
+                     "couldn't find language: ~e, double match ~e"
+                     in-language-spec
+                     name))
+            (let ([next-item (car which)])
+              (cond
+                [(null? (cdr language-spec))
+                 (when (is-a? next-item hierarchical-list-compound-item<%>)
+                   (error 'set-language-level!
+                          "expected no more languages after ~e, but still are, input ~e"
+                          name
+                          in-language-spec))
+                 (set! found-language? #t)
+                 (click-on-snip (send next-item get-clickable-snip))]
+                [else
+                 (unless (is-a? next-item hierarchical-list-compound-item<%>)
+                   (error 'set-language-level!
+                          "expected more languages after ~e, but got to end, input ~e"
+                          name
+                          in-language-spec))
+                 (unless (queue-callback/res (λ () (send next-item is-open?)))
+                   (click-on-snip (send next-item get-arrow-snip)))
+                 (loop next-item (cdr language-spec))]))))))
+    
+    (unless found-language?
+      (error 'set-language-level! "couldn't find language: ~e" in-language-spec))
+    
+    (with-handlers ([exn:fail? (lambda (x) (void))])
+      (fw:test:button-push #rx"Show Details"))
+    
+    (fw:test:button-push "Revert to Language Defaults")
+    
+    (when close-dialog?
+      (fw:test:button-push "OK")
+      (let ([new-frame (wait-for-new-frame language-dialog)])
+        (unless (eq? new-frame drs-frame)
+          (error 'set-language-level!
+                 "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
+                 new-frame
+                 drs-frame)))))
   
   (define (set-module-language! [close-dialog? #t])
     (not-on-eventspace-handler-thread 'set-module-language!)
@@ -476,25 +477,25 @@
          (cond
            [(<= end pos) #f]
            [else
-            (let ([snip (send interactions-text find-snip pos 'after-or-none)])
-              (cond
-                [(not snip) #f]
-                [else
-                 (let ([color (send (send snip get-style) get-foreground)])
-                   (if (and (= 255 (send color red)) (= 0 (send color blue) (send color green)))
-       
-                       ;; return the text of the entire line containing the red text
-                       (let ([para (send interactions-text position-paragraph pos)])
-                         (unless (exact-nonnegative-integer? para)
-                           (error 'has-error?
-                                  "got back a bad result from position-paragraph: ~s ~s\n"
-                                  para
-                                  (list pos (send interactions-text last-position))))
-                         (send interactions-text get-text
-                               (send interactions-text paragraph-start-position para)
-                               (send interactions-text paragraph-end-position para)))
-       
-                       (loop (+ pos (send snip get-count)))))]))])))))
+            (define snip (send interactions-text find-snip pos 'after-or-none))
+            (cond
+              [(not snip) #f]
+              [else
+               (let ([color (send (send snip get-style) get-foreground)])
+                 (if (and (= 255 (send color red)) (= 0 (send color blue) (send color green)))
+            
+                     ;; return the text of the entire line containing the red text
+                     (let ([para (send interactions-text position-paragraph pos)])
+                       (unless (exact-nonnegative-integer? para)
+                         (error 'has-error?
+                                "got back a bad result from position-paragraph: ~s ~s\n"
+                                para
+                                (list pos (send interactions-text last-position))))
+                       (send interactions-text get-text
+                             (send interactions-text paragraph-start-position para)
+                             (send interactions-text paragraph-end-position para)))
+            
+                     (loop (+ pos (send snip get-count)))))])])))))
 
   (define fetch-output
     (case-lambda
@@ -524,52 +525,45 @@
             (let loop ([snip (send text find-snip end 'before)]
                        [strings null])
               (cond
-                [(or (not snip)
-                     (< (send text get-snip-position snip) start))
+                [(or (not snip) (< (send text get-snip-position snip) start))
                  (apply string-append strings)]
+                [(is-a? snip string-snip%)
+                 (loop (send snip previous)
+                       (cons (send snip get-text 0 (send snip get-count)) strings))]
+                [(is-a? snip editor-snip%)
+                 (let ([editor (send snip get-editor)])
+                   (cond
+                     [(is-a? editor pasteboard%)
+                      (loop (send snip previous) (cons "<pasteboard>" strings))]
+                     [(is-a? editor text%)
+                      (loop (send snip previous)
+                            (list* "{embedded \""
+                                   (fetch-text-content editor 0 (send editor last-position))
+                                   "\"}"
+                                   strings))]))]
+                [(is-a? snip image-snip%)
+                 (loop (send snip previous)
+                       (cons (with-handlers ([exn:fail? (lambda (x) "{image}")])
+                               (format "{~a}" (send snip get-image-name)))
+                             strings))]
+              
+                [;; this test is an approximation of
+                 ;; (is-a? snip drscheme:snip:number-snip%)
+                 (and (method-in-interface? 'get-fraction-view (object-interface snip)))
+                 (loop (send snip previous)
+                       (cons (format "{number ~s ~s ~s}"
+                                     (send snip get-number)
+                                     (send snip get-text 0 (send snip get-count))
+                                     (send snip get-fraction-view))
+                             strings))]
+                [;; this test is an approximation of
+                 ;; (is-a? snip pict-snip%) from drracket/private/pict-snip%
+                 (let ([sc (send snip get-snipclass)])
+                   (and sc (regexp-match #rx"pict-snip.rkt" (send sc get-classname))))
+                 (loop (send snip previous) (cons "{pict-snip}" strings))]
+              
                 [else
-                 (cond
-                   [(is-a? snip string-snip%)
-                    (loop (send snip previous)
-                          (cons (send snip get-text 0 (send snip get-count)) strings))]
-                   [(is-a? snip editor-snip%)
-                    (let ([editor (send snip get-editor)])
-                      (cond
-                        [(is-a? editor pasteboard%)
-                         (loop (send snip previous)
-                               (cons "<pasteboard>" strings))]
-                        [(is-a? editor text%)
-                         (loop (send snip previous)
-                               (list* "{embedded \""
-                                      (fetch-text-content editor 0 (send editor last-position))
-                                      "\"}"
-                                      strings))]))]
-                   [(is-a? snip image-snip%)
-                    (loop (send snip previous)
-                          (cons (with-handlers ([exn:fail? (lambda (x) "{image}")])
-                                  (format "{~a}" (send snip get-image-name)))
-                                strings))]
-                     
-                   [;; this test is an approximation of
-                    ;; (is-a? snip drscheme:snip:number-snip%)
-                    (and (method-in-interface? 'get-fraction-view (object-interface snip)))
-                    (loop (send snip previous)
-                          (cons (format "{number ~s ~s ~s}"
-                                        (send snip get-number)
-                                        (send snip get-text 0 (send snip get-count))
-                                        (send snip get-fraction-view))
-                                strings))]
-                   [;; this test is an approximation of
-                    ;; (is-a? snip pict-snip%) from drracket/private/pict-snip%
-                    (let ([sc (send snip get-snipclass)])
-                      (and sc (regexp-match #rx"pict-snip.rkt" (send sc get-classname))))
-                    (loop (send snip previous)
-                          (cons "{pict-snip}" strings))]
-                     
-                   [else
-                    (loop (send snip previous)
-                          (cons (format "{unknown snip: ~e}\n" snip)
-                                strings))])])))
+                 (loop (send snip previous) (cons (format "{unknown snip: ~e}\n" snip) strings))])))
 
           (fetch-text-content (send frame get-interactions-text) start end)))]))
   
@@ -604,32 +598,30 @@
            #:prefs [prefs '()]
            run-test)
     (on-eventspace-handler-thread 'fire-up-drracket-and-run-tests)
-    (let ()
-      (use-hash-for-prefs fw:preferences:low-level-get-preference
-                          fw:preferences:low-level-put-preferences
-                          fw:preferences:restore-defaults
-                          fw:preferences:set
-                          fw:preferences:default-set?
-                          prefs)
-      
-      (parameterize ([current-command-line-arguments #()])
-        (dynamic-require 'drracket #f))
-      
-      (fw:test:use-focus-table use-focus-table?)
-      
-      (thread (λ () 
-                (let ([orig-display-handler (error-display-handler)])
-                  (uncaught-exception-handler
-                   (λ (x)
-                     (if (exn? x)
-                         (orig-display-handler (exn-message x) x)
-                         (eprintf "uncaught exception ~s\n" x))
-                     (sleep/yield 0.1)
-                     (exit 1))))
-                (run-test)
-                (test-log #:display? #t #:exit? #t)
-                (exit 0)))
-      (yield (make-semaphore 0))))
+    (use-hash-for-prefs fw:preferences:low-level-get-preference
+                        fw:preferences:low-level-put-preferences
+                        fw:preferences:restore-defaults
+                        fw:preferences:set
+                        fw:preferences:default-set?
+                        prefs)
+    
+    (parameterize ([current-command-line-arguments #()])
+      (dynamic-require 'drracket #f))
+    
+    (fw:test:use-focus-table use-focus-table?)
+    
+    (thread (λ ()
+              (let ([orig-display-handler (error-display-handler)])
+                (uncaught-exception-handler (λ (x)
+                                              (if (exn? x)
+                                                  (orig-display-handler (exn-message x) x)
+                                                  (eprintf "uncaught exception ~s\n" x))
+                                              (sleep/yield 0.1)
+                                              (exit 1))))
+              (run-test)
+              (test-log #:display? #t #:exit? #t)
+              (exit 0)))
+    (yield (make-semaphore 0)))
   
 (define (wait-for-online-compilation-to-finish frame) 
   (let loop ([i 0])
