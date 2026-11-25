@@ -1088,16 +1088,16 @@ This produces an ACK message
       [(string? program) (insert-in-definitions/newlines drr-frame program)]
       [(eq? program 'fraction-sum) (setup-fraction-sum-interactions)]
       [(list? program)
-       (for-each (lambda (item)
-                   (cond
-                     [(string? item) (insert-in-definitions/newlines drr-frame item)]
-                     [(eq? item 'left)
-                      (queue-callback/res (λ ()
-                                            (send defs-text set-position
-                                                  (- (send defs-text get-start-position) 1)
-                                                  (- (send defs-text get-start-position) 1))))]
-                     [(pair? item) (apply test:menu-select item)]))
-                 program)])
+       (for ([item (in-list program)])
+         (cond
+           [(string? item) (insert-in-definitions/newlines drr-frame item)]
+           [(eq? item 'left)
+            (queue-callback/res (λ ()
+                                  (send defs-text set-position
+                                        (- (send defs-text get-start-position) 1)
+                                        (- (send defs-text get-start-position) 1))))]
+           [(pair? item) (apply test:menu-select item)]))]
+      [else (void)])
   
     (do-execute drr-frame #f)
   
@@ -1130,20 +1130,20 @@ This produces an ACK message
             (eprintf "FAILED execute test for ~s\n  expected interactions to have the focus\n"
                      program))]
          [defs-focus?
-          (let ([start (car source-location)]
-                [finish (cdr source-location)])
-            (let* ([error-ranges (queue-callback/res (λ () (send ints-text get-error-ranges)))]
-                   [error-range (and error-ranges (not (null? error-ranges)) (car error-ranges))])
-              (unless (and error-range
-                           (= (+ (srcloc-position error-range) -1) (loc-offset start))
-                           (= (+ (srcloc-position error-range) -1 (srcloc-span error-range))
-                              (loc-offset finish)))
-                (eprintf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~s\n"
-                         program
-                         (and error-range
-                              (list (+ (srcloc-position error-range) -1)
-                                    (+ (srcloc-position error-range) -1 (srcloc-span error-range))))
-                         (list (loc-offset start) (loc-offset finish))))))])])
+          (define start (car source-location))
+          (define finish (cdr source-location))
+          (define error-ranges (queue-callback/res (λ () (send ints-text get-error-ranges))))
+          (define error-range (and error-ranges (not (null? error-ranges)) (car error-ranges)))
+          (unless (and error-range
+                       (= (+ (srcloc-position error-range) -1) (loc-offset start))
+                       (= (+ (srcloc-position error-range) -1 (srcloc-span error-range))
+                          (loc-offset finish)))
+            (eprintf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~s\n"
+                     program
+                     (and error-range
+                          (list (+ (srcloc-position error-range) -1)
+                                (+ (srcloc-position error-range) -1 (srcloc-span error-range))))
+                     (list (loc-offset start) (loc-offset finish))))])])
   
     ; check text for execute test
     (next-test)
@@ -1192,21 +1192,21 @@ This produces an ACK message
         (test:run-one (λ () (send (send drr-frame get-break-button) command))))
       (wait-for-drr-frame-computation)
   
-      (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
-             [received-load (fetch-output drr-frame load-text-start load-text-end)])
-  
-        ;; check load text
-        (next-test)
-        (unless (cond
-                  [(string? load-answer) (string=? load-answer received-load)]
-                  [(regexp? load-answer) (regexp-match load-answer received-load)]
-                  [else #f])
-          (failure)
-          (eprintf "FAILED load test ~a for ~s\n  expected: ~s\n       got: ~s\n"
-                   short-filename
-                   program
-                   load-answer
-                   received-load))))
+      (define load-text-end (- (get-int-pos) 1)) ;; subtract one to eliminate newline
+      (define received-load (fetch-output drr-frame load-text-start load-text-end))
+      
+      ;; check load text
+      (next-test)
+      (unless (cond
+                [(string? load-answer) (string=? load-answer received-load)]
+                [(regexp? load-answer) (regexp-match load-answer received-load)]
+                [else #f])
+        (failure)
+        (eprintf "FAILED load test ~a for ~s\n  expected: ~s\n       got: ~s\n"
+                 short-filename
+                 program
+                 load-answer
+                 received-load)))
     (load-test tmp-load-short-filename (make-load-answer in-vector language-cust #f))
     (when (file-exists? tmp-load3-filename)
       (delete-file tmp-load3-filename))
