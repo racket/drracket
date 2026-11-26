@@ -82,6 +82,7 @@
   
   ;; tests : (listof test)
   (define tests
+    (flatten
     (list
 
      (build-test "12345"
@@ -1631,6 +1632,62 @@
        "(require (rename-in racket/base [cons xyz]))\n"
        "xyz"))
 
+     (build-rename-test
+      (string-append
+       "#lang racket/base\n"
+       "(define-syntax-rule (m x y z)\n"
+       "  (begin (let ([x 1]) z)\n"
+       "         (let ([y 1]) z)))\n"
+       "(m x x x)")
+      104
+      "x"
+      "yy"
+      (string-append
+       "#lang racket/base\n"
+       "(define-syntax-rule (m x y z)\n"
+       "  (begin (let ([x 1]) z)\n"
+       "         (let ([y 1]) z)))\n"
+       "(m yy yy yy)"))
+
+     (let ([prog
+            #<<--
+#lang racket/base
+(require (for-syntax racket/base
+                     syntax/parse))
+
+(define-syntax (case-fun stx)
+  (syntax-parse stx
+    [(_ [(name . args) body ...+] ...)
+     (define names (syntax->list #'(name ...)))
+     (when (null? names)
+       (raise-syntax-error #f
+                           "missing cases"
+                           stx))
+     (define name0 (car names))
+     (for ([name (in-list (cdr names))])
+       (unless (bound-identifier=? name name0)
+         (raise-syntax-error #f
+                             "inconsistent function name"
+                             stx
+                             name)))
+     (syntax-property
+      #`(define #,name0
+          (case-lambda [args body ...] ...))
+      'disappeared-binding (map syntax-local-introduce (cdr names)))]))
+
+(case-fun
+  [(sum x) x]
+  [(sum x y) (sum (+ x y))]
+  [(sum x . xs) (+ x (apply sum xs))])
+
+(sum 1 2 3)
+
+--
+      ])
+       (list (build-rename-test prog 814 "sum" "add-em-up" (regexp-replace* #rx"sum" prog "add-em-up"))
+             (build-rename-test prog 841 "sum" "somme" (regexp-replace* #rx"sum" prog "somme"))
+             (build-rename-test prog 894 "sum" "SUM" (regexp-replace* #rx"sum" prog "SUM"))))
+     
      (build-test
       #:extra-files
       (hash "define-suffix.rkt"
@@ -1755,7 +1812,7 @@
         (" 12345)\n" default-color))
       (list '((6 17) (19 26) (76 76))
             '((27 52) (55 75))))
-     ))
+     )))
 
 
   (define (main)
