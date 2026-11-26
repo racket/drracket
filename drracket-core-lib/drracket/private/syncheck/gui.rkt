@@ -1829,8 +1829,7 @@ If the namespace does not, they are colored the unbound color.
               (define-values (_unused make-identifiers-hash)
                 (position->matching-identifiers-hash txt start-pos end-pos #:binders-only? binders-only?))
               (define orig-arrows 
-                (sort (hash-map (make-identifiers-hash)
-                                (λ (x y) x))
+                (sort (hash-keys (make-identifiers-hash))
                       (λ (x y) (if backwards?
                                    (not (syncheck:compare-bindings x y))
                                    (syncheck:compare-bindings x y)))))
