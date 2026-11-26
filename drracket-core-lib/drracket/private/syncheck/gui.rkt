@@ -814,7 +814,7 @@ If the namespace does not, they are colored the unbound color.
                  (when prefix
                    (define binder (car candidate-binders))
                    (define make-identifiers-hash
-                     (arrows->identifiers-hash #t (list binder)))
+                     (arrows->identifiers-hash #t (list binder) #f))
                    (define req-txt (var-arrow-start-text binder))
                    (define req-start (var-arrow-start-pos-left binder))
                    (define req-end (var-arrow-start-pos-right binder))
@@ -1433,11 +1433,11 @@ If the namespace does not, they are colored the unbound color.
                     (make-object menu-item%
                       jump-to-next-bound-occurrence
                       menu
-                      (λ (item evt) (jump-to-next-callback pos (+ pos 1) text #f)))
+                      (λ (item evt) (jump-to-next-callback pos (+ pos 1) text #f #f)))
                     (make-object menu-item%
                       jump-to-binding
                       menu
-                      (λ (item evt) (jump-to-binding-callback arrows))))
+                      (λ (item evt) (jump-to-next-callback pos (+ pos 1) text #f #t))))
                   (unless (= start-selection end-selection)
                     (add-sep)
                     (define arrows-menu
@@ -1555,13 +1555,14 @@ If the namespace does not, they are colored the unbound color.
             ;; position->matching-identifiers-hash 
             ;; : txt pos pos -> (values (listof var-arrow?) hash[(list txt pos pos) -o> #t])
             (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos
-                                                                 #:also-look-backward-one? [also-look-backward-one? #t])
+                                                                 #:also-look-backward-one? [also-look-backward-one? #t]
+                                                                 #:binders-only? [binders-only? #f])
               (define here-arrows (position-range->arrows the-text the-start-pos the-end-pos #f
                                                           #:include-unused-binders? #t
                                                           #:also-look-backward-one? also-look-backward-one?))
 
               (values here-arrows
-                      (arrows->identifiers-hash #f here-arrows)))
+                      (arrows->identifiers-hash #f here-arrows binders-only?)))
 
             ;; the also-look-backward-one? argument is intended for when the originating
             ;; position is an insertion point coming, perhaps, via a keystroke. In that
@@ -1610,7 +1611,7 @@ If the namespace does not, they are colored the unbound color.
                        (set! binding-arrows (cons arrow binding-arrows)))])))
               binding-arrows)
 
-            (define (arrows->identifiers-hash include-require-arrows? here-arrows)
+            (define (arrows->identifiers-hash include-require-arrows? here-arrows binders-only?)
               (define identifiers-hash #f)
               (define (add-one txt start end)
                 (hash-set! identifiers-hash (list txt start end) #t))
@@ -1619,10 +1620,12 @@ If the namespace does not, they are colored the unbound color.
                   (set! identifiers-hash (make-hash))
                   (define already-considered (make-hash))
 
-                  (define (add-range txt range-start range-end)
+                  (define (add-range txt range-start range-end binder?)
                     (define k (list range-start range-end))
                     (unless (hash-ref already-considered k #f)
-                      (add-one txt range-start range-end)
+                      (when (or (not binders-only?)
+                                binder?)
+                        (add-one txt range-start range-end))
                       (hash-set! already-considered k #t)
                       (for ([pos (in-range range-start range-end)])
                         (for ([arrow (in-list (or (fetch-arrow-records txt pos) '()))])
@@ -1633,9 +1636,9 @@ If the namespace does not, they are colored the unbound color.
 
                   (define (add-arrow txt arrow)
                     (when (equal? (var-arrow-start-text arrow) txt)
-                      (add-range txt (var-arrow-start-pos-left arrow) (var-arrow-start-pos-right arrow)))
+                      (add-range txt (var-arrow-start-pos-left arrow) (var-arrow-start-pos-right arrow) #t))
                     (when (equal? (var-arrow-end-text arrow) txt)
-                      (add-range txt (var-arrow-end-pos-left arrow) (var-arrow-end-pos-right arrow))))
+                      (add-range txt (var-arrow-end-pos-left arrow) (var-arrow-end-pos-right arrow) #f)))
 
                   (for ([an-arrow (in-list here-arrows)])
                     (cond
@@ -1798,14 +1801,14 @@ If the namespace does not, they are colored the unbound color.
               (jump-to-binding/bound-helper 
                text 
                (λ (start-pos end-pos text vec-ents)
-                 (jump-to-next-callback start-pos end-pos text backwards?))))
+                 (jump-to-next-callback start-pos end-pos text backwards? #f))))
             
             ;; syncheck:jump-to-binding-occurrence : text -> void
             (define/public (syncheck:jump-to-binding-occurrence text)
               (jump-to-binding/bound-helper 
                text 
                (λ (start-pos end-pos text vec-ents)
-                 (jump-to-binding-callback vec-ents))))
+                 (jump-to-next-callback start-pos end-pos text #t #t))))
             
             (define/private (jump-to-binding/bound-helper text do-jump)
               (when arrow-records
@@ -1820,11 +1823,11 @@ If the namespace does not, they are colored the unbound color.
                   (unless (null? arrows)
                     (do-jump start-pos end-pos text arrows)))))
             
-            ;; jump-to-next-callback : num text boolean? -> void
+            ;; jump-to-next-callback : num num text boolean? boolean? -> void
             ;; callback for the jump popup menu item
-            (define/private (jump-to-next-callback start-pos end-pos txt backwards?)
+            (define/private (jump-to-next-callback start-pos end-pos txt backwards? binders-only?)
               (define-values (_unused make-identifiers-hash)
-                (position->matching-identifiers-hash txt start-pos end-pos))
+                (position->matching-identifiers-hash txt start-pos end-pos #:binders-only? binders-only?))
               (define orig-arrows 
                 (sort (hash-map (make-identifiers-hash)
                                 (λ (x y) x))
@@ -1868,17 +1871,6 @@ If the namespace does not, they are colored the unbound color.
                 ;; else set-position's scrolling will cause the
                 ;; 'unless' test above to skip the call to scroll-editor-to
                 (send end-text set-position end-pos-left end-pos-right)))
-            
-            ;; jump-to-binding-callback : (listof arrow) -> void
-            ;; callback for the jump popup menu item
-            (define/private (jump-to-binding-callback arrows)
-              (unless (null? arrows)
-                (let* ([arrow (car arrows)]
-                       [start-text (var-arrow-start-text arrow)]
-                       [start-pos-left (var-arrow-start-pos-left arrow)]
-                       [start-pos-right (var-arrow-start-pos-right arrow)])
-                  (send start-text set-position start-pos-left start-pos-right)
-                  (send start-text set-caret-owner #f 'global))))
             
             ;; syncheck:jump-to-definition : text -> void
             (define/public (syncheck:jump-to-definition text)
